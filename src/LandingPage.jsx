@@ -36,34 +36,12 @@ function LandingPage() {
           </p>
         </div>
 
-        {/* Feature Icons */}
-        <div className="grid grid-cols-3 gap-8 mb-8">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Star className="w-6 h-6 text-orange-500" />
-            </div>
-            <p className="text-black text-sm font-medium">Quick Rating</p>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Gift className="w-6 h-6 text-green-500" />
-            </div>
-            <p className="text-black text-sm font-medium">Earn Rewards</p>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Users className="w-6 h-6 text-blue-500" />
-            </div>
-            <p className="text-black text-sm font-medium">Help Others</p>
-          </div>
-        </div>
-
         {/* Sign In Button */}
         <button 
           // onClick={handleSignIn}
           className="w-full cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-semibold py-4 px-6 rounded-xl transition-colors duration-200 mb-4"
         >
-          🏆 Sign In for Rewards
+          Sign In
         </button>
 
         {/* Continue Anonymously */}

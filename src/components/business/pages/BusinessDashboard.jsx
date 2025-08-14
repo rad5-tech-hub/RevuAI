@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line , ComposedChart} from 'recharts';
 import { Link }from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -7,7 +7,6 @@ import {
   Star, 
   MessageSquare, 
   AlertTriangle, 
-  CheckCircle,
   Clock,
   Eye,
   QrCode,
@@ -100,11 +99,11 @@ function BusinessDashboard () {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-sm">
-          <p className="font-medium">{`${label}`}</p>
+        <div className="bg-white p-2 sm:p-3 border border-gray-200 rounded-lg shadow-sm text-xs sm:text-sm">
+          <p className="font-medium">{label}</p>
           {payload.map((entry, index) => (
             <p key={index} style={{ color: entry.color }}>
-              {`${entry.dataKey === 'feedback' ? 'Feedback' : 'Rating'}: ${entry.value}${entry.dataKey === 'rating' ? '/5' : ''}`}
+              {entry.dataKey === 'feedback' ? 'Feedback' : 'Rating'}: {entry.value}
             </p>
           ))}
         </div>
@@ -112,6 +111,7 @@ function BusinessDashboard () {
     }
     return null;
   };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -237,52 +237,22 @@ function BusinessDashboard () {
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* Weekly Feedback Trends */}
-          <div className="xl:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="md:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-6">Weekly Feedback Trends</h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis 
-                    dataKey="day" 
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
-                    axisLine={{ stroke: '#e5e7eb' }}
-                  />
-                  <YAxis 
-                    yAxisId="feedback"
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
-                    axisLine={{ stroke: '#e5e7eb' }}
-                  />
-                  <YAxis 
-                    yAxisId="rating"
-                    orientation="right"
-                    domain={[0, 5]}
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
-                    axisLine={{ stroke: '#e5e7eb' }}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar 
-                    yAxisId="feedback"
-                    dataKey="feedback" 
-                    fill="#3b82f6" 
-                    radius={[4, 4, 0, 0]}
-                    name="Feedback Count"
-                  />
-                  <LineChart data={weeklyData}>
-                    <Line 
-                      yAxisId="rating"
-                      type="monotone" 
-                      dataKey="rating" 
-                      stroke="#f59e0b" 
-                      strokeWidth={3}
-                      dot={{ fill: '#f59e0b', r: 4 }}
-                      name="Average Rating"
-                    />
-                  </LineChart>
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="h-72 md:h-80">
+             <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={weeklyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="day"  tick={{ fill: '#6b7280', fontSize: window.innerWidth < 640 ? 10 : 12 }}/>
+                <YAxis yAxisId="feedback" tick={{ fill: '#6b7280', fontSize: window.innerWidth < 640 ? 10 : 12 }}/>
+                <YAxis yAxisId="rating" orientation="right" domain={[0, 5]} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar yAxisId="feedback" dataKey="feedback" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Line yAxisId="rating" type="monotone" dataKey="rating" stroke="#f59e0b" strokeWidth={3} dot />
+              </ComposedChart>
+            </ResponsiveContainer>
             </div>
           </div>
 
@@ -367,18 +337,6 @@ function BusinessDashboard () {
           </div>
         </div>
       </div>
-
-      {/* Custom CSS for animations */}
-      <style jsx>{`
-        @keyframes growWidth {
-          from {
-            width: 0%;
-          }
-          to {
-            width: var(--target-width);
-          }
-        }
-      `}</style>
     </div>
   );
 };
