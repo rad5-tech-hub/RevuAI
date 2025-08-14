@@ -63,7 +63,7 @@ function LandingPage() {
           // onClick={handleSignIn}
           className="w-full cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-semibold py-4 px-6 rounded-xl transition-colors duration-200 mb-4"
         >
-          🏆 Sign In for Rewards
+          Sign In
         </button>
 
         {/* Continue Anonymously */}
