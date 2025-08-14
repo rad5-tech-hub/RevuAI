@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route} from 'react-router-dom';
 import LandingPage from './LandingPage.jsx';
+import QRCodeGenerator from './components/business/pages/QrGenerator.jsx';
 import ScanReviewLanding from '../src/components/business/pages/BusinessAuth.jsx';
 import BusinessDashboard from '../src/components/business/pages/BusinessDashboard.jsx';
 import Qr from '../src/components/business/pages/QrGenerator.jsx';
@@ -10,7 +11,8 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        {/* <Route path="/" element={<LandingPage />} /> */}
+        <Route path="/" element={<QRCodeGenerator />} />
         <Route path="/businessAuth" element={<ScanReviewLanding />} />
         <Route path="/businessQrpage" element={<Qr />} />
         <Route path="/businessReports" element={<Report />} />
