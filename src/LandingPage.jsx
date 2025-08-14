@@ -19,12 +19,12 @@ function LandingPage() {
       {/* Header */}
       <div className="w-full max-w-md md:max-w-2xl lg:max-w-[88rem] mx-auto px-6 pt-12 pb-8 text-center">
         {/* Logo */}
-        <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white">
+        <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white">
           <QrCode />
         </div>
 
         {/* ScanReview Title */}
-        <h1 className="text-2xl font-bold text-blue-500 mb-2">RevuAi</h1>
+        <h1 className="text-2xl font-bold text-black mb-2">RevuAi</h1>
         <p className="text-black text-sm mb-8">Share your experience, earn rewards</p>
 
         {/* Welcome Card */}
@@ -78,12 +78,14 @@ function LandingPage() {
         <div className="text-center">
           <Link 
             to="/businessAuth" 
-            className="text-black text-sm underline hover:text-black transition-colors"
+            className="text-black text-sm underline  hover:text-blue-500 transition-colors"
           >
             Business Owner? Access Portal
           </Link>
         </div>
       </div>
+
+      <p className="text-center text-gray-600 text-sm">Powered by RevuAi . Privacy Protected</p>
     </div>
   );
 };
