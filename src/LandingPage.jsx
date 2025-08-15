@@ -63,7 +63,7 @@ function LandingPage() {
         </div>
       </div>
 
-      <p className="text-center text-gray-600 text-sm">Powered by RevuAi . Privacy Protected</p>
+      <p className="text-center text-gray-600 text-sm ">Powered by RevuAi . Privacy Protected</p>
     </div>
   );
 };
