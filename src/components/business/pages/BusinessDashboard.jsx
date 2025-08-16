@@ -1,4 +1,4 @@
-import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line , ComposedChart} from 'recharts';
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line , ComposedChart, Legend} from 'recharts';
 import { Link }from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -251,6 +251,10 @@ function BusinessDashboard () {
                 <Tooltip content={<CustomTooltip />} />
                 <Bar yAxisId="feedback" dataKey="feedback" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                 <Line yAxisId="rating" type="monotone" dataKey="rating" stroke="#f59e0b" strokeWidth={3} dot />
+                <Legend 
+                  verticalAlign="top"
+                  height={36}
+                />
               </ComposedChart>
             </ResponsiveContainer>
             </div>

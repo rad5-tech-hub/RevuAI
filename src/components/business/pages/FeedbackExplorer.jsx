@@ -125,11 +125,20 @@ const FeedbackExplorer = () => {
         <input
           type="text"
           placeholder="Search feedback..."
-          className="flex-1 min-w-[200px] border border-gray-300 rounded-lg px-4 py-2"
+          className="flex-1 min-w-[200px]  bg-blue-100 outline-blue-600 rounded-lg px-4 py-2"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <select className="border border-gray-300 rounded-lg px-3 py-2">
+        <select className="
+            bg-blue-100 outline-blue-600 rounded-lg px-3 py-2 pr-8 md:w-48 appearance-none relative"
+          style={{
+            backgroundImage:
+              'url("data:image/svg+xml;utf8,<svg fill=\'%230055aa\' height=\'20\' viewBox=\'0 0 24 24\' width=\'20\' xmlns=\'http://www.w3.org/2000/svg\'><path d=\'M7 10l5 5 5-5z\'/></svg>")',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 0.5rem center',
+            backgroundSize: '1.2rem',
+            borderRadius: '0.5rem',
+          }}>
           <option>All Ratings</option>
           <option>5 Stars</option>
           <option>4 Stars</option>
@@ -137,13 +146,39 @@ const FeedbackExplorer = () => {
           <option>2 Stars</option>
           <option>1 Star</option>
         </select>
-        <select className="border border-gray-300 rounded-lg px-3 py-2">
+        <select className="
+            bg-blue-100 outline-blue-600 rounded-lg px-3 py-2 pr-8 md:w-48 appearance-none relative"
+          style={{
+            backgroundImage:
+              'url("data:image/svg+xml;utf8,<svg fill=\'%230055aa\' height=\'20\' viewBox=\'0 0 24 24\' width=\'20\' xmlns=\'http://www.w3.org/2000/svg\'><path d=\'M7 10l5 5 5-5z\'/></svg>")',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 0.5rem center',
+            backgroundSize: '1.2rem',
+            borderRadius: '0.5rem',
+          }}>
           <option>All Sentiments</option>
           <option>Positive</option>
           <option>Neutral</option>
           <option>Negative</option>
         </select>
-        <input type="date" className="border border-gray-300 rounded-lg px-3 py-2" />
+        <select
+          className="
+            bg-blue-100 outline-blue-600 rounded-lg px-3 py-2 pr-8 md:w-48 appearance-none relative"
+          style={{
+            backgroundImage:
+              'url("data:image/svg+xml;utf8,<svg fill=\'%230055aa\' height=\'20\' viewBox=\'0 0 24 24\' width=\'20\' xmlns=\'http://www.w3.org/2000/svg\'><path d=\'M7 10l5 5 5-5z\'/></svg>")',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 0.5rem center',
+            backgroundSize: '1.2rem',
+            borderRadius: '0.5rem',
+          }}
+        >
+          <option>This Week</option>
+          <option>Today</option>
+          <option>This Month</option>
+          <option>This Quarter</option>
+          <option>All Time</option>
+        </select>
       </div>
 
       {/* Feedback List */}
