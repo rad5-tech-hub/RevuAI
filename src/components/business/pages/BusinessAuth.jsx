@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { QrCode, BarChart3, Users, Star, Mail, Lock, FileText, Building, User, Phone } from 'lucide-react';
 
-const ScanReviewLanding = () => {
+export const BusinessAuth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
@@ -17,7 +17,9 @@ const ScanReviewLanding = () => {
   const navigate = useNavigate();
 
   console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
-  const BASE_URL = import.meta.env.VITE_API_URL || 'https://revuai.bookbank.com.ng';
+  console.log('VITE_TEST_VAR:', import.meta.env.VITE_TEST_VAR);
+  console.log('All env variables:', import.meta.env);
+  const BASE_URL = import.meta.env.VITE_API_URL;
 
   const handleSignUp = async () => {
     setIsLoading(true);
@@ -36,8 +38,6 @@ const ScanReviewLanding = () => {
 
       console.log('SignUp response:', response.data);
       if (response.data.message) {
-        // Optionally store a token if provided in the future
-        // localStorage.setItem('authToken', response.data.token || 'temp-token');
         setSuccess('Registration successful! Please sign in to continue.');
         setIsSignUp(false);
         setBusinessName('');
@@ -46,8 +46,6 @@ const ScanReviewLanding = () => {
         setAddress('');
         setEmail('');
         setPassword('');
-        // Uncomment the following line if you want to navigate to dashboard after signup
-        // navigate('/businessDashboard');
       } else {
         setError('Registration succeeded, but unexpected response format.');
       }
@@ -64,22 +62,27 @@ const ScanReviewLanding = () => {
     setSuccess('');
     
     try {
+      console.log('Attempting login with:', { email, password });
       const response = await axios.post(`${BASE_URL}/api/v1/business/login-business`, {
         email,
         password
       });
 
       console.log('SignIn response:', response.data);
-      const { token } = response.data; // Adjust if token is nested, e.g., response.data.data.token
+      const token = response.data.data?.token || response.data.token;
       if (token) {
+        console.log('Token stored:', token);
         localStorage.setItem('authToken', token);
         setSuccess('Login successful! Redirecting to dashboard...');
-        navigate('/businessDashboard');
+        console.log('Navigating to /businessDashboard');
+        navigate('/businessDashboard'); // Immediate navigation
       } else {
         setError('Login succeeded, but no token received.');
+        console.log('No token found in response');
       }
     } catch (err) {
       setError(err.response?.data?.message || `Login failed: ${err.message}`);
+      console.log('Login error:', err.response?.data || err.message);
     } finally {
       setIsLoading(false);
     }
@@ -87,7 +90,6 @@ const ScanReviewLanding = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -103,20 +105,14 @@ const ScanReviewLanding = () => {
           </div>
         </div>
       </header>
-
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid lg:grid-cols-2 gap-12 items-start">
-          {/* Left Content */}
           <div className="space-y-8">
-            {/* Badge */}
             <div className="inline-block">
               <span className="bg-orange-100 text-orange-800 text-sm font-medium px-3 py-1 rounded-full">
                 For Businesses
               </span>
             </div>
-
-            {/* Main Heading */}
             <div className="space-y-4">
               <h2 className="text-4xl font-bold text-gray-900 leading-tight">
                 Transform Customer Feedback into Business Growth
@@ -125,8 +121,6 @@ const ScanReviewLanding = () => {
                 Get actionable insights from your customers with our comprehensive feedback management platform.
               </p>
             </div>
-
-            {/* Features */}
             <div className="space-y-6">
               <div className="flex items-start space-x-4">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -137,7 +131,6 @@ const ScanReviewLanding = () => {
                   <p className="text-gray-600">Create custom QR codes for your business and products</p>
                 </div>
               </div>
-
               <div className="flex items-start space-x-4">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <BarChart3 className="w-5 h-5 text-blue-600" />
@@ -147,7 +140,6 @@ const ScanReviewLanding = () => {
                   <p className="text-gray-600">Real-time insights and feedback trends</p>
                 </div>
               </div>
-
               <div className="flex items-start space-x-4">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Users className="w-5 h-5 text-blue-600" />
@@ -157,7 +149,6 @@ const ScanReviewLanding = () => {
                   <p className="text-gray-600">Understand your customers better with detailed feedback</p>
                 </div>
               </div>
-
               <div className="flex items-start space-x-4">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Star className="w-5 h-5 text-blue-600" />
@@ -168,8 +159,6 @@ const ScanReviewLanding = () => {
                 </div>
               </div>
             </div>
-
-            {/* Stats */}
             <div className="grid grid-cols-3 gap-8 pt-8">
               <div className="text-center">
                 <div className="text-3xl font-bold text-blue-600 mb-1">10K+</div>
@@ -185,25 +174,18 @@ const ScanReviewLanding = () => {
               </div>
             </div>
           </div>
-
-          {/* Right Content - Login Form */}
           <div className="flex justify-center lg:justify-end">
             <div className="w-full max-w-md">
               <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
-                {/* Icon */}
                 <div className="flex justify-center mb-6">
                   <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center">
                     <FileText className="w-8 h-8 text-white" />
                   </div>
                 </div>
-
-                {/* Title */}
                 <div className="text-center mb-8">
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">Business Portal Access</h3>
                   <p className="text-gray-600">Manage your customer feedback and grow your business</p>
                 </div>
-
-                {/* Messages */}
                 {error && (
                   <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
                     {error}
@@ -214,8 +196,6 @@ const ScanReviewLanding = () => {
                     {success}
                   </div>
                 )}
-
-                {/* Toggle Buttons */}
                 <div className="grid grid-cols-2 gap-0 mb-6 bg-gray-100 rounded-lg p-1">
                   <button
                     onClick={() => {
@@ -224,9 +204,7 @@ const ScanReviewLanding = () => {
                       setSuccess('');
                     }}
                     className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                      !isSignUp 
-                        ? 'bg-white text-gray-900 shadow-sm' 
-                        : 'text-gray-600 hover:text-gray-900'
+                      !isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
                     }`}
                     disabled={isLoading}
                   >
@@ -239,22 +217,16 @@ const ScanReviewLanding = () => {
                       setSuccess('');
                     }}
                     className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                      isSignUp 
-                        ? 'bg-white text-gray-900 shadow-sm' 
-                        : 'text-gray-600 hover:text-gray-900'
+                      isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
                     }`}
                     disabled={isLoading}
                   >
                     Get Started
                   </button>
                 </div>
-
-                {/* Form Content */}
                 <div className="space-y-6">
                   {isSignUp ? (
-                    /* Sign Up Form */
                     <>
-                      {/* Business Name */}
                       <div>
                         <div className="relative">
                           <Building className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -268,8 +240,6 @@ const ScanReviewLanding = () => {
                           />
                         </div>
                       </div>
-
-                      {/* Owner Name */}
                       <div>
                         <div className="relative">
                           <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -283,8 +253,6 @@ const ScanReviewLanding = () => {
                           />
                         </div>
                       </div>
-
-                      {/* Business Email */}
                       <div>
                         <div className="relative">
                           <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -298,8 +266,6 @@ const ScanReviewLanding = () => {
                           />
                         </div>
                       </div>
-
-                      {/* Phone Number */}
                       <div>
                         <div className="relative">
                           <Phone className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -313,8 +279,6 @@ const ScanReviewLanding = () => {
                           />
                         </div>
                       </div>
-
-                      {/* Address */}
                       <div>
                         <div className="relative">
                           <Building className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -328,8 +292,6 @@ const ScanReviewLanding = () => {
                           />
                         </div>
                       </div>
-
-                      {/* Create Password */}
                       <div>
                         <div className="relative">
                           <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -343,8 +305,6 @@ const ScanReviewLanding = () => {
                           />
                         </div>
                       </div>
-
-                      {/* Start Free Trial Button */}
                       <button
                         type="button"
                         className={`w-full py-3 px-4 bg-orange-400 hover:bg-orange-500 text-white rounded-lg font-medium transition-colors ${
@@ -355,16 +315,12 @@ const ScanReviewLanding = () => {
                       >
                         {isLoading ? 'Processing...' : 'Start Free Trial'}
                       </button>
-
-                      {/* Trial Info */}
                       <p className="text-center text-sm text-gray-500">
                         14-day free trial • No credit card required
                       </p>
                     </>
                   ) : (
-                    /* Sign In Form */
                     <>
-                      {/* Email Input */}
                       <div>
                         <div className="relative">
                           <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -378,8 +334,6 @@ const ScanReviewLanding = () => {
                           />
                         </div>
                       </div>
-
-                      {/* Password Input */}
                       <div>
                         <div className="relative">
                           <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -393,8 +347,6 @@ const ScanReviewLanding = () => {
                           />
                         </div>
                       </div>
-
-                      {/* Access Dashboard Button */}
                       <button
                         type="button"
                         className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors ${
@@ -405,8 +357,6 @@ const ScanReviewLanding = () => {
                       >
                         {isLoading ? 'Processing...' : 'Access Dashboard'}
                       </button>
-
-                      {/* Demo Text */}
                       <p className="text-center text-sm text-gray-500">
                         Demo: Use any email and password to continue
                       </p>
@@ -421,5 +371,3 @@ const ScanReviewLanding = () => {
     </div>
   );
 };
-
-export default ScanReviewLanding;
