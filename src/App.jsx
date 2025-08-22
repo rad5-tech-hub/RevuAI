@@ -12,7 +12,6 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        {/* <Route path="/" element={<BusinessDashboard/>} /> */}
         <Route path="/businessAuth" element={<ScanReviewLanding />} />
         <Route path="/businessQrpage" element={<Qr />} />
         <Route path="/businessReports" element={<Report />} />
