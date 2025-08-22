@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { QrCode, BarChart3, Users, Star, Mail, Lock, FileText, Building, User, Phone } from 'lucide-react';
 
 const ScanReviewLanding = () => {
@@ -8,6 +10,80 @@ const ScanReviewLanding = () => {
   const [businessName, setBusinessName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [address, setAddress] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const navigate = useNavigate();
+
+  console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
+  const BASE_URL = import.meta.env.VITE_API_URL || 'https://revuai.bookbank.com.ng';
+
+  const handleSignUp = async () => {
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      const response = await axios.post(`${BASE_URL}/api/v1/business/register-business`, {
+        business_name: businessName,
+        owner_name: ownerName,
+        email,
+        phone: phoneNumber,
+        address,
+        password
+      });
+
+      console.log('SignUp response:', response.data);
+      if (response.data.message) {
+        // Optionally store a token if provided in the future
+        // localStorage.setItem('authToken', response.data.token || 'temp-token');
+        setSuccess('Registration successful! Please sign in to continue.');
+        setIsSignUp(false);
+        setBusinessName('');
+        setOwnerName('');
+        setPhoneNumber('');
+        setAddress('');
+        setEmail('');
+        setPassword('');
+        // Uncomment the following line if you want to navigate to dashboard after signup
+        // navigate('/businessDashboard');
+      } else {
+        setError('Registration succeeded, but unexpected response format.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || `Registration failed: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignIn = async () => {
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      const response = await axios.post(`${BASE_URL}/api/v1/business/login-business`, {
+        email,
+        password
+      });
+
+      console.log('SignIn response:', response.data);
+      const { token } = response.data; // Adjust if token is nested, e.g., response.data.data.token
+      if (token) {
+        localStorage.setItem('authToken', token);
+        setSuccess('Login successful! Redirecting to dashboard...');
+        navigate('/businessDashboard');
+      } else {
+        setError('Login succeeded, but no token received.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || `Login failed: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -127,25 +203,47 @@ const ScanReviewLanding = () => {
                   <p className="text-gray-600">Manage your customer feedback and grow your business</p>
                 </div>
 
-               {/* Toggle Buttons */}
+                {/* Messages */}
+                {error && (
+                  <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+                {success && (
+                  <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">
+                    {success}
+                  </div>
+                )}
+
+                {/* Toggle Buttons */}
                 <div className="grid grid-cols-2 gap-0 mb-6 bg-gray-100 rounded-lg p-1">
                   <button
-                    onClick={() => setIsSignUp(false)}
+                    onClick={() => {
+                      setIsSignUp(false);
+                      setError('');
+                      setSuccess('');
+                    }}
                     className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                       !isSignUp 
                         ? 'bg-white text-gray-900 shadow-sm' 
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
+                    disabled={isLoading}
                   >
                     Sign In
                   </button>
                   <button
-                    onClick={() => setIsSignUp(true)}
+                    onClick={() => {
+                      setIsSignUp(true);
+                      setError('');
+                      setSuccess('');
+                    }}
                     className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                       isSignUp 
                         ? 'bg-white text-gray-900 shadow-sm' 
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
+                    disabled={isLoading}
                   >
                     Get Started
                   </button>
@@ -166,6 +264,7 @@ const ScanReviewLanding = () => {
                             value={businessName}
                             onChange={(e) => setBusinessName(e.target.value)}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                            disabled={isLoading}
                           />
                         </div>
                       </div>
@@ -180,6 +279,7 @@ const ScanReviewLanding = () => {
                             value={ownerName}
                             onChange={(e) => setOwnerName(e.target.value)}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                            disabled={isLoading}
                           />
                         </div>
                       </div>
@@ -194,6 +294,7 @@ const ScanReviewLanding = () => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                            disabled={isLoading}
                           />
                         </div>
                       </div>
@@ -208,6 +309,22 @@ const ScanReviewLanding = () => {
                             value={phoneNumber}
                             onChange={(e) => setPhoneNumber(e.target.value)}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                            disabled={isLoading}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Address */}
+                      <div>
+                        <div className="relative">
+                          <Building className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                          <input
+                            type="text"
+                            placeholder="Business address"
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                            disabled={isLoading}
                           />
                         </div>
                       </div>
@@ -222,6 +339,7 @@ const ScanReviewLanding = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                            disabled={isLoading}
                           />
                         </div>
                       </div>
@@ -229,10 +347,13 @@ const ScanReviewLanding = () => {
                       {/* Start Free Trial Button */}
                       <button
                         type="button"
-                        className="w-full py-3 px-4 bg-orange-400 hover:bg-orange-500 text-white rounded-lg font-medium transition-colors"
-                        onClick={() => console.log('Starting free trial...')}
+                        className={`w-full py-3 px-4 bg-orange-400 hover:bg-orange-500 text-white rounded-lg font-medium transition-colors ${
+                          isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        onClick={handleSignUp}
+                        disabled={isLoading}
                       >
-                        Start Free Trial
+                        {isLoading ? 'Processing...' : 'Start Free Trial'}
                       </button>
 
                       {/* Trial Info */}
@@ -253,6 +374,7 @@ const ScanReviewLanding = () => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                            disabled={isLoading}
                           />
                         </div>
                       </div>
@@ -267,6 +389,7 @@ const ScanReviewLanding = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                            disabled={isLoading}
                           />
                         </div>
                       </div>
@@ -274,10 +397,13 @@ const ScanReviewLanding = () => {
                       {/* Access Dashboard Button */}
                       <button
                         type="button"
-                        className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
-                        onClick={() => console.log('Accessing dashboard...')}
+                        className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors ${
+                          isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        onClick={handleSignIn}
+                        disabled={isLoading}
                       >
-                        Access Dashboard
+                        {isLoading ? 'Processing...' : 'Access Dashboard'}
                       </button>
 
                       {/* Demo Text */}
