@@ -1,12 +1,12 @@
 import { BrowserRouter as Router, Routes, Route} from 'react-router-dom';
 import LandingPage from './LandingPage.jsx';
 import QRCodeGenerator from './components/business/pages/QrGenerator.jsx';
-// import BusinessAuth from '../src/components/business/pages/BusinessAuth.jsx';
+import BusinessAuth from '../src/components/business/pages/BusinessAuth.jsx';
 import BusinessDashboard from '../src/components/business/pages/BusinessDashboard.jsx'; 
 import Qr from '../src/components/business/pages/QrGenerator.jsx';
 import Feedback from '../src/components/business/pages/FeedbackExplorer.jsx';
 import Report from '../src/components/business/pages/ReportSection.jsx';
-import BusinessAuth from './components/business/pages/BusinessDashboard';
+// import BusinessAuth from './components/business/pages/BusinessDashboard';
 
 function App() {
   return (

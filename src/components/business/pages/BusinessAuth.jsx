@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { QrCode, BarChart3, Users, Star, Mail, Lock, FileText, Building, User, Phone } from 'lucide-react';
 
-export const BusinessAuth = () => {
+const BusinessAuth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [businessName, setBusinessName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -16,9 +17,6 @@ export const BusinessAuth = () => {
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
-  console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
-  console.log('VITE_TEST_VAR:', import.meta.env.VITE_TEST_VAR);
-  console.log('All env variables:', import.meta.env);
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   const handleSignUp = async () => {
@@ -36,7 +34,6 @@ export const BusinessAuth = () => {
         password
       });
 
-      console.log('SignUp response:', response.data);
       if (response.data.message) {
         setSuccess('Registration successful! Please sign in to continue.');
         setIsSignUp(false);
@@ -62,27 +59,44 @@ export const BusinessAuth = () => {
     setSuccess('');
     
     try {
-      console.log('Attempting login with:', { email, password });
       const response = await axios.post(`${BASE_URL}/api/v1/business/login-business`, {
         email,
         password
       });
 
-      console.log('SignIn response:', response.data);
       const token = response.data.data?.token || response.data.token;
       if (token) {
-        console.log('Token stored:', token);
         localStorage.setItem('authToken', token);
         setSuccess('Login successful! Redirecting to dashboard...');
-        console.log('Navigating to /businessDashboard');
-        navigate('/businessDashboard'); // Immediate navigation
+        navigate('/businessDashboard');
       } else {
         setError('Login succeeded, but no token received.');
-        console.log('No token found in response');
       }
     } catch (err) {
       setError(err.response?.data?.message || `Login failed: ${err.message}`);
-      console.log('Login error:', err.response?.data || err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      const response = await axios.post(`${BASE_URL}/api/v1/business/forgot-password`, {
+        email
+      });
+
+      if (response.data.message) {
+        setSuccess('Password reset link sent');
+        setEmail('');
+      } else {
+        setError('Request succeeded, but unexpected response format.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || `Password reset request failed: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -183,8 +197,12 @@ export const BusinessAuth = () => {
                   </div>
                 </div>
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Business Portal Access</h3>
-                  <p className="text-gray-600">Manage your customer feedback and grow your business</p>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    {isForgotPassword ? 'Reset Your Password' : 'Business Portal Access'}
+                  </h3>
+                  <p className="text-gray-600">
+                    {isForgotPassword ? 'Enter your email to receive a password reset link' : 'Manage your customer feedback and grow your business'}
+                  </p>
                 </div>
                 {error && (
                   <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
@@ -196,36 +214,78 @@ export const BusinessAuth = () => {
                     {success}
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-0 mb-6 bg-gray-100 rounded-lg p-1">
-                  <button
-                    onClick={() => {
-                      setIsSignUp(false);
-                      setError('');
-                      setSuccess('');
-                    }}
-                    className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                      !isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                    disabled={isLoading}
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsSignUp(true);
-                      setError('');
-                      setSuccess('');
-                    }}
-                    className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                      isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                    disabled={isLoading}
-                  >
-                    Get Started
-                  </button>
-                </div>
+                {!isForgotPassword && (
+                  <div className="grid grid-cols-2 gap-0 mb-6 bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => {
+                        setIsSignUp(false);
+                        setError('');
+                        setSuccess('');
+                      }}
+                      className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                        !isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                      disabled={isLoading}
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsSignUp(true);
+                        setError('');
+                        setSuccess('');
+                      }}
+                      className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                        isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                      disabled={isLoading}
+                    >
+                      Get Started
+                    </button>
+                  </div>
+                )}
                 <div className="space-y-6">
-                  {isSignUp ? (
+                  {isForgotPassword ? (
+                    <>
+                      <div>
+                        <div className="relative">
+                          <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                          <input
+                            type="email"
+                            placeholder="Business email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                            disabled={isLoading}
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors ${
+                          isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        onClick={handleForgotPassword}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? 'Processing...' : 'Send Reset Link'}
+                      </button>
+                      <p className="text-center text-sm text-gray-500">
+                        <button
+                          onClick={() => {
+                            setIsForgotPassword(false);
+                            setError('');
+                            setSuccess('');
+                            setEmail('');
+                          }}
+                          className="text-blue-600 hover:text-blue-700 hover:underline"
+                          disabled={isLoading}
+                        >
+                          Back to Sign In
+                        </button>
+                      </p>
+                    </>
+                  ) : isSignUp ? (
                     <>
                       <div>
                         <div className="relative">
@@ -357,9 +417,22 @@ export const BusinessAuth = () => {
                       >
                         {isLoading ? 'Processing...' : 'Access Dashboard'}
                       </button>
-                      <p className="text-center text-sm text-gray-500">
-                        Demo: Use any email and password to continue
-                      </p>
+                      <div className="text-center text-sm text-gray-500">
+                        <p>Demo: Use any email and password to continue</p>
+                        <button
+                          onClick={() => {
+                            setIsForgotPassword(true);
+                            setError('');
+                            setSuccess('');
+                            setEmail('');
+                            setPassword('');
+                          }}
+                          className="text-blue-600 hover:text-blue-700 hover:underline mt-2"
+                          disabled={isLoading}
+                        >
+                          Forgot Password?
+                        </button>
+                      </div>
                     </>
                   )}
                 </div>
@@ -371,3 +444,5 @@ export const BusinessAuth = () => {
     </div>
   );
 };
+
+export default BusinessAuth;
