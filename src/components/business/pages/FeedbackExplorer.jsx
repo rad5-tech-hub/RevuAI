@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Eye,
   QrCode,
@@ -6,41 +6,11 @@ import {
   Share2,
   MessageCircle,
   Star,
+  RefreshCw,
+  LogOut,
 } from "lucide-react";
-import { Link } from "react-router-dom";
-
-const mockFeedback = [
-  {
-    id: 1,
-    name: "Jane Doe",
-    date: "Aug 12, 2025",
-    rating: 5,
-    sentiment: "Positive",
-    text: "Amazing service! Staff was super friendly and food was excellent.",
-    aspects: ["Service", "Food Quality"],
-    qrCode: "QR Code 1",
-  },
-  {
-    id: 2,
-    name: "John Smith",
-    date: "Aug 10, 2025",
-    rating: 3,
-    sentiment: "Neutral",
-    text: "Food was okay, but service was slow.",
-    aspects: ["Food Quality", "Service Speed"],
-    qrCode: "QR Code 2",
-  },
-  {
-    id: 3,
-    name: "Emily Brown",
-    date: "Aug 9, 2025",
-    rating: 1,
-    sentiment: "Negative",
-    text: "Very disappointed with the experience.",
-    aspects: ["Cleanliness", "Service"],
-    qrCode: "QR Code 3",
-  },
-];
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const sentimentColors = {
   Positive: "bg-green-100 text-green-700",
@@ -50,10 +20,130 @@ const sentimentColors = {
 
 const FeedbackExplorer = () => {
   const [search, setSearch] = useState("");
+  const [feedback, setFeedback] = useState([]);
+  const [loading, setLoading] = useState(true); // Consolidated loading state
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const filteredFeedback = mockFeedback.filter((f) =>
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/review/all-reviews`);
+        const reviews = response.data.reviews.map((review) => ({
+          id: review.id,
+          name: review.isAnonymous ? "Anonymous" : "Unknown User", // Placeholder since userId is null
+          date: new Date(review.createdAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+          rating: review.rating,
+          sentiment: getSentiment(review.rating),
+          text: review.comment,
+          aspects: review.qrcode_tags,
+          qrCode: review.qrcode.id, // Using qrcode.id as placeholder for qrCode name
+        }));
+        setFeedback(reviews);
+      } catch (err) {
+        setError("Failed to fetch reviews. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReviews();
+  }, []);
+
+  const getSentiment = (rating) => {
+    if (rating >= 4) return "Positive";
+    if (rating === 3) return "Neutral";
+    return "Negative";
+  };
+
+  const filteredFeedback = feedback.filter((f) =>
     f.text.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleLogout = async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      navigate('/');
+      return;
+    }
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/logout/logout`, {
+        refreshToken: token // Using access token as a placeholder; adjust if refresh token is different
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      localStorage.removeItem('authToken');
+      navigate('/');
+    } catch (err) {
+      console.error('Logout failed:', err);
+      // Optionally show an error message to the user
+      navigate('/');
+    }
+  };
+
+  const handleRetry = () => {
+    setLoading(true);
+    setError("");
+    // Re-run the fetch effect
+    const fetchReviews = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/review/all-reviews`);
+        const reviews = response.data.reviews.map((review) => ({
+          id: review.id,
+          name: review.isAnonymous ? "Anonymous" : "Unknown User",
+          date: new Date(review.createdAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+          rating: review.rating,
+          sentiment: getSentiment(review.rating),
+          text: review.comment,
+          aspects: review.qrcode_tags,
+          qrCode: review.qrcode.id,
+        }));
+        setFeedback(reviews);
+      } catch (err) {
+        setError("Failed to fetch reviews. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReviews();
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Loading feedback data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
+            <p className="text-lg font-medium">{error}</p>
+          </div>
+          <button
+            onClick={handleRetry}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            <RefreshCw size={18} />
+            <span>Retry</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -62,7 +152,7 @@ const FeedbackExplorer = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between py-4">
             <div className="flex items-center space-x-4 mb-4 lg:mb-0">
-              <Link to="/businessDashboard" className="flex items-center space-x-2 ">
+              <Link to="/businessDashboard" className="flex items-center space-x-2">
                 <div className="w-10 h-10 text-white mx-auto bg-blue-500 mr-2 rounded-full flex items-center justify-center">
                   <QrCode />
                 </div>
@@ -70,7 +160,7 @@ const FeedbackExplorer = () => {
               </Link>
               <span className="text-gray-500">Business Portal</span>
             </div>
-            <div className="flex flex-wrap gap-2 lg:gap-8 mb-4 lg:mb-0">
+            <div className="flex flex-wrap gap-2 lg:gap-8 mb-4 lg:mb-0 items-center">
               <Link
                 to="/businessDashboard"
                 className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
@@ -78,8 +168,8 @@ const FeedbackExplorer = () => {
                 📊 Dashboard
               </Link>
               <Link
-                to="#"
-                className="px-3 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600 bg-blue-50 rounded-t-md"
+                to="/businessFeedback"
+                className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
               >
                 💬 Feedback
               </Link>
@@ -95,20 +185,26 @@ const FeedbackExplorer = () => {
               >
                 📈 Reports
               </Link>
+              <button
+                onClick={handleLogout}
+                className="px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors flex items-center gap-1"
+              >
+                <LogOut size={16} />
+                Logout
+              </button>
             </div>
           </div>
         </div>
       </div>
-
       {/* Stats */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-2 md:grid-cols-6 gap-4">
         {[
-          { label: "Total", value: "245" },
-          { label: "Positive", value: "180" },
-          { label: "Neutral", value: "40" },
-          { label: "Negative", value: "25" },
-          { label: "With Media", value: "60" },
-          { label: "Flagged", value: "5" },
+          { label: "Total", value: feedback.length.toString() },
+          { label: "Positive", value: feedback.filter(f => f.sentiment === "Positive").length.toString() },
+          { label: "Neutral", value: feedback.filter(f => f.sentiment === "Neutral").length.toString() },
+          { label: "Negative", value: feedback.filter(f => f.sentiment === "Negative").length.toString() },
+          { label: "With Media", value: "0" }, // Placeholder, update if API provides media data
+          { label: "Flagged", value: "0" },   // Placeholder, update if API provides flagged data
         ].map((stat) => (
           <div
             key={stat.label}
@@ -119,18 +215,17 @@ const FeedbackExplorer = () => {
           </div>
         ))}
       </div>
-
       {/* Filters */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 flex flex-wrap gap-4 items-center">
         <input
           type="text"
           placeholder="Search feedback..."
-          className="flex-1 min-w-[200px]  bg-blue-100 outline-blue-600 rounded-lg px-4 py-2"
+          className="flex-1 min-w-[200px] bg-blue-100 outline-blue-600 rounded-lg px-4 py-2"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <select className="
-            bg-blue-100 outline-blue-600 rounded-lg px-3 py-2 pr-8 md:w-48 appearance-none relative"
+        <select
+          className="bg-blue-100 outline-blue-600 rounded-lg px-3 py-2 pr-8 md:w-48 appearance-none relative"
           style={{
             backgroundImage:
               'url("data:image/svg+xml;utf8,<svg fill=\'%230055aa\' height=\'20\' viewBox=\'0 0 24 24\' width=\'20\' xmlns=\'http://www.w3.org/2000/svg\'><path d=\'M7 10l5 5 5-5z\'/></svg>")',
@@ -138,7 +233,8 @@ const FeedbackExplorer = () => {
             backgroundPosition: 'right 0.5rem center',
             backgroundSize: '1.2rem',
             borderRadius: '0.5rem',
-          }}>
+          }}
+        >
           <option>All Ratings</option>
           <option>5 Stars</option>
           <option>4 Stars</option>
@@ -146,8 +242,8 @@ const FeedbackExplorer = () => {
           <option>2 Stars</option>
           <option>1 Star</option>
         </select>
-        <select className="
-            bg-blue-100 outline-blue-600 rounded-lg px-3 py-2 pr-8 md:w-48 appearance-none relative"
+        <select
+          className="bg-blue-100 outline-blue-600 rounded-lg px-3 py-2 pr-8 md:w-48 appearance-none relative"
           style={{
             backgroundImage:
               'url("data:image/svg+xml;utf8,<svg fill=\'%230055aa\' height=\'20\' viewBox=\'0 0 24 24\' width=\'20\' xmlns=\'http://www.w3.org/2000/svg\'><path d=\'M7 10l5 5 5-5z\'/></svg>")',
@@ -155,15 +251,15 @@ const FeedbackExplorer = () => {
             backgroundPosition: 'right 0.5rem center',
             backgroundSize: '1.2rem',
             borderRadius: '0.5rem',
-          }}>
+          }}
+        >
           <option>All Sentiments</option>
           <option>Positive</option>
           <option>Neutral</option>
           <option>Negative</option>
         </select>
         <select
-          className="
-            bg-blue-100 outline-blue-600 rounded-lg px-3 py-2 pr-8 md:w-48 appearance-none relative"
+          className="bg-blue-100 outline-blue-600 rounded-lg px-3 py-2 pr-8 md:w-48 appearance-none relative"
           style={{
             backgroundImage:
               'url("data:image/svg+xml;utf8,<svg fill=\'%230055aa\' height=\'20\' viewBox=\'0 0 24 24\' width=\'20\' xmlns=\'http://www.w3.org/2000/svg\'><path d=\'M7 10l5 5 5-5z\'/></svg>")',
@@ -180,7 +276,6 @@ const FeedbackExplorer = () => {
           <option>All Time</option>
         </select>
       </div>
-
       {/* Feedback List */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 pb-10">
         {filteredFeedback.map((fb) => (
@@ -225,7 +320,6 @@ const FeedbackExplorer = () => {
                 <QrCode size={16} /> {fb.qrCode}
               </div>
             </div>
-
             <div className="flex gap-2 self-end sm:self-start">
               <button className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100">
                 <Eye size={18} />

@@ -1,18 +1,36 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line, ComposedChart, Legend } from 'recharts';
-import { TrendingUp, TrendingDown, Users, Star, MessageSquare, AlertTriangle, Clock, Eye, QrCode, Download, Share2, Tag } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Star, MessageSquare, AlertTriangle, Clock, Eye, QrCode, Download, Share2, Tag, LogOut } from 'lucide-react';
 
 const BusinessDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-
-  console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
   const BASE_URL = import.meta.env.VITE_API_URL;
+
+  const handleLogout = async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      navigate('/');
+      return;
+    }
+    try {
+      await axios.post(`${BASE_URL}/api/v1/logout/logout`, {
+        refreshToken: token // Using access token as a placeholder; adjust if refresh token is different
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      localStorage.removeItem('authToken');
+      navigate('/');
+    } catch (err) {
+      console.error('Logout failed:', err);
+      // Optionally show an error message to the user
+      navigate('/');
+    }
+  };
 
   // Static data for charts (not provided by API)
   const weeklyData = [
@@ -24,7 +42,6 @@ const BusinessDashboard = () => {
     { day: 'Sat', feedback: 28, rating: 4.6 },
     { day: 'Sun', feedback: 22, rating: 4.2 }
   ];
-
   const topIssues = [
     { issue: 'Long wait times', priority: 'high', mentions: 12, trend: 'up' },
     { issue: 'Cold food temperature', priority: 'medium', mentions: 8, trend: 'down' },
@@ -37,30 +54,25 @@ const BusinessDashboard = () => {
       setIsLoading(true);
       setError('');
       const token = localStorage.getItem('authToken');
-
       if (!token) {
         setError('No authentication token found. Please sign in.');
         setIsLoading(false);
         navigate('/');
         return;
       }
-
       try {
         const response = await axios.get(`${BASE_URL}/api/v1/business/business-dashboard`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
-
         console.log('Dashboard response:', response.data);
-
         // Transform rating_distribution object to array
         const ratingDistribution = Object.entries(response.data.rating_distribution || {}).map(([rating, count]) => ({
           rating,
           count,
           percentage: response.data.total_feedbacks ? (count / response.data.total_feedbacks) * 100 : 0
         }));
-
         // Map recent_feedbacks to match component format
         const recentFeedback = response.data.recent_feedbacks?.map(feedback => ({
           id: feedback.id,
@@ -73,7 +85,6 @@ const BusinessDashboard = () => {
           qrcodeTitle: feedback.qrcodeTitle || 'Unknown',
           qrcodeTags: feedback.qrcodeTags || []
         })) || [];
-
         setDashboardData({
           business_name: response.data.business_name || 'Business Dashboard',
           total_feedbacks: response.data.total_feedbacks || 0,
@@ -91,7 +102,6 @@ const BusinessDashboard = () => {
         setIsLoading(false);
       }
     };
-
     fetchDashboardData();
   }, [navigate]);
 
@@ -145,7 +155,6 @@ const BusinessDashboard = () => {
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -170,10 +179,10 @@ const BusinessDashboard = () => {
               </Link>
               <span className="text-gray-500">Business Portal</span>
             </div>
-            <div className="flex flex-wrap gap-2 lg:gap-8 mb-4 lg:mb-0">
+            <div className="flex flex-wrap gap-2 lg:gap-8 mb-4 lg:mb-0 items-center">
               <Link
-                to="#"
-                className="px-3 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600 bg-blue-50 rounded-t-md"
+                to="/businessDashboard"
+                className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
               >
                 📊 Dashboard
               </Link>
@@ -195,12 +204,19 @@ const BusinessDashboard = () => {
               >
                 📈 Reports
               </Link>
+              <button
+                onClick={handleLogout}
+                className="px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors flex items-center gap-1"
+              >
+                <LogOut size={16} />
+                Logout
+              </button>
             </div>
           </div>
         </div>
       </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col md:flex-row gap-4 justify-between item-center mb-8">
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{dashboardData?.business_name} Dashboard</h1>
             <p className="text-gray-600 mt-2">Welcome back! Here's what's happening with your customer feedback.</p>

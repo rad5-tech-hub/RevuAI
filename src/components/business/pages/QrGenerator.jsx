@@ -1,9 +1,25 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
-import { QrCode, ChevronDown, Star, ImageIcon, Tag, Copy, Download, Printer, Share2, Eye, Plus, X, Check, Settings } from "lucide-react";
-import { Link, useNavigate } from 'react-router-dom';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import axios from 'axios';
+import {
+  QrCode,
+  ChevronDown,
+  Star,
+  ImageIcon,
+  Tag,
+  Copy,
+  LogOut,
+  Download,
+  Printer,
+  Share2,
+  Eye,
+  Plus,
+  X,
+  Check,
+  Settings,
+} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import axios from "axios";
 
 export default function QRGenerator() {
   const navigate = useNavigate();
@@ -22,20 +38,20 @@ export default function QRGenerator() {
   const [qrCodeIds, setQrCodeIds] = useState([]); // Store productOrServiceIds
   const [qrCodes, setQrCodes] = useState([]); // Store fetched QR code data
   const [isFetching, setIsFetching] = useState(false); // Loading state for GET requests
-  const tagInputRef = useRef(null);
+  const tagInputRef = useRef(null); // Defined but unused; kept for potential future use
 
   const addTag = (value) => {
     const v = (value ?? tagInput).trim();
     if (!v) return;
-    if (tags.some(t => t.toLowerCase() === v.toLowerCase())) {
+    if (tags.some((t) => t.toLowerCase() === v.toLowerCase())) {
       setTagInput("");
       return;
     }
-    setTags(prev => [...prev, v]);
+    setTags((prev) => [...prev, v]);
     setTagInput("");
   };
 
-  const removeTag = (value) => setTags(prev => prev.filter(t => t !== value));
+  const removeTag = (value) => setTags((prev) => prev.filter((t) => t !== value));
 
   const onTagKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -71,7 +87,7 @@ export default function QRGenerator() {
     try {
       await navigator.clipboard.writeText(generatedUrl);
       setCopied(true);
-      toast.success('URL copied to clipboard!', {
+      toast.success("URL copied to clipboard!", {
         position: "top-right",
         autoClose: 1600,
         hideProgressBar: false,
@@ -81,8 +97,8 @@ export default function QRGenerator() {
       });
       setTimeout(() => setCopied(false), 1600);
     } catch (error) {
-      console.error('Failed to copy URL to clipboard:', error);
-      toast.error('Failed to copy URL. Please try again or copy it manually.', {
+      console.error("Failed to copy URL to clipboard:", error);
+      toast.error("Failed to copy URL. Please try again or copy it manually.", {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -96,108 +112,102 @@ export default function QRGenerator() {
   const handleCreateQR = async () => {
     // Validate inputs
     if (!qrName || qrName.trim() === "") {
-      toast.error('QR Code Name is required.', {
+      toast.error("QR Code Name is required.", {
         position: "top-right",
         autoClose: 3000,
       });
       return;
     }
-    if (!tags.length || tags.some(tag => tag.trim() === "")) {
-      toast.error('At least one valid tag is required.', {
+    if (!tags.length || tags.some((tag) => tag.trim() === "")) {
+      toast.error("At least one valid tag is required.", {
         position: "top-right",
         autoClose: 3000,
       });
       return;
     }
     if (!qrType || !["general", "product", "location", "service"].includes(qrType)) {
-      toast.error('Invalid QR code type selected.', {
+      toast.error("Invalid QR code type selected.", {
         position: "top-right",
         autoClose: 3000,
       });
       return;
     }
     if ((qrType === "general" || qrType === "location") && (!location || location.trim() === "")) {
-      toast.error('Location is required for General or Location QR codes.', {
+      toast.error("Location is required for General or Location QR codes.", {
         position: "top-right",
         autoClose: 3000,
       });
       return;
     }
-
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem("authToken");
       if (!token) {
-        toast.error('Please log in to create a QR code.', {
+        toast.error("Please log in to create a QR code.", {
           position: "top-right",
           autoClose: 3000,
         });
-        navigate('/login');
+        navigate("/login");
         return;
       }
-
       // Temporary workaround: Map general/location to service until backend is fixed
       const apiType = qrType === "general" || qrType === "location" ? "service" : qrType;
       if (qrType === "general" || qrType === "location") {
-        console.warn(`Mapping qrType "${qrType}" to "service" as a temporary workaround due to backend validation.`);
+        console.warn(
+          `Mapping qrType "${qrType}" to "service" as a temporary workaround due to backend validation.`
+        );
       }
-
       const payload = {
         label: qrName.trim(),
         type: apiType,
-        productOrServiceId: (qrType === "product" || qrType === "service"
-          ? qrName.toLowerCase().replace(/\s+/g, "-")
-          : location.toLowerCase().replace(/\s+/g, "-")) || "default-id",
-        qrcode_tags: tags.map(tag => tag.trim()).filter(tag => tag !== ""),
+        productOrServiceId:
+          (qrType === "product" || qrType === "service"
+            ? qrName.toLowerCase().replace(/\s+/g, "-")
+            : location.toLowerCase().replace(/\s+/g, "-")) || "default-id",
+        qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
         description: description?.trim() || undefined,
       };
-
-      console.log('Sending POST payload:', payload);
-
+      console.log("Sending POST payload:", payload);
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/v1/qrcode/generate`,
         payload,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         }
       );
-
       const qrData = response.data.data;
       setGeneratedQrData(qrData);
-
       // Store productOrServiceId from response (assuming it's included)
       if (qrData.productOrServiceId) {
-        setQrCodeIds(prev => [...new Set([...prev, qrData.productOrServiceId])]);
+        setQrCodeIds((prev) => [...new Set([...prev, qrData.productOrServiceId])]);
       } else {
-        console.warn('No productOrServiceId in POST response:', qrData);
+        console.warn("No productOrServiceId in POST response:", qrData);
       }
-
-      toast.success('QR code generated successfully!', {
+      toast.success("QR code generated successfully!", {
         position: "top-right",
         autoClose: 3000,
       });
-
       // Reset form
       setQrName("");
       setDescription("");
       setTags(["Food Quality", "Customer Service"]);
       setLocation("main-store");
     } catch (error) {
-      console.error('Failed to generate QR code:', error);
-      console.error('POST response:', error.response?.data);
+      console.error("Failed to generate QR code:", error);
+      console.error("POST response:", error.response?.data);
       if (error.response?.status === 401) {
-        toast.error('Session expired. Please log in again.', {
+        toast.error("Session expired. Please log in again.", {
           position: "top-right",
           autoClose: 3000,
         });
-        localStorage.removeItem('authToken');
-        navigate('/login');
+        localStorage.removeItem("authToken");
+        navigate("/login");
       } else {
         toast.error(
-          error.response?.data?.message || 'Failed to generate QR code. Please try again.',
+          error.response?.data?.message || "Failed to generate QR code. Please try again.",
           {
             position: "top-right",
             autoClose: 3000,
@@ -215,19 +225,17 @@ export default function QRGenerator() {
       setQrCodes([]);
       return;
     }
-
     const fetchQrCodes = async () => {
       setIsFetching(true);
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem("authToken");
       if (!token) {
-        toast.error('Please log in to view QR codes.', {
+        toast.error("Please log in to view QR codes.", {
           position: "top-right",
           autoClose: 3000,
         });
-        navigate('/login');
+        navigate("/login");
         return;
       }
-
       try {
         const fetchedQrCodes = [];
         for (const id of qrCodeIds) {
@@ -242,31 +250,31 @@ export default function QRGenerator() {
           );
           const qrData = response.data.data;
           fetchedQrCodes.push({
-            title: qrData.title || qrData.label || 'Untitled',
-            status: qrData.status || 'active',
-            type: qrData.type || 'unknown',
-            location: qrData.location || qrData.productOrServiceId || 'Unknown',
+            title: qrData.title || qrData.label || "Untitled",
+            status: qrData.status || "active",
+            type: qrData.type || "unknown",
+            location: qrData.location || qrData.productOrServiceId || "Unknown",
             scans: qrData.scans || 0,
             feedback: qrData.feedback || 0,
-            date: qrData.date || new Date().toISOString().split('T')[0],
-            url: qrData.url || qrData.scan_url || 'https://scanreview.app/feedback',
+            date: qrData.date || new Date().toISOString().split("T")[0],
+            url: qrData.url || qrData.scan_url || "https://scanreview.app/feedback",
             productOrServiceId: id,
           });
         }
         setQrCodes(fetchedQrCodes);
       } catch (error) {
-        console.error('Failed to fetch QR codes:', error);
-        console.error('GET response:', error.response?.data);
+        console.error("Failed to fetch QR codes:", error);
+        console.error("GET response:", error.response?.data);
         if (error.response?.status === 401) {
-          toast.error('Session expired. Please log in again.', {
+          toast.error("Session expired. Please log in again.", {
             position: "top-right",
             autoClose: 3000,
           });
-          localStorage.removeItem('authToken');
-          navigate('/login');
+          localStorage.removeItem("authToken");
+          navigate("/login");
         } else {
           toast.error(
-            error.response?.data?.message || 'Failed to fetch QR codes. Please try again.',
+            error.response?.data?.message || "Failed to fetch QR codes. Please try again.",
             {
               position: "top-right",
               autoClose: 3000,
@@ -277,19 +285,18 @@ export default function QRGenerator() {
         setIsFetching(false);
       }
     };
-
     fetchQrCodes();
   }, [activeTab, qrCodeIds, navigate]);
 
   const downloadQR = () => {
     if (!generatedQrData?.qrcode_url) {
-      toast.error('No QR code available to download.', {
+      toast.error("No QR code available to download.", {
         position: "top-right",
         autoClose: 3000,
       });
       return;
     }
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = generatedQrData.qrcode_url;
     link.download = `qr_${generatedQrData.label}.png`;
     link.click();
@@ -297,13 +304,13 @@ export default function QRGenerator() {
 
   const printQR = () => {
     if (!generatedQrData?.qrcode_url) {
-      toast.error('No QR code available to print.', {
+      toast.error("No QR code available to print.", {
         position: "top-right",
         autoClose: 3000,
       });
       return;
     }
-    const printWindow = window.open('');
+    const printWindow = window.open("");
     printWindow.document.write(`
       <html>
         <body>
@@ -324,9 +331,11 @@ export default function QRGenerator() {
       }`}
     >
       <div className="flex items-start gap-4">
-        <div className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl ${
-          qrType === id ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-600"
-        }`}>
+        <div
+          className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl ${
+            qrType === id ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-600"
+          }`}
+        >
           {icon}
         </div>
         <div>
@@ -346,6 +355,27 @@ export default function QRGenerator() {
     { value: "takeaway", label: "Takeaway Counter" },
   ];
 
+  const handleLogout = async () => {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      navigate("/");
+      return;
+    }
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/logout/logout`, {
+        refreshToken: token, // Using access token as a placeholder; adjust if refresh token is different
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      localStorage.removeItem("authToken");
+      navigate("/");
+    } catch (err) {
+      console.error("Logout failed:", err);
+      // Optionally show an error message to the user
+      navigate("/");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <ToastContainer />
@@ -361,11 +391,38 @@ export default function QRGenerator() {
               </Link>
               <span className="text-gray-500">Business Portal</span>
             </div>
-            <div className="flex flex-wrap gap-2 lg:gap-8 mb-4 lg:mb-0">
-              <Link to="/businessDashboard" className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors">📊 Dashboard</Link>
-              <Link to="/businessFeedback" className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors">💬 Feedback</Link>
-              <Link to="#" className="px-3 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600 bg-blue-50 rounded-t-md">📱 QR Codes</Link>
-              <Link to="/businessReports" className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors">📈 Reports</Link>
+            <div className="flex flex-wrap gap-2 lg:gap-8 mb-4 lg:mb-0 items-center">
+              <Link
+                to="/businessDashboard"
+                className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+              >
+                📊 Dashboard
+              </Link>
+              <Link
+                to="/businessFeedback"
+                className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+              >
+                💬 Feedback
+              </Link>
+              <Link
+                to="/businessQrpage"
+                className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+              >
+                📱 QR Codes
+              </Link>
+              <Link
+                to="/businessReports"
+                className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+              >
+                📈 Reports
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors flex items-center gap-1"
+              >
+                <LogOut size={16} />
+                Logout
+              </button>
             </div>
           </div>
         </div>
@@ -375,15 +432,19 @@ export default function QRGenerator() {
         <p className="mt-1 text-slate-500 text-sm">Create and manage QR codes for feedback collection</p>
         <div className="mt-4 rounded-xl border border-slate-200 bg-white overflow-hidden">
           <div className="flex">
-            <button 
+            <button
               onClick={() => setActiveTab("create")}
-              className={`flex-1 px-4 py-3 sm:py-3.5 text-sm font-medium ${activeTab === "create" ? "text-blue-700 bg-blue-50" : "text-slate-600 hover:bg-slate-50"}`}
+              className={`flex-1 px-4 py-3 sm:py-3.5 text-sm font-medium ${
+                activeTab === "create" ? "text-blue-700 bg-blue-50" : "text-slate-600 hover:bg-slate-50"
+              }`}
             >
               Create New QR Code
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab("manage")}
-              className={`flex-1 px-4 py-3 sm:py-3.5 text-sm font-medium ${activeTab === "manage" ? "text-blue-700 bg-blue-50" : "text-slate-600 hover:bg-slate-50"}`}
+              className={`flex-1 px-4 py-3 sm:py-3.5 text-sm font-medium ${
+                activeTab === "manage" ? "text-blue-700 bg-blue-50" : "text-slate-600 hover:bg-slate-50"
+              }`}
             >
               Manage Existing
             </button>
@@ -394,15 +455,37 @@ export default function QRGenerator() {
                 <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
                   <div className="text-sm font-semibold text-slate-700">1. Choose QR Code Type</div>
                   <div className="mt-3 space-y-3">
-                    <TypeCard id="general" title="General Business" desc="Overall business experience" icon={<QrCode className="h-5 w-5" />} />
-                    <TypeCard id="product" title="Specific Product" desc="Individual product feedback" icon={<ImageIcon className="h-5 w-5" />} />
-                    <TypeCard id="location" title="Location/Area" desc="Specific location within business" icon={<Tag className="h-5 w-5" />} />
-                    <TypeCard id="service" title="Service Type" desc="Specific service offering" icon={<Star className="h-5 w-5" />} />
+                    <TypeCard
+                      id="general"
+                      title="General Business"
+                      desc="Overall business experience"
+                      icon={<QrCode className="h-5 w-5" />}
+                    />
+                    <TypeCard
+                      id="product"
+                      title="Specific Product"
+                      desc="Individual product feedback"
+                      icon={<ImageIcon className="h-5 w-5" />}
+                    />
+                    <TypeCard
+                      id="location"
+                      title="Location/Area"
+                      desc="Specific location within business"
+                      icon={<Tag className="h-5 w-5" />}
+                    />
+                    <TypeCard
+                      id="service"
+                      title="Service Type"
+                      desc="Specific service offering"
+                      icon={<Star className="h-5 w-5" />}
+                    />
                   </div>
                 </section>
                 <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
                   <div className="text-sm font-semibold text-slate-700">2. Basic Information</div>
-                  <label className="mt-4 block text-[13px] font-medium text-slate-600">QR Code Name<span className="text-blue-600"> *</span></label>
+                  <label className="mt-4 block text-[13px] font-medium text-slate-600">
+                    QR Code Name<span className="text-blue-600"> *</span>
+                  </label>
                   <input
                     value={qrName}
                     onChange={(e) => setQrName(e.target.value)}
@@ -453,7 +536,10 @@ export default function QRGenerator() {
                     {!!tags.length && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {tags.map((t) => (
-                          <span key={t} className="group inline-flex items-center gap-1 rounded-full border border-slate-300 bg-slate-50 px-2.5 py-1 text-[12px] text-slate-700">
+                          <span
+                            key={t}
+                            className="group inline-flex items-center gap-1 rounded-full border border-slate-300 bg-slate-50 px-2.5 py-1 text-[12px] text-slate-700"
+                          >
                             {t}
                             <button
                               type="button"
@@ -498,13 +584,13 @@ export default function QRGenerator() {
                   </label>
                 </section>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <button 
+                  <button
                     onClick={handleCreateQR}
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 disabled:bg-blue-400"
                     disabled={isLoading || !qrName}
                   >
                     <Plus className="h-4 w-4" />
-                    {isLoading ? 'Creating...' : 'Create QR Code'}
+                    {isLoading ? "Creating..." : "Create QR Code"}
                   </button>
                   <button className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700 text-sm font-semibold hover:bg-slate-50">
                     <Eye className="h-4 w-4" />
@@ -521,7 +607,13 @@ export default function QRGenerator() {
                         <img
                           src={generatedQrData.qrcode_url}
                           alt="Generated QR Code"
-                          style={{ width: 160, height: 160, borderRadius: '16px', border: '1px solid #E5E7EB', boxShadow: '0 1px 0 rgba(0,0,0,0.02)' }}
+                          style={{
+                            width: 160,
+                            height: 160,
+                            borderRadius: "16px",
+                            border: "1px solid #E5E7EB",
+                            boxShadow: "0 1px 0 rgba(0,0,0,0.02)",
+                          }}
                         />
                       ) : (
                         <div
@@ -551,19 +643,28 @@ export default function QRGenerator() {
                         value={generatedUrl}
                         className="flex-1 truncate rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"
                       />
-                      <button onClick={copyUrl} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50">
+                      <button
+                        onClick={copyUrl}
+                        className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50"
+                      >
                         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                         {copied ? "Copied" : "Copy"}
                       </button>
                     </div>
                     <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      <button onClick={downloadQR} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50">
+                      <button
+                        onClick={downloadQR}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50"
+                      >
                         <Download className="h-4 w-4" /> PNG
                       </button>
                       <button className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50">
                         <Download className="h-4 w-4" /> SVG
                       </button>
-                      <button onClick={printQR} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50">
+                      <button
+                        onClick={printQR}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50"
+                      >
                         <Printer className="h-4 w-4" /> Print
                       </button>
                       <button className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50">
@@ -582,14 +683,13 @@ export default function QRGenerator() {
                   </ul>
                 </section>
               </div>
-            </div>  
+            </div>
           ) : (
             // Manage existing Section /////////
-
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="font-medium text-lg">Your QR Codes ({qrCodes.length})</h2>
-                <button 
+                <button
                   onClick={() => setActiveTab("create")}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-1 text-sm"
                 >
@@ -604,24 +704,45 @@ export default function QRGenerator() {
               ) : (
                 <div className="space-y-4">
                   {qrCodes.map((code) => (
-                    <div key={code.productOrServiceId} className="bg-white shadow rounded-lg p-6 space-y-4 border border-slate-200">
+                    <div
+                      key={code.productOrServiceId}
+                      className="bg-white shadow rounded-lg p-6 space-y-4 border border-slate-200"
+                    >
                       <div className="flex flex-wrap items-center gap-3">
                         <h3 className="font-semibold text-lg text-slate-800">{code.title}</h3>
-                        <span className="bg-green-100 text-green-700 text-xs px-2.5 py-1 rounded-full">{code.status}</span>
-                        <span className="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-full">{code.type}</span>
+                        <span className="bg-green-100 text-green-700 text-xs px-2.5 py-1 rounded-full">
+                          {code.status}
+                        </span>
+                        <span className="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-full">
+                          {code.type}
+                        </span>
                       </div>
                       <p className="text-slate-600 text-sm">{code.location}</p>
                       <div className="flex flex-wrap gap-4 text-sm text-slate-500">
-                        <span className="flex items-center gap-1"><Eye className="h-4 w-4" /> {code.scans} scans</span>
-                        <span className="flex items-center gap-1"><Star className="h-4 w-4" /> {code.feedback} feedback</span>
+                        <span className="flex items-center gap-1">
+                          <Eye className="h-4 w-4" /> {code.scans} scans
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Star className="h-4 w-4" /> {code.feedback} feedback
+                        </span>
                         <span>Created {code.date}</span>
                       </div>
-                      <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-700 break-all font-mono">{code.url}</div>
+                      <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-700 break-all font-mono">
+                        {code.url}
+                      </div>
                       <div className="flex gap-2">
-                        <button className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"><Eye className="w-4 h-4" /></button>
-                        <button className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"><Settings className="w-4 h-4" /></button>
-                        <button className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"><Download className="w-4 h-4" /></button>
-                        <button className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"><Copy className="w-4 h-4" /></button>
+                        <button className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600">
+                          <Settings className="w-4 h-4" />
+                        </button>
+                        <button className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600">
+                          <Download className="w-4 h-4" />
+                        </button>
+                        <button className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600">
+                          <Copy className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   ))}
