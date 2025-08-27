@@ -1,6 +1,8 @@
 import { User, Mail, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const UserAuth = () => {
 const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
@@ -11,6 +13,7 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
     password: ''
   });
   const [loading, setLoading] = useState(false);
+   const BASE_URL = import.meta.env.VITE_API_URL;
   const [error, setError] = useState('');
 
   const handleTabChange = (tab) => {
@@ -64,8 +67,8 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
 
     try {
       const url = activeTab === 'signin' 
-        ? 'http://localhost:3000/api/v1/user/login'
-        : 'http://localhost:3000/api/v1/user/register-user';
+        ? `${BASE_URL}/api/v1/user/login`
+        : `${BASE_URL}/api/v1/user/register-user`;
 
       const payload = activeTab === 'signin' 
         ? {
@@ -87,26 +90,50 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
       });
 
       const data = await response.json();
+      
+      // Debug: Log the full response to see what we're getting
+      // console.log('Full API Response:', data);
+      // console.log('Response status:', response.status);
+      // console.log('Response ok:', response.ok);
 
       if (!response.ok) {
         throw new Error(data.message || `${activeTab === 'signin' ? 'Login' : 'Registration'} failed`);
       }
 
       // Success - handle the response
-      console.log(`${activeTab === 'signin' ? 'Login' : 'Registration'} successful:`, data);
+      toast.success(`${activeTab === 'signin' ? 'Login' : 'Registration'} successful:`, data);
       
-      // Store token if provided
+      // Store token - check multiple possible field names
+      let token = null;
       if (data.token) {
-        localStorage.setItem('authToken', data.token);
+        token = data.token;
+      } else if (data.accessToken) {
+        token = data.accessToken;
+      } else if (data.access_token) {
+        token = data.access_token;
+      } else if (data.authToken) {
+        token = data.authToken;
+      } else if (data.jwt) {
+        token = data.jwt;
+      }
+
+      if (token) {
+        localStorage.setItem('authToken', token);
+        // console.log('Token stored:', token);
+      } else {
+        // console.warn('No token found in response. Available fields:', Object.keys(data));
+        // For debugging - show all available fields
+        toast.warning('Login successful but no token received. Check console for details.');
       }
 
       // Navigate to user account
       navigate('/userAccount');
-      alert(`${activeTab === 'signin' ? 'Login' : 'Registration'} successful!`);
+      console.log(`${activeTab === 'signin' ? 'Login' : 'Registration'} successful!`);
 
     } catch (error) {
-      console.error('Auth error:', error);
+      // console.error('Auth error:', error);
       setError(error.message || 'An unexpected error occurred');
+      toast.error(error.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
@@ -122,6 +149,7 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
 
   return (
     <div className="min-h-screen bg-gray-50">
+    <ToastContainer />
       {/* Header */}
       <div className="bg-white flex items-center px-4 py-4 shadow-sm">
         <button onClick={handleBack}
@@ -222,14 +250,42 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
           {/* Submit Button */}
           <button
             onClick={handleSubmit}
-            className={`w-full py-3 rounded-lg text-sm cursor-pointer font-medium transition-colors mt-6 ${
+            disabled={loading}
+            className={`w-full py-3 rounded-lg text-sm cursor-pointer font-medium transition-colors mt-6 flex items-center justify-center ${
               activeTab === 'signin'
                 ? 'bg-blue-500 hover:bg-blue-600 text-white'
                 : 'bg-yellow-400 hover:bg-yellow-500 text-gray-800'
-            }`}
+            } ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            {activeTab === 'signin' ? 'Sign In ' : 'Create Account'}
+            {loading ? (
+              <>
+                <svg
+                  className="animate-spin h-4 w-4 mr-2 text-current"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  ></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              activeTab === 'signin' ? 'Sign In' : 'Create Account'
+            )}
           </button>
+
 
           {/* Additional Info */}
           <div className="mt-4 text-center">
