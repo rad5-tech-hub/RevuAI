@@ -162,12 +162,12 @@ const BusinessDashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between py-4">
             <div className="flex items-center space-x-4 mb-4 lg:mb-0">
-              <a href="/" className="flex items-center space-x-2">
+              <Link to="/businessDashboard" className="flex items-center space-x-2">
                 <div className="w-10 h-10 text-white mx-auto bg-blue-500 mr-2 rounded-full flex items-center justify-center">
                   <QrCode />
                 </div>
                 <span className="text-xl font-bold text-black">RevuAi</span>
-              </a>
+              </Link>
               <span className="text-gray-500">Business Portal</span>
             </div>
             <div className="flex flex-wrap gap-2 lg:gap-8 mb-4 lg:mb-0">
