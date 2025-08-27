@@ -1,18 +1,18 @@
 import { Link, 
-  // useNavigate 
+  useNavigate 
  }from 'react-router-dom';
-import { Star, Gift, Users, QrCode } from 'lucide-react';
+import { QrCode } from 'lucide-react';
 
 function LandingPage() {
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
 
-  // const handleSignIn = () => {
-  //   navigate('/signin');
-  // };
+  const handleSignIn = () => {
+    navigate('/userAuth');
+  };
 
-  // const handleContinueAnonymously = () => {
-  //   navigate('/review');
-  // };
+  const handleContinueAnonymously = () => {
+    navigate('/feedbackForm');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center">
@@ -38,7 +38,7 @@ function LandingPage() {
 
         {/* Sign In Button */}
         <button 
-          // onClick={handleSignIn}
+          onClick={handleSignIn}
           className="w-full cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-semibold py-4 px-6 rounded-xl transition-colors duration-200 mb-4"
         >
           Sign In
@@ -46,8 +46,8 @@ function LandingPage() {
 
         {/* Continue Anonymously */}
         <button 
-          // onClick={handleContinueAnonymously}
-          className="w-full cursor-pointer bg-white hover:bg-blue-200 text-black font-medium py-4 px-6 rounded-xl border hover:border-blue-700 transition-colors duration-200 mb-6"
+          onClick={handleContinueAnonymously}
+          className="w-full cursor-pointer bg-white hover:bg-blue-200 text-black hover:text-blue-700 font-medium py-4 px-6 rounded-xl border hover:border-blue-700 transition-colors duration-200 mb-6"
         >
           Continue Anonymously
         </button>
