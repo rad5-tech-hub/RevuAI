@@ -64,7 +64,7 @@ const BusinessAuth = () => {
         password
       });
 
-      const token = response.data.data?.token || response.data.token;
+      const token = response.data.data?.accessToken || response.data.accessToken;
       if (token) {
         localStorage.setItem('authToken', token);
         setSuccess('Login successful! Redirecting to dashboard...');
@@ -444,5 +444,4 @@ const BusinessAuth = () => {
     </div>
   );
 };
-
 export default BusinessAuth;
