@@ -24,8 +24,8 @@ function LandingPage() {
         </div>
 
         {/* ScanReview Title */}
-        <h1 className="text-2xl font-bold text-black mb-2">RevuAi</h1>
-        <p className="text-black text-sm mb-8">Share your experience, earn rewards</p>
+        <h1 className="text-2xl font-bold text-black mb-2">RevuAI</h1>
+        <p className="text-black text-sm mb-8">Share your experience</p>
 
         {/* Welcome Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">

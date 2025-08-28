@@ -1,4 +1,4 @@
-import { User, Clock, Award, ArrowRight } from 'lucide-react';
+import { User, Clock, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import {ToastContainer } from 'react-toastify';

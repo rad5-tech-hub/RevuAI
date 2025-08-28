@@ -76,7 +76,7 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
             password: formData.password
           }
         : {
-            fullname: formData.fullname, // Note: API expects 'fullname' not 'fullName'
+            fullname: formData.fullname, 
             email: formData.email,
             password: formData.password
           };
@@ -91,47 +91,43 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
 
       const data = await response.json();
       
-      // Debug: Log the full response to see what we're getting
-      // console.log('Full API Response:', data);
-      // console.log('Response status:', response.status);
-      // console.log('Response ok:', response.ok);
-
       if (!response.ok) {
         throw new Error(data.message || `${activeTab === 'signin' ? 'Login' : 'Registration'} failed`);
       }
 
       // Success - handle the response
-      toast.success(`${activeTab === 'signin' ? 'Login' : 'Registration'} successful:`, data);
+      toast.success(`${activeTab === 'signin' ? 'Login' : 'Registration'} successful!`);
       
-      // Store token - check multiple possible field names
-      let token = null;
-      if (data.token) {
-        token = data.token;
-      } else if (data.accessToken) {
-        token = data.accessToken;
-      } else if (data.access_token) {
-        token = data.access_token;
-      } else if (data.authToken) {
-        token = data.authToken;
-      } else if (data.jwt) {
-        token = data.jwt;
-      }
+      if (activeTab === 'signin') {
+        // Store token - check multiple possible field names
+        let token = null;
+        if (data.token) {
+          token = data.token;
+        } else if (data.accessToken) {
+          token = data.accessToken;
+        } else if (data.access_token) {
+          token = data.access_token;
+        } else if (data.authToken) {
+          token = data.authToken;
+        } else if (data.jwt) {
+          token = data.jwt;
+        }
 
-      if (token) {
-        localStorage.setItem('authToken', token);
-        // console.log('Token stored:', token);
+        if (token) {
+          localStorage.setItem('authToken', token);
+        } else {
+          toast.warning('Login successful but no token received.');
+        }
+
+        // Navigate to user account only after sign in
+        navigate('/userAccount');
       } else {
-        // console.warn('No token found in response. Available fields:', Object.keys(data));
-        // For debugging - show all available fields
-        toast.warning('Login successful but no token received. Check console for details.');
+        // After successful sign up, switch to sign in tab
+        setActiveTab('signin');
+        toast.info('Account created successfully! Please sign in.');
       }
-
-      // Navigate to user account
-      navigate('/userAccount');
-      console.log(`${activeTab === 'signin' ? 'Login' : 'Registration'} successful!`);
 
     } catch (error) {
-      // console.error('Auth error:', error);
       setError(error.message || 'An unexpected error occurred');
       toast.error(error.message || 'An unexpected error occurred');
     } finally {
@@ -149,7 +145,7 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
 
   return (
     <div className="min-h-screen bg-gray-50">
-    <ToastContainer />
+       <ToastContainer />
       {/* Header */}
       <div className="bg-white flex items-center px-4 py-4 shadow-sm">
         <button onClick={handleBack}
