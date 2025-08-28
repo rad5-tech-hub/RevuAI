@@ -2,17 +2,36 @@ import { Star,
   // Camera, 
   // Video, 
   UserX, 
+  User,
   // Upload 
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const FeedbackForm = () => {
   const [rating, setRating] = useState(3);
   const [hoverRating, setHoverRating] = useState(0);
   const [selectedTags, setSelectedTags] = useState([]);
   const [textFeedback, setTextFeedback] = useState('');
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Check if user is logged in
+  useEffect(() => {
+    const userData = localStorage.getItem('userData');
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        localStorage.removeItem('userData');
+      }
+    }
+  }, []);
 
   const handleStarClick = (value) => {
     setRating(value);
@@ -20,11 +39,7 @@ const FeedbackForm = () => {
 
   const handleBack = () => {
     navigate('/');
-  }
-
-  const handleSubmit = () => {
-    navigate('/thankYou')
-  }
+  };
 
   const handleStarHover = (value) => {
     setHoverRating(value);
@@ -44,6 +59,51 @@ const FeedbackForm = () => {
 
   const handleTextChange = (e) => {
     setTextFeedback(e.target.value);
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+
+    try {
+      // Prepare the payload according to the API format
+      const payload = {
+        businessId: "a6aaccab-5410-40c8-a13f-085b1647377f", // You might want to get this from URL params or props
+        qrcodeId: "1bb24dba-f23c-4842-bd7d-0b1fe8e028f7", // You might want to get this from URL params or props
+        rating: rating,
+        comment: textFeedback.trim() || null,
+        isAnonymous: !user, // Anonymous if no user is logged in
+        qrcode_tags: selectedTags
+      };
+
+      console.log('Submitting feedback:', payload);
+      const BASE_URL = import.meta.env.VITE_API_URL;
+
+      const response = await fetch(`${BASE_URL}/api/v1/review/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to submit feedback');
+      }
+
+      console.log('Feedback submitted successfully:', data);
+      toast.success('Feedback submitted successfully!');
+      
+      // Navigate to thank you page
+      navigate('/thankYou');
+
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      toast.error(error.message || 'Failed to submit feedback. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getRatingLabel = (value) => {
@@ -90,6 +150,7 @@ const FeedbackForm = () => {
 
   return (
     <div className="min-h-screen bg-[#F7FAFF]">
+      <ToastContainer />
       {/* Header */}
       <div className="bg-white flex items-center px-4 py-4 shadow-sm">
         <button onClick={handleBack}
@@ -108,14 +169,27 @@ const FeedbackForm = () => {
           <p className="text-gray-500 text-sm mt-1">Demo Coffee Shop</p>
         </div>
 
-        {/* Anonymous submission info */}
+        {/* User submission info */}
         <div className="bg-white p-4 flex items-center gap-3 rounded-lg shadow-sm mb-4">
-          <div className="bg-gray-100 rounded-full p-2"> 
-            <UserX className="h-4 w-4 text-gray-600"/> 
+          <div className={`${user ? 'bg-blue-100' : 'bg-gray-100'} rounded-full p-2`}> 
+            {user ? (
+              <User className="h-4 w-4 text-blue-600"/> 
+            ) : (
+              <UserX className="h-4 w-4 text-gray-600"/>
+            )}
           </div>
           <div>
-            <p className="text-gray-800 text-sm font-medium">Submitting as anonymous</p>
-            <p className="text-gray-500 text-xs">Sign in to earn points</p>
+            {user ? (
+              <>
+                <p className="text-gray-800 text-sm font-medium">
+                  Submitting as {user.fullname || user.name || user.username || 'User'}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-800 text-sm font-medium">Submitting as anonymous</p>
+              </>
+            )}
           </div>
         </div>
 
@@ -201,9 +275,42 @@ const FeedbackForm = () => {
         </div> */}
 
         {/* Submit button */}
-        <button onClick={handleSubmit}
-          className="w-full cursor-pointer bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg text-sm font-medium transition-colors">
-            Submit Feedback
+        <button 
+          onClick={handleSubmit}
+          disabled={loading}
+          className={`w-full cursor-pointer py-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center ${
+            loading 
+              ? 'bg-gray-400 cursor-not-allowed text-white' 
+              : 'bg-blue-600 hover:bg-blue-700 text-white'
+          }`}
+        >
+          {loading ? (
+            <>
+              <svg
+                className="animate-spin h-4 w-4 mr-2 text-current"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
+              </svg>
+              Submitting...
+            </>
+          ) : (
+            'Submit Feedback'
+          )}
         </button>
       </div>
     </div>
