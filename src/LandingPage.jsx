@@ -57,6 +57,8 @@ function LandingPage() {
           <Link 
             to="/businessAuth" 
             className="text-black text-sm underline  hover:text-blue-500 transition-colors"
+            target="_blank"
+            rel="noopener noreferrer"
           >
             Business Owner? Access Portal
           </Link>

@@ -27,18 +27,41 @@ export default function QRGenerator() {
   const [qrType, setQrType] = useState("general");
   const [qrName, setQrName] = useState("");
   const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("main-store");
   const [allowImages, setAllowImages] = useState(true);
   const [primaryColor, setPrimaryColor] = useState("#0E5FD8");
   const [tagInput, setTagInput] = useState("");
-  const [tags, setTags] = useState(["Food Quality", "Customer Service"]);
+
+  // Initialize tags based on business category for "general" QR type
+  const getDefaultTags = () => {
+    const businessCategory = localStorage.getItem("businessCategory") || "Others";
+    if (qrType === "general") {
+      switch (businessCategory) {
+        case "Hotels":
+          return ["Cleanliness", "Staff Service", "Amenities"];
+        case "Restaurants":
+          return ["Food Quality", "Service Speed", "Ambiance"];
+        case "Schools":
+          return ["Teaching Quality", "Facilities", "Safety"];
+        case "Others":
+        default:
+          return ["Service Quality", "Customer Experience"];
+      }
+    }
+    return ["Service Quality", "Customer Experience"];
+  };
+  const [tags, setTags] = useState(getDefaultTags());
   const [generatedQrData, setGeneratedQrData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [qrCodeIds, setQrCodeIds] = useState([]); // Store productOrServiceIds
-  const [qrCodes, setQrCodes] = useState([]); // Store fetched QR code data
-  const [isFetching, setIsFetching] = useState(false); // Loading state for GET requests
-  const tagInputRef = useRef(null); // Defined but unused; kept for potential future use
+  const [qrCodeIds, setQrCodeIds] = useState([]);
+  const [qrCodes, setQrCodes] = useState([]);
+  const [isFetching, setIsFetching] = useState(false);
+  const tagInputRef = useRef(null);
+
+  // Update tags when qrType changes
+  useEffect(() => {
+    setTags(getDefaultTags());
+  }, [qrType]);
 
   const addTag = (value) => {
     const v = (value ?? tagInput).trim();
@@ -74,14 +97,11 @@ export default function QRGenerator() {
     params.set("business", "Demo+Coffee+Shop");
     params.set("type", qrType);
     if (qrName) params.set("name", qrName.replace(/\s+/g, "+"));
-    if (qrType === "general" || qrType === "location") {
-      params.set("location", location.toLowerCase().replace(/\s+/g, "-"));
-    }
     if (qrType === "product") {
       params.set("product", qrName.toLowerCase().replace(/\s+/g, "-"));
     }
     return `${base}?${params.toString()}`;
-  }, [qrType, qrName, location, generatedQrData]);
+  }, [qrType, qrName, generatedQrData]);
 
   const copyUrl = async () => {
     try {
@@ -131,13 +151,6 @@ export default function QRGenerator() {
       });
       return;
     }
-    if ((qrType === "general" || qrType === "location") && (!location || location.trim() === "")) {
-      toast.error("Location is required for General or Location QR codes.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
     setIsLoading(true);
     try {
       const token = localStorage.getItem("authToken");
@@ -159,9 +172,7 @@ export default function QRGenerator() {
         label: qrName.trim(),
         type: apiType,
         productOrServiceId:
-          (qrType === "product" || qrType === "service"
-            ? qrName.toLowerCase().replace(/\s+/g, "-")
-            : location.toLowerCase().replace(/\s+/g, "-")) || "default-id",
+          qrName.toLowerCase().replace(/\s+/g, "-") || "default-id",
         qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
         description: description?.trim() || undefined,
       };
@@ -189,8 +200,7 @@ export default function QRGenerator() {
       });
       setQrName("");
       setDescription("");
-      setTags(["Food Quality", "Customer Service"]);
-      setLocation("main-store");
+      setTags(getDefaultTags());
     } catch (error) {
       console.error("Failed to generate QR code:", error);
       console.error("POST response:", error.response?.data);
@@ -341,15 +351,6 @@ export default function QRGenerator() {
     </button>
   );
 
-  const locations = [
-    { value: "main-store", label: "Main Store" },
-    { value: "counter", label: "Service Counter" },
-    { value: "tables", label: "Table Area" },
-    { value: "patio", label: "Outdoor Patio" },
-    { value: "drive-thru", label: "Drive-Thru" },
-    { value: "takeaway", label: "Takeaway Counter" },
-  ];
-
   const handleLogout = async () => {
     const token = localStorage.getItem("authToken");
     if (!token) {
@@ -363,6 +364,7 @@ export default function QRGenerator() {
         headers: { Authorization: `Bearer ${token}` },
       });
       localStorage.removeItem("authToken");
+      localStorage.removeItem("businessCategory");
       navigate("/");
     } catch (err) {
       console.error("Logout failed:", err);
@@ -398,8 +400,6 @@ export default function QRGenerator() {
             <div className="h-10 w-full bg-gray-200 rounded-lg animate-pulse"></div>
             <div className="h-4 w-28 bg-gray-200 rounded animate-pulse"></div>
             <div className="h-20 w-full bg-gray-200 rounded-lg animate-pulse"></div>
-            <div className="h-4 w-28 bg-gray-200 rounded animate-pulse"></div>
-            <div className="h-10 w-full bg-gray-200 rounded-lg animate-pulse"></div>
             <div className="h-4 w-28 bg-gray-200 rounded animate-pulse"></div>
             <div className="h-10 w-full bg-gray-200 rounded-lg animate-pulse"></div>
             <div className="flex flex-wrap gap-2">
@@ -594,25 +594,6 @@ export default function QRGenerator() {
                       rows={3}
                       className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
                     />
-                    {(qrType === "general" || qrType === "location") && (
-                      <>
-                        <label className="mt-4 block text-[13px] font-medium text-slate-600">Location</label>
-                        <div className="relative mt-1">
-                          <select
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            className="w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                          >
-                            {locations.map((loc) => (
-                              <option key={loc.value} value={loc.value}>
-                                {loc.label}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                        </div>
-                      </>
-                    )}
                     <label className="mt-4 block text-[13px] font-medium text-slate-600">Tags customers should review (Press Enter)</label>
                     <div className="mt-1">
                       <input
