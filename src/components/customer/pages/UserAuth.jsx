@@ -1,37 +1,36 @@
 import { User, Mail, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {ToastContainer, toast } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const UserAuth = () => {
-const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
+  const [activeTab, setActiveTab] = useState('signin');
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullname: '',
     email: '',
-    password: ''
+    password: '',
   });
   const [loading, setLoading] = useState(false);
-   const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = import.meta.env.VITE_API_URL;
   const [error, setError] = useState('');
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    setError(''); // Clear error when switching tabs
-    // Clear form when switching tabs
+    setError('');
     setFormData({
       fullname: '',
       email: '',
-      password: ''
+      password: '',
     });
   };
 
   const handleInputChange = (field, value) => {
-    setError(''); // Clear error when user starts typing
-    setFormData(prev => ({
+    setError('');
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -66,20 +65,22 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
     setError('');
 
     try {
-      const url = activeTab === 'signin' 
-        ? `${BASE_URL}/api/v1/user/login`
-        : `${BASE_URL}/api/v1/user/register-user`;
+      const url =
+        activeTab === 'signin'
+          ? `${BASE_URL}/api/v1/user/login`
+          : `${BASE_URL}/api/v1/user/register-user`;
 
-      const payload = activeTab === 'signin' 
-        ? {
-            email: formData.email,
-            password: formData.password
-          }
-        : {
-            fullname: formData.fullname, 
-            email: formData.email,
-            password: formData.password
-          };
+      const payload =
+        activeTab === 'signin'
+          ? {
+              email: formData.email,
+              password: formData.password,
+            }
+          : {
+              fullname: formData.fullname,
+              email: formData.email,
+              password: formData.password,
+            };
 
       const response = await fetch(url, {
         method: 'POST',
@@ -90,16 +91,15 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.message || `${activeTab === 'signin' ? 'Login' : 'Registration'} failed`);
       }
 
-      // Success - handle the response
       toast.success(`${activeTab === 'signin' ? 'Login' : 'Registration'} successful!`);
-      
+
       if (activeTab === 'signin') {
-        // Store token - check multiple possible field names
+        // Store token
         let token = null;
         if (data.token) {
           token = data.token;
@@ -119,14 +119,18 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
           toast.warning('Login successful but no token received.');
         }
 
-        // Navigate to user account only after sign in
+        // Store user data
+        const userData = {
+          fullname: data.fullname || formData.email, // Fallback to email if fullname not provided
+          email: formData.email,
+        };
+        localStorage.setItem('userData', JSON.stringify(userData));
+
         navigate('/userAccount');
       } else {
-        // After successful sign up, switch to sign in tab
         setActiveTab('signin');
         toast.info('Account created successfully! Please sign in.');
       }
-
     } catch (error) {
       setError(error.message || 'An unexpected error occurred');
       toast.error(error.message || 'An unexpected error occurred');
@@ -145,11 +149,13 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
 
   return (
     <div className="min-h-screen bg-gray-50">
-       <ToastContainer />
+      <ToastContainer />
       {/* Header */}
       <div className="bg-white flex items-center px-4 py-4 shadow-sm">
-        <button onClick={handleBack}
-          className="text-black hover:text-blue-700 cursor-pointer hover:bg-blue-100 px-2 py-1 rounded flex items-center text-sm">
+        <button
+          onClick={handleBack}
+          className="text-black hover:text-blue-700 cursor-pointer hover:bg-blue-100 px-2 py-1 rounded flex items-center text-sm"
+        >
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
@@ -164,9 +170,7 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
             <User className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-blue-600 text-xl font-medium mb-2">Join ScanReview</h1>
-          <p className="text-gray-600 text-sm">
-            Sign in to track your feedback history
-          </p>
+          <p className="text-gray-600 text-sm">Sign in to track your feedback history</p>
         </div>
 
         {/* Auth Form Card */}
@@ -194,7 +198,7 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
               Sign Up
             </button>
           </div>
-          
+
           {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
@@ -204,7 +208,6 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
 
           {/* Form Fields */}
           <div className="space-y-4">
-            {/* Full Name - Only for Sign Up */}
             {activeTab === 'signup' && (
               <div className="relative">
                 <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -218,7 +221,6 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
               </div>
             )}
 
-            {/* Email */}
             <div className="relative">
               <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
@@ -230,7 +232,6 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
               />
             </div>
 
-            {/* Password */}
             <div className="relative">
               <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
@@ -261,38 +262,24 @@ const [activeTab, setActiveTab] = useState('signin'); // 'signin' or 'signup'
                   fill="none"
                   viewBox="0 0 24 24"
                 >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                  ></path>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                 </svg>
                 Processing...
               </>
+            ) : activeTab === 'signin' ? (
+              'Sign In'
             ) : (
-              activeTab === 'signin' ? 'Sign In' : 'Create Account'
+              'Create Account'
             )}
           </button>
-
 
           {/* Additional Info */}
           <div className="mt-4 text-center">
             {activeTab === 'signin' ? (
-              <p className="text-gray-500 text-xs">
-                Demo: Use any email and password to continue
-              </p>
+              <p className="text-gray-500 text-xs">Demo: Use any email and password to continue</p>
             ) : (
-              <p className="text-gray-500 text-xs">
-                By signing up, you agree to our Terms and Privacy Policy
-              </p>
+              <p className="text-gray-500 text-xs">By signing up, you agree to our Terms and Privacy Policy</p>
             )}
           </div>
         </div>
