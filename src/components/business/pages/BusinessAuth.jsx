@@ -12,18 +12,18 @@ const BusinessAuth = () => {
   const [ownerName, setOwnerName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [address, setAddress] = useState('');
+  const [category, setCategory] = useState(''); // State for category
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
-
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   const handleSignUp = async () => {
     setIsLoading(true);
     setError('');
     setSuccess('');
-    
+
     try {
       const response = await axios.post(`${BASE_URL}/api/v1/business/register-business`, {
         business_name: businessName,
@@ -31,16 +31,18 @@ const BusinessAuth = () => {
         email,
         phone: phoneNumber,
         address,
+        category, // Include category in the payload
         password
       });
-
       if (response.data.message) {
+        localStorage.setItem('businessCategory', category); // Store category in localStorage
         setSuccess('Registration successful! Please sign in to continue.');
         setIsSignUp(false);
         setBusinessName('');
         setOwnerName('');
         setPhoneNumber('');
         setAddress('');
+        setCategory(''); // Reset category
         setEmail('');
         setPassword('');
       } else {
@@ -57,16 +59,16 @@ const BusinessAuth = () => {
     setIsLoading(true);
     setError('');
     setSuccess('');
-    
+
     try {
       const response = await axios.post(`${BASE_URL}/api/v1/business/login-business`, {
         email,
         password
       });
-
       const token = response.data.data?.accessToken || response.data.accessToken;
       if (token) {
         localStorage.setItem('authToken', token);
+        // Optionally, fetch and store category here if returned by login API
         setSuccess('Login successful! Redirecting to dashboard...');
         navigate('/businessDashboard');
       } else {
@@ -83,12 +85,11 @@ const BusinessAuth = () => {
     setIsLoading(true);
     setError('');
     setSuccess('');
-    
+
     try {
       const response = await axios.post(`${BASE_URL}/api/v1/business/forgot-password`, {
         email
       });
-
       if (response.data.message) {
         setSuccess('Password reset link sent');
         setEmail('');
@@ -215,7 +216,7 @@ const BusinessAuth = () => {
                   </div>
                 )}
                 {!isForgotPassword && (
-                  <div className="grid grid-cols-2 gap-0 mb-6 bg-gray-100 rounded-lg p-1">
+                  <div className="	grid grid-cols-2 gap-0 mb-6 bg-gray-100 rounded-lg p-1">
                     <button
                       onClick={() => {
                         setIsSignUp(false);
@@ -311,6 +312,22 @@ const BusinessAuth = () => {
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
                             disabled={isLoading}
                           />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="relative">
+                          <select
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                            disabled={isLoading}
+                          >
+                            <option value="" disabled>Select category</option>
+                            <option value="Hotels">Hotels</option>
+                            <option value="Restaurants">Restaurants</option>
+                            <option value="Schools">Schools</option>
+                            <option value="Others">Others</option>
+                          </select>
                         </div>
                       </div>
                       <div>
@@ -444,4 +461,5 @@ const BusinessAuth = () => {
     </div>
   );
 };
+
 export default BusinessAuth;

@@ -61,7 +61,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* Update feedbackForm to accept optional parameters */}
+          {/* Feedback form route with optional parameters */}
           <Route path="/feedbackForm/:businessId?/:qrcodeId?" element={<FeedbackForm />} />
           <Route path="/thankYou" element={<ThankYou />} />
           <Route path="/userAuth" element={<UserAuth />} />
