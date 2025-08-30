@@ -22,7 +22,7 @@ function App() {
   return (
     <div>
       <ToastContainer />
-      <Router basename="/RevuAI">
+      <Router basename="/">
         <Routes>
           {/* Dynamic landing page route with businessId and qrcodeId */}
           <Route path="/qr/:businessId/:qrcodeId" element={<LandingPage />} />
