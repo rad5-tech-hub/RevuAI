@@ -140,8 +140,9 @@ function LandingPage() {
           <Link
             to="/businessAuth"
             className="text-black text-sm underline hover:text-blue-500 transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
+            // target="_blank"
+            // rel="noopener noreferrer"
+     // commented the open new tab out for development purposes, would be brought back in production
           >
             Business Owner? Access Portal
           </Link>
