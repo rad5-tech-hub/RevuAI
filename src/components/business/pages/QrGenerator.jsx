@@ -15,6 +15,7 @@ import {
   X,
   Check,
   Settings,
+  Loader2,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
@@ -30,38 +31,111 @@ export default function QRGenerator() {
   const [allowImages, setAllowImages] = useState(true);
   const [primaryColor, setPrimaryColor] = useState("#0E5FD8");
   const [tagInput, setTagInput] = useState("");
-
-  // Initialize tags based on business category for "general" QR type
-  const getDefaultTags = () => {
-    const businessCategory = localStorage.getItem("businessCategory") || "Others";
-    if (qrType === "general") {
-      switch (businessCategory) {
-        case "Hotels":
-          return ["Cleanliness", "Staff Service", "Amenities"];
-        case "Restaurants":
-          return ["Food Quality", "Service Speed", "Ambiance"];
-        case "Schools":
-          return ["Teaching Quality", "Facilities", "Safety"];
-        case "Others":
-        default:
-          return ["Service Quality", "Customer Experience"];
-      }
-    }
-    return ["Service Quality", "Customer Experience"];
-  };
-  const [tags, setTags] = useState(getDefaultTags());
-  const [generatedQrData, setGeneratedQrData] = useState(null);
+  const [tags, setTags] = useState(["Service Quality", "Customer Experience"]);
+  const [categoryId, setCategoryId] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [qrCodeIds, setQrCodeIds] = useState([]);
+  const [generatedQrData, setGeneratedQrData] = useState(null);
+  const [qrCodeIds, setQrCodeIds] = useState(() => {
+    const saved = localStorage.getItem("qrCodeIds");
+    return saved ? JSON.parse(saved) : [];
+  });
   const [qrCodes, setQrCodes] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
+  const [filterType, setFilterType] = useState("all");
   const tagInputRef = useRef(null);
 
-  // Update tags when qrType changes
+  // UUID validation regex
+  const isValidUUID = (str) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+  };
+
+  // Save qrCodeIds to localStorage
   useEffect(() => {
-    setTags(getDefaultTags());
-  }, [qrType]);
+    localStorage.setItem("qrCodeIds", JSON.stringify(qrCodeIds));
+  }, [qrCodeIds]);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setIsCategoriesLoading(true);
+      const token = localStorage.getItem("authToken");
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/category/all-category`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const fetchedCategories = response.data.categories || response.data || [];
+        const validCategories = fetchedCategories.filter((cat) => isValidUUID(cat.id));
+        setCategories(validCategories);
+        if (validCategories.length > 0) {
+          setCategoryId(validCategories[0].id);
+        } else {
+          toast.error("No valid categories found. Please contact support.", {
+            position: "top-right",
+            autoClose: 5000,
+          });
+        }
+      } catch (err) {
+        console.error("Category fetch error:", err);
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          if (token) {
+            try {
+              const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/category/all-category`);
+              const fetchedCategories = response.data.categories || response.data || [];
+              const validCategories = fetchedCategories.filter((cat) => isValidUUID(cat.id));
+              setCategories(validCategories);
+              if (validCategories.length > 0) {
+                setCategoryId(validCategories[0].id);
+              } else {
+                toast.error("No valid categories found. Please contact support.", {
+                  position: "top-right",
+                  autoClose: 5000,
+                });
+              }
+            } catch (publicErr) {
+              console.error("Public category fetch error:", publicErr);
+              toast.error("Failed to fetch categories. Please contact support or try again later.", {
+                position: "top-right",
+                autoClose: 5000,
+              });
+            }
+          } else {
+            toast.error("Please log in to fetch categories.", {
+              position: "top-right",
+              autoClose: 3000,
+            });
+            navigate("/businessAuth");
+          }
+        } else {
+          toast.error("Failed to fetch categories. Please contact support or try again later.", {
+            position: "top-right",
+            autoClose: 5000,
+          });
+        }
+      } finally {
+        setIsCategoriesLoading(false);
+      }
+    };
+    fetchCategories();
+  }, [navigate]);
+
+  // Update tags when qrType or categoryId changes
+  useEffect(() => {
+    const selectedCategory = categories.find((cat) => cat.id === categoryId);
+    const businessCategory = selectedCategory?.name || "Others";
+    let defaultTags = ["Service Quality", "Customer Experience"];
+    if (businessCategory === "Hotels") {
+      defaultTags = ["Cleanliness", "Staff Service", "Amenities"];
+    } else if (businessCategory === "Restaurants") {
+      defaultTags = ["Food Quality", "Service Speed", "Ambiance"];
+    } else if (businessCategory === "Schools") {
+      defaultTags = ["Teaching Quality", "Facilities", "Safety"];
+    }
+    setTags(defaultTags);
+  }, [qrType, categoryId, categories]);
 
   const addTag = (value) => {
     const v = (value ?? tagInput).trim();
@@ -89,19 +163,8 @@ export default function QRGenerator() {
   };
 
   const generatedUrl = useMemo(() => {
-    if (generatedQrData?.scan_url) {
-      return generatedQrData.scan_url;
-    }
-    const base = "https://scanreview.app/feedback";
-    const params = new URLSearchParams();
-    params.set("business", "Demo+Coffee+Shop");
-    params.set("type", qrType);
-    if (qrName) params.set("name", qrName.replace(/\s+/g, "+"));
-    if (qrType === "product") {
-      params.set("product", qrName.toLowerCase().replace(/\s+/g, "-"));
-    }
-    return `${base}?${params.toString()}`;
-  }, [qrType, qrName, generatedQrData]);
+    return generatedQrData?.scan_url || "https://rad5.com.ng/review/feedback";
+  }, [generatedQrData]);
 
   const copyUrl = async () => {
     try {
@@ -110,21 +173,12 @@ export default function QRGenerator() {
       toast.success("URL copied to clipboard!", {
         position: "top-right",
         autoClose: 1600,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
       });
       setTimeout(() => setCopied(false), 1600);
     } catch (error) {
-      console.error("Failed to copy URL to clipboard:", error);
-      toast.error("Failed to copy URL. Please try again or copy it manually.", {
+      toast.error("Failed to copy URL. Please try again.", {
         position: "top-right",
         autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
       });
     }
   };
@@ -144,8 +198,8 @@ export default function QRGenerator() {
       });
       return;
     }
-    if (!qrType || !["general", "product", "location", "service"].includes(qrType)) {
-      toast.error("Invalid QR code type selected.", {
+    if (!categoryId || !isValidUUID(categoryId)) {
+      toast.error("Please select a valid category.", {
         position: "top-right",
         autoClose: 3000,
       });
@@ -159,24 +213,18 @@ export default function QRGenerator() {
           position: "top-right",
           autoClose: 3000,
         });
-        navigate("/login");
+        navigate("/businessAuth");
         return;
       }
-      const apiType = qrType === "general" || qrType === "location" ? "service" : qrType;
-      if (qrType === "general" || qrType === "location") {
-        console.warn(
-          `Mapping qrType "${qrType}" to "service" as a temporary workaround due to backend validation.`
-        );
-      }
+      const apiType = qrType === "product" ? "Product" : "Service";
       const payload = {
         label: qrName.trim(),
         type: apiType,
-        productOrServiceId:
-          qrName.toLowerCase().replace(/\s+/g, "-") || "default-id",
+        productOrServiceId: qrName.toLowerCase().replace(/\s+/g, "-"),
         qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
         description: description?.trim() || undefined,
+        categoryId,
       };
-      console.log("Sending POST payload:", payload);
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/v1/qrcode/generate`,
         payload,
@@ -189,36 +237,31 @@ export default function QRGenerator() {
       );
       const qrData = response.data.data;
       setGeneratedQrData(qrData);
-      if (qrData.productOrServiceId) {
-        setQrCodeIds((prev) => [...new Set([...prev, qrData.productOrServiceId])]);
-      } else {
-        console.warn("No productOrServiceId in POST response:", qrData);
-      }
+      setQrCodeIds((prev) => [...new Set([...prev, qrData.id])]);
+      const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
+      qrTypeMap[qrData.id] = qrType;
+      localStorage.setItem("qrTypeMap", JSON.stringify(qrTypeMap));
       toast.success("QR code generated successfully!", {
         position: "top-right",
         autoClose: 3000,
       });
       setQrName("");
       setDescription("");
-      setTags(getDefaultTags());
+      setTags(["Service Quality", "Customer Experience"]);
+      setCategoryId(categories[0]?.id || "");
     } catch (error) {
-      console.error("Failed to generate QR code:", error);
-      console.error("POST response:", error.response?.data);
       if (error.response?.status === 401) {
         toast.error("Session expired. Please log in again.", {
           position: "top-right",
           autoClose: 3000,
         });
         localStorage.removeItem("authToken");
-        navigate("/login");
+        navigate("/businessAuth");
       } else {
-        toast.error(
-          error.response?.data?.message || "Failed to generate QR code. Please try again.",
-          {
-            position: "top-right",
-            autoClose: 3000,
-          }
-        );
+        toast.error(error.response?.data?.message || "Failed to generate QR code.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
       }
     } finally {
       setIsLoading(false);
@@ -238,53 +281,47 @@ export default function QRGenerator() {
           position: "top-right",
           autoClose: 3000,
         });
-        navigate("/login");
+        navigate("/businessAuth");
         return;
       }
       try {
+        const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
         const fetchedQrCodes = [];
         for (const id of qrCodeIds) {
-          console.log(`Fetching QR code for productOrServiceId: ${id}`);
           const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/v1/qrcode/scan/${id}`,
+            `${import.meta.env.VITE_API_URL}/api/v1/qrcode/qrcode/${id}`,
             {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
+              headers: { Authorization: `Bearer ${token}` },
             }
           );
-          const qrData = response.data.data;
+          const qrData = response.data.qr;
           fetchedQrCodes.push({
-            title: qrData.title || qrData.label || "Untitled",
-            status: qrData.status || "active",
-            type: qrData.type || "unknown",
-            location: qrData.location || qrData.productOrServiceId || "Unknown",
-            scans: qrData.scans || 0,
-            feedback: qrData.feedback || 0,
-            date: qrData.date || new Date().toISOString().split("T")[0],
-            url: qrData.url || qrData.scan_url || "https://scanreview.app/feedback",
-            productOrServiceId: id,
+            id: qrData.id,
+            title: qrData.label,
+            status: qrData.is_active ? "active" : "inactive",
+            type: qrTypeMap[qrData.id] || (qrData.type === "Product" ? "product" : "service"),
+            location: qrData.product_or_service_id,
+            scans: 0, // Placeholder
+            feedback: 0, // Placeholder
+            date: qrData.createdAt.split("T")[0],
+            url: qrData.scan_url,
+            qrcode_url: qrData.qrcode_url,
           });
         }
         setQrCodes(fetchedQrCodes);
       } catch (error) {
-        console.error("Failed to fetch QR codes:", error);
-        console.error("GET response:", error.response?.data);
         if (error.response?.status === 401) {
           toast.error("Session expired. Please log in again.", {
             position: "top-right",
             autoClose: 3000,
           });
           localStorage.removeItem("authToken");
-          navigate("/login");
+          navigate("/businessAuth");
         } else {
-          toast.error(
-            error.response?.data?.message || "Failed to fetch QR codes. Please try again.",
-            {
-              position: "top-right",
-              autoClose: 3000,
-            }
-          );
+          toast.error(error.response?.data?.message || "Failed to fetch QR codes.", {
+            position: "top-right",
+            autoClose: 3000,
+          });
         }
       } finally {
         setIsFetching(false);
@@ -293,8 +330,8 @@ export default function QRGenerator() {
     fetchQrCodes();
   }, [activeTab, qrCodeIds, navigate]);
 
-  const downloadQR = () => {
-    if (!generatedQrData?.qrcode_url) {
+  const downloadPNG = (url, filename) => {
+    if (!url) {
       toast.error("No QR code available to download.", {
         position: "top-right",
         autoClose: 3000,
@@ -302,13 +339,73 @@ export default function QRGenerator() {
       return;
     }
     const link = document.createElement("a");
-    link.href = generatedQrData.qrcode_url;
-    link.download = `qr_${generatedQrData.label}.png`;
+    link.href = url;
+    link.download = filename;
     link.click();
   };
 
-  const printQR = () => {
-    if (!generatedQrData?.qrcode_url) {
+  const downloadSVG = (url, filename) => {
+    if (!url) {
+      toast.error("No QR code available to download.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    const svgUrl = url.replace(".png", ".svg");
+    const link = document.createElement("a");
+    link.href = svgUrl;
+    link.download = filename.replace(".png", ".svg");
+    link.click();
+  };
+
+  const shareQR = async (url, title) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Share Feedback: ${title}`,
+          text: `Scan this QR code to provide feedback for ${title}`,
+          url,
+        });
+        toast.success("QR code shared successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      } catch (error) {
+        console.error("Share error:", error);
+        // Fallback to copying URL
+        try {
+          await navigator.clipboard.writeText(url);
+          toast.success("Share not supported. URL copied to clipboard!", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+        } catch (copyError) {
+          toast.error("Failed to share or copy URL. Please try again.", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+        }
+      }
+    } else {
+      // Fallback for browsers without Web Share API
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success("Share not supported. URL copied to clipboard!", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      } catch (error) {
+        toast.error("Failed to copy URL. Please try again.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
+    }
+  };
+
+  const printQR = (url, title) => {
+    if (!url) {
       toast.error("No QR code available to print.", {
         position: "top-right",
         autoClose: 3000,
@@ -319,11 +416,26 @@ export default function QRGenerator() {
     printWindow.document.write(`
       <html>
         <body>
-          <img src="${generatedQrData.qrcode_url}" onload="window.print();window.close()" />
+          <img src="${url}" onload="window.print();window.close()" alt="${title}" />
         </body>
       </html>
     `);
     printWindow.document.close();
+  };
+
+  const viewQR = (code) => {
+    setGeneratedQrData({ scan_url: code.url, qrcode_url: code.qrcode_url, label: code.title });
+    setActiveTab("create");
+  };
+
+  const editQR = (code) => {
+    const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
+    setQrType(qrTypeMap[code.id] || (code.type === "Product" ? "product" : "service"));
+    setQrName(code.title);
+    setDescription("");
+    setTags(["Service Quality", "Customer Experience"]);
+    setCategoryId(categories[0]?.id || "");
+    setActiveTab("create");
   };
 
   const TypeCard = ({ id, title, desc, icon }) => (
@@ -352,32 +464,17 @@ export default function QRGenerator() {
   );
 
   const handleLogout = async () => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      navigate("/");
-      return;
-    }
-    try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/logout/logout`, {
-        refreshToken: token,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("businessCategory");
-      navigate("/");
-    } catch (err) {
-      console.error("Logout failed:", err);
-      navigate("/");
-    }
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("qrCodeIds");
+    localStorage.removeItem("qrTypeMap");
+    navigate("/businessAuth");
   };
 
-  // Skeleton Screen for Create New QR Code Tab
+  const filteredQrCodes = filterType === "all" ? qrCodes : qrCodes.filter((code) => code.type === filterType);
+
   const LoadingState = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 sm:p-6" aria-busy="true" aria-label="Loading QR code generator">
-      {/* Left Column: Form Sections */}
       <div className="space-y-6">
-        {/* Type Cards Section */}
         <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
           <div className="h-5 w-40 bg-gray-200 rounded animate-pulse mb-4"></div>
           <div className="space-y-3">
@@ -392,7 +489,6 @@ export default function QRGenerator() {
             ))}
           </div>
         </div>
-        {/* Basic Information Section */}
         <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
           <div className="h-5 w-40 bg-gray-200 rounded animate-pulse mb-4"></div>
           <div className="space-y-4">
@@ -409,7 +505,6 @@ export default function QRGenerator() {
             </div>
           </div>
         </div>
-        {/* Customization Section */}
         <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
           <div className="h-5 w-40 bg-gray-200 rounded animate-pulse mb-4"></div>
           <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] items-center gap-3">
@@ -421,15 +516,12 @@ export default function QRGenerator() {
           </div>
           <div className="mt-4 h-4 w-48 bg-gray-200 rounded animate-pulse"></div>
         </div>
-        {/* Buttons */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="h-12 w-full sm:w-40 bg-gray-200 rounded-xl animate-pulse"></div>
           <div className="h-12 w-full sm:w-40 bg-gray-200 rounded-xl animate-pulse"></div>
         </div>
       </div>
-      {/* Right Column: Preview and Usage Tips */}
       <div className="space-y-6">
-        {/* Preview Section */}
         <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
           <div className="h-5 w-40 bg-gray-200 rounded animate-pulse mb-4"></div>
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 min-h-[300px] flex items-center justify-center">
@@ -452,7 +544,6 @@ export default function QRGenerator() {
             </div>
           </div>
         </div>
-        {/* Usage Tips Section */}
         <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
           <div className="h-5 w-40 bg-gray-200 rounded animate-pulse mb-4"></div>
           <div className="space-y-2">
@@ -541,7 +632,7 @@ export default function QRGenerator() {
             </button>
           </div>
           {activeTab === "create" ? (
-            isLoading ? (
+            isCategoriesLoading ? (
               <LoadingState />
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 sm:p-6">
@@ -578,12 +669,35 @@ export default function QRGenerator() {
                   <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
                     <div className="text-sm font-semibold text-slate-700">2. Basic Information</div>
                     <label className="mt-4 block text-[13px] font-medium text-slate-600">
+                      Category<span className="text-blue-600"> *</span>
+                    </label>
+                    {categories.length === 0 ? (
+                      <div className="mt-2 text-sm text-slate-600">
+                        Unable to load categories. Please contact support or try again later.
+                      </div>
+                    ) : (
+                      <select
+                        value={categoryId}
+                        onChange={(e) => setCategoryId(e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                      >
+                        <option value="" disabled>
+                          Select category
+                        </option>
+                        {categories.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <label className="mt-4 block text-[13px] font-medium text-slate-600">
                       QR Code Name<span className="text-blue-600"> *</span>
                     </label>
                     <input
                       value={qrName}
                       onChange={(e) => setQrName(e.target.value)}
-                      placeholder="e.g., Main Counter, Espresso Machine, Patio Tables"
+                      placeholder="e.g., Bar, Room Service, Espresso Machine"
                       className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
                     />
                     <label className="mt-4 block text-[13px] font-medium text-slate-600">Description (Optional)</label>
@@ -661,11 +775,11 @@ export default function QRGenerator() {
                   <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={handleCreateQR}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 disabled:bg-blue-400"
-                      disabled={isLoading || !qrName}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed"
+                      disabled={isLoading || !qrName || !categoryId || categories.length === 0}
                       aria-label="Create QR Code"
                     >
-                      <Plus className="h-4 w-4" />
+                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                       {isLoading ? "Creating..." : "Create QR Code"}
                     </button>
                     <button
@@ -733,26 +847,28 @@ export default function QRGenerator() {
                       </div>
                       <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <button
-                          onClick={downloadQR}
+                          onClick={() => downloadPNG(generatedQrData?.qrcode_url, `qr_${generatedQrData?.label || 'code'}.png`)}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50"
                           aria-label="Download QR Code as PNG"
                         >
                           <Download className="h-4 w-4" /> PNG
                         </button>
                         <button
+                          onClick={() => downloadSVG(generatedQrData?.qrcode_url, `qr_${generatedQrData?.label || 'code'}.png`)}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50"
                           aria-label="Download QR Code as SVG"
                         >
                           <Download className="h-4 w-4" /> SVG
                         </button>
                         <button
-                          onClick={printQR}
+                          onClick={() => printQR(generatedQrData?.qrcode_url, generatedQrData?.label || 'QR Code')}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50"
                           aria-label="Print QR Code"
                         >
                           <Printer className="h-4 w-4" /> Print
                         </button>
                         <button
+                          onClick={() => shareQR(generatedUrl, generatedQrData?.label || 'QR Code')}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50"
                           aria-label="Share QR Code"
                         >
@@ -776,7 +892,20 @@ export default function QRGenerator() {
           ) : (
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="font-medium text-lg">Your QR Codes ({qrCodes.length})</h2>
+                <div className="flex items-center gap-4">
+                  <h2 className="font-medium text-lg">Your QR Codes ({filteredQrCodes.length})</h2>
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="general">General Business</option>
+                    <option value="product">Specific Product</option>
+                    <option value="location">Location/Area</option>
+                    <option value="service">Service Type</option>
+                  </select>
+                </div>
                 <button
                   onClick={() => setActiveTab("create")}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-1 text-sm"
@@ -786,7 +915,7 @@ export default function QRGenerator() {
                   Create New
                 </button>
               </div>
-              {isFetching && qrCodes.length === 0 ? (
+              {isFetching && filteredQrCodes.length === 0 ? (
                 <div className="space-y-4" aria-busy="true" aria-label="Loading QR codes">
                   {[1, 2, 3].map((i) => (
                     <div
@@ -806,20 +935,20 @@ export default function QRGenerator() {
                       </div>
                       <div className="h-10 w-full bg-gray-200 rounded-lg animate-pulse"></div>
                       <div className="flex gap-2">
-                        {[1, 2, 3, 4].map((j) => (
+                        {[1, 2, 3, 4, 5].map((j) => (
                           <div key={`action-${j}`} className="h-10 w-10 bg-gray-200 rounded-lg animate-pulse"></div>
                         ))}
                       </div>
                     </div>
                   ))}
                 </div>
-              ) : qrCodes.length === 0 ? (
-                <div className="text-center text-slate-600">No QR codes found. Create a new one to get started.</div>
+              ) : filteredQrCodes.length === 0 ? (
+                <div className="text-center text-slate-600">No QR codes found for this type. Create a new one to get started.</div>
               ) : (
                 <div className="space-y-4">
-                  {qrCodes.map((code) => (
+                  {filteredQrCodes.map((code) => (
                     <div
-                      key={code.productOrServiceId}
+                      key={code.id}
                       className="bg-white shadow rounded-lg p-6 space-y-4 border border-slate-200"
                     >
                       <div className="flex flex-wrap items-center gap-3">
@@ -828,7 +957,13 @@ export default function QRGenerator() {
                           {code.status}
                         </span>
                         <span className="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-full">
-                          {code.type}
+                          {code.type === "general"
+                            ? "General Business"
+                            : code.type === "product"
+                            ? "Specific Product"
+                            : code.type === "location"
+                            ? "Location/Area"
+                            : "Service Type"}
                         </span>
                       </div>
                       <p className="text-slate-600 text-sm">{code.location}</p>
@@ -845,16 +980,52 @@ export default function QRGenerator() {
                         {code.url}
                       </div>
                       <div className="flex gap-2">
-                        <button className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600" aria-label="View QR Code">
+                        <button
+                          onClick={() => viewQR(code)}
+                          className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
+                          aria-label="View QR Code"
+                        >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600" aria-label="Edit QR Code">
+                        <button
+                          onClick={() => editQR(code)}
+                          className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
+                          aria-label="Edit QR Code"
+                        >
                           <Settings className="w-4 h-4" />
                         </button>
-                        <button className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600" aria-label="Download QR Code">
+                        <button
+                          onClick={() => downloadPNG(code.qrcode_url, `qr_${code.title}.png`)}
+                          className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
+                          aria-label="Download QR Code as PNG"
+                        >
                           <Download className="w-4 h-4" />
                         </button>
-                        <button className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600" aria-label="Copy QR Code URL">
+                        <button
+                          onClick={() => downloadSVG(code.qrcode_url, `qr_${code.title}.png`)}
+                          className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
+                          aria-label="Download QR Code as SVG"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => shareQR(code.url, code.title)}
+                          className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
+                          aria-label="Share QR Code"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(code.url);
+                            toast.success("URL copied to clipboard!", {
+                              position: "top-right",
+                              autoClose: 1600,
+                            });
+                          }}
+                          className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
+                          aria-label="Copy QR Code URL"
+                        >
                           <Copy className="w-4 h-4" />
                         </button>
                       </div>

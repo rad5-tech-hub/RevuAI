@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { QrCode, BarChart3, Users, Star, Mail, Lock, FileText, Building, User, Phone } from 'lucide-react';
@@ -12,18 +12,38 @@ const BusinessAuth = () => {
   const [ownerName, setOwnerName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [address, setAddress] = useState('');
-  const [category, setCategory] = useState(''); // State for category
+  const [categoryId, setCategoryId] = useState('');
+  const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
   const BASE_URL = import.meta.env.VITE_API_URL;
 
+  // Fetch categories on component mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get(`${BASE_URL}/api/v1/category/all-category`);
+        setCategories(response.data.categories || []);
+      } catch (err) {
+        setError(`Failed to fetch categories: ${err.message}`);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+
+  // Handle business registration
   const handleSignUp = async () => {
+    if (!businessName || !ownerName || !email || !phoneNumber || !address || !categoryId || !password) {
+      setError('All fields are required.');
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError('');
     setSuccess('');
-
     try {
       const response = await axios.post(`${BASE_URL}/api/v1/business/register-business`, {
         business_name: businessName,
@@ -31,18 +51,17 @@ const BusinessAuth = () => {
         email,
         phone: phoneNumber,
         address,
-        category, // Include category in the payload
-        password
+        categoryId,
+        password,
       });
       if (response.data.message) {
-        localStorage.setItem('businessCategory', category); // Store category in localStorage
         setSuccess('Registration successful! Please sign in to continue.');
         setIsSignUp(false);
         setBusinessName('');
         setOwnerName('');
         setPhoneNumber('');
         setAddress('');
-        setCategory(''); // Reset category
+        setCategoryId('');
         setEmail('');
         setPassword('');
       } else {
@@ -55,22 +74,26 @@ const BusinessAuth = () => {
     }
   };
 
+  // Handle business login
   const handleSignIn = async () => {
+    if (!email || !password) {
+      setError('Email and password are required.');
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError('');
     setSuccess('');
-
     try {
       const response = await axios.post(`${BASE_URL}/api/v1/business/login-business`, {
         email,
-        password
+        password,
       });
       const token = response.data.data?.accessToken || response.data.accessToken;
       if (token) {
         localStorage.setItem('authToken', token);
-        // Optionally, fetch and store category here if returned by login API
         setSuccess('Login successful! Redirecting to dashboard...');
-        navigate('/businessDashboard');
+        setTimeout(() => navigate('/businessDashboard'), 1000);
       } else {
         setError('Login succeeded, but no token received.');
       }
@@ -81,17 +104,22 @@ const BusinessAuth = () => {
     }
   };
 
+  // Handle forgot password
   const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Email is required.');
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError('');
     setSuccess('');
-
     try {
       const response = await axios.post(`${BASE_URL}/api/v1/business/forgot-password`, {
-        email
+        email,
       });
       if (response.data.message) {
-        setSuccess('Password reset link sent');
+        setSuccess('Password reset link sent to your email.');
         setEmail('');
       } else {
         setError('Request succeeded, but unexpected response format.');
@@ -216,7 +244,7 @@ const BusinessAuth = () => {
                   </div>
                 )}
                 {!isForgotPassword && (
-                  <div className="	grid grid-cols-2 gap-0 mb-6 bg-gray-100 rounded-lg p-1">
+                  <div className="grid grid-cols-2 gap-0 mb-6 bg-gray-100 rounded-lg p-1">
                     <button
                       onClick={() => {
                         setIsSignUp(false);
@@ -317,18 +345,24 @@ const BusinessAuth = () => {
                       <div>
                         <div className="relative">
                           <select
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
+                            value={categoryId}
+                            onChange={(e) => setCategoryId(e.target.value)}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
                             disabled={isLoading}
                           >
-                            <option value="" disabled>Select category</option>
-                            <option value="Hotels">Hotels</option>
-                            <option value="Restaurants">Restaurants</option>
-                            <option value="Schools">Schools</option>
-                            <option value="Others">Others</option>
+                            <option value="" disabled>
+                              Select category
+                            </option>
+                            {categories.map((cat) => (
+                              <option key={cat.id} value={cat.id}>
+                                {cat.name}
+                              </option>
+                            ))}
                           </select>
                         </div>
+                      </div>
+                      <div>
+                       
                       </div>
                       <div>
                         <div className="relative">
