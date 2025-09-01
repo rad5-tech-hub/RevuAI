@@ -1,3 +1,4 @@
+
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import {
   QrCode,
@@ -21,8 +22,18 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
+import QRCode from "qrcode";
+// import NavigationBar from "./NavigationBar";
+// import NavigationBar from "../components/NavigationBar";
+// import TabNavigation from "../components/TabNavigation";
+// import QRCreateForm from "../components/QRCreateForm";
+// import QRDisplay from "../components/QRDisplay";
+// import QRManageList from "../components/QRManageList";
+// import LoadingState from "../components/LoadingStates";
 
 export default function QRGenerator() {
+  const qrRef = useRef(null);
+  const tagInputRef = useRef(null);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("create");
   const [qrType, setQrType] = useState("general");
@@ -45,7 +56,6 @@ export default function QRGenerator() {
   const [qrCodes, setQrCodes] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
   const [filterType, setFilterType] = useState("all");
-  const tagInputRef = useRef(null);
 
   // UUID validation regex
   const isValidUUID = (str) => {
@@ -97,7 +107,7 @@ export default function QRGenerator() {
               }
             } catch (publicErr) {
               console.error("Public category fetch error:", publicErr);
-              toast.error("Failed to fetch categories. Please contact support or try again later.", {
+              toast.error("Failed to fetch categories. Please try again later.", {
                 position: "top-right",
                 autoClose: 5000,
               });
@@ -110,7 +120,7 @@ export default function QRGenerator() {
             navigate("/businessAuth");
           }
         } else {
-          toast.error("Failed to fetch categories. Please contact support or try again later.", {
+          toast.error("Failed to fetch categories. Please try again later.", {
             position: "top-right",
             autoClose: 5000,
           });
@@ -136,6 +146,32 @@ export default function QRGenerator() {
     }
     setTags(defaultTags);
   }, [qrType, categoryId, categories]);
+
+  // Generate QR code on frontend when generatedQrData or primaryColor changes
+  useEffect(() => {
+    if (generatedQrData?.scan_url && qrRef.current) {
+      qrRef.current.innerHTML = ""; // Clear previous content
+      const canvas = document.createElement("canvas");
+      qrRef.current.appendChild(canvas);
+      QRCode.toCanvas(canvas, generatedQrData.scan_url, {
+        width: 160,
+        height: 160,
+        color: {
+          dark: primaryColor,
+          light: "#ffffff",
+        },
+        errorCorrectionLevel: "H", // Use string "H" for high error correction
+      }, (error) => {
+        if (error) {
+          console.error("QRCode generation error:", error);
+          toast.error("Failed to generate QR code.", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+        }
+      });
+    }
+  }, [generatedQrData, primaryColor]);
 
   const addTag = (value) => {
     const v = (value ?? tagInput).trim();
@@ -163,7 +199,7 @@ export default function QRGenerator() {
   };
 
   const generatedUrl = useMemo(() => {
-    return generatedQrData?.scan_url || "https://rad5.com.ng/review/feedback";
+    return generatedQrData?.scan_url || `${import.meta.env.VITE_SCAN_URL}/review/feedback`;
   }, [generatedQrData]);
 
   const copyUrl = async () => {
@@ -183,90 +219,107 @@ export default function QRGenerator() {
     }
   };
 
-  const handleCreateQR = async () => {
-    if (!qrName || qrName.trim() === "") {
-      toast.error("QR Code Name is required.", {
+const handleCreateQR = async () => {
+  if (!qrName || qrName.trim() === "") {
+    toast.error("QR Code Name is required.", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    return;
+  }
+  if (!tags.length || tags.some((tag) => tag.trim() === "")) {
+    toast.error("At least one valid tag is required.", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    return;
+  }
+  if (!categoryId || !isValidUUID(categoryId)) {
+    toast.error("Please select a valid category.", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    return;
+  }
+
+  setIsLoading(true);
+  try {
+    const token = localStorage.getItem("authToken");
+    console.log("Auth Token:", token ? "Present" : "Missing"); // Debug token presence
+    if (!token) {
+      toast.error("Please log in to create a QR code.", {
         position: "top-right",
         autoClose: 3000,
       });
+      navigate("/businessAuth");
       return;
     }
-    if (!tags.length || tags.some((tag) => tag.trim() === "")) {
-      toast.error("At least one valid tag is required.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    if (!categoryId || !isValidUUID(categoryId)) {
-      toast.error("Please select a valid category.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        toast.error("Please log in to create a QR code.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        navigate("/businessAuth");
-        return;
+
+    const apiType = qrType === "product" ? "Product" : "Service";
+    const payload = {
+      label: qrName.trim(),
+      type: apiType,
+      productOrServiceId: qrName.toLowerCase().replace(/\s+/g, "-"),
+      qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
+      description: description?.trim() || undefined,
+      categoryId,
+    };
+
+    console.log("Sending payload to API:", payload); // Debug payload
+    const response = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/v1/qrcode/generate`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       }
-      const apiType = qrType === "product" ? "Product" : "Service";
-      const payload = {
-        label: qrName.trim(),
-        type: apiType,
-        productOrServiceId: qrName.toLowerCase().replace(/\s+/g, "-"),
-        qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
-        description: description?.trim() || undefined,
-        categoryId,
-      };
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/v1/qrcode/generate`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      const qrData = response.data.data;
-      setGeneratedQrData(qrData);
-      setQrCodeIds((prev) => [...new Set([...prev, qrData.id])]);
-      const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
-      qrTypeMap[qrData.id] = qrType;
-      localStorage.setItem("qrTypeMap", JSON.stringify(qrTypeMap));
-      toast.success("QR code generated successfully!", {
+    );
+
+    const qrData = response.data.data;
+    console.log("API Response:", response.data); // Debug response
+    const constructedScanUrl = `${import.meta.env.VITE_SCAN_URL}/qr/${qrData.businessId}/${qrData.id}`;
+    setGeneratedQrData({
+      ...qrData,
+      scan_url: constructedScanUrl,
+    });
+    setQrCodeIds((prev) => [...new Set([...prev, qrData.id])]);
+    const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
+    qrTypeMap[qrData.id] = qrType;
+    localStorage.setItem("qrTypeMap", JSON.stringify(qrTypeMap));
+    toast.success("QR code generated successfully!", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    setQrName("");
+    setDescription("");
+    setTags(["Service Quality", "Customer Experience"]);
+    setCategoryId(categories[0]?.id || "");
+  } catch (error) {
+    console.error("QR Code generation error:", {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    }); // Detailed error logging
+    if (error.response?.status === 401) {
+      toast.error("Session expired or invalid token. Please log in again.", {
         position: "top-right",
         autoClose: 3000,
       });
-      setQrName("");
-      setDescription("");
-      setTags(["Service Quality", "Customer Experience"]);
-      setCategoryId(categories[0]?.id || "");
-    } catch (error) {
-      if (error.response?.status === 401) {
-        toast.error("Session expired. Please log in again.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        localStorage.removeItem("authToken");
-        navigate("/businessAuth");
-      } else {
-        toast.error(error.response?.data?.message || "Failed to generate QR code.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      }
-    } finally {
-      setIsLoading(false);
+      localStorage.removeItem("authToken");
+      navigate("/businessAuth");
+    } else {
+      const errorMessage = error.response?.data?.message || "Failed to generate QR code. Please try again.";
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 3000,
+      });
     }
-  };
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   useEffect(() => {
     if (activeTab !== "manage" || !qrCodeIds.length) {
@@ -304,8 +357,9 @@ export default function QRGenerator() {
             scans: 0, // Placeholder
             feedback: 0, // Placeholder
             date: qrData.createdAt.split("T")[0],
-            url: qrData.scan_url,
-            qrcode_url: qrData.qrcode_url,
+            url: `${import.meta.env.VITE_SCAN_URL}/review/${qrData.businessId}/${qrData.id}`,
+            businessName: qrData.business.business_name,
+            categoryName: qrData.category.name,
           });
         }
         setQrCodes(fetchedQrCodes);
@@ -330,33 +384,36 @@ export default function QRGenerator() {
     fetchQrCodes();
   }, [activeTab, qrCodeIds, navigate]);
 
-  const downloadPNG = (url, filename) => {
-    if (!url) {
+  const downloadPNG = () => {
+    if (!generatedQrData?.scan_url) {
       toast.error("No QR code available to download.", {
         position: "top-right",
         autoClose: 3000,
       });
       return;
     }
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.click();
-  };
-
-  const downloadSVG = (url, filename) => {
-    if (!url) {
-      toast.error("No QR code available to download.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    const svgUrl = url.replace(".png", ".svg");
-    const link = document.createElement("a");
-    link.href = svgUrl;
-    link.download = filename.replace(".png", ".svg");
-    link.click();
+    QRCode.toDataURL(generatedQrData.scan_url, {
+      width: 160,
+      height: 160,
+      color: {
+        dark: primaryColor,
+        light: "#ffffff",
+      },
+      errorCorrectionLevel: "H",
+    }, (error, url) => {
+      if (error) {
+        console.error("QRCode download error:", error);
+        toast.error("Failed to download QR code.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `qr_${generatedQrData?.label || "code"}.png`;
+      link.click();
+    });
   };
 
   const shareQR = async (url, title) => {
@@ -372,8 +429,6 @@ export default function QRGenerator() {
           autoClose: 3000,
         });
       } catch (error) {
-        console.error("Share error:", error);
-        // Fallback to copying URL
         try {
           await navigator.clipboard.writeText(url);
           toast.success("Share not supported. URL copied to clipboard!", {
@@ -388,7 +443,6 @@ export default function QRGenerator() {
         }
       }
     } else {
-      // Fallback for browsers without Web Share API
       try {
         await navigator.clipboard.writeText(url);
         toast.success("Share not supported. URL copied to clipboard!", {
@@ -404,27 +458,45 @@ export default function QRGenerator() {
     }
   };
 
-  const printQR = (url, title) => {
-    if (!url) {
+  const printQR = () => {
+    if (!generatedQrData?.scan_url) {
       toast.error("No QR code available to print.", {
         position: "top-right",
         autoClose: 3000,
       });
       return;
     }
-    const printWindow = window.open("");
-    printWindow.document.write(`
-      <html>
-        <body>
-          <img src="${url}" onload="window.print();window.close()" alt="${title}" />
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+    QRCode.toDataURL(generatedQrData.scan_url, {
+      width: 160,
+      height: 160,
+      color: {
+        dark: primaryColor,
+        light: "#ffffff",
+      },
+      errorCorrectionLevel: "H",
+    }, (error, url) => {
+      if (error) {
+        console.error("QRCode print error:", error);
+        toast.error("Failed to print QR code.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        return;
+      }
+      const printWindow = window.open("");
+      printWindow.document.write(`
+        <html>
+          <body>
+            <img src="${url}" onload="window.print();window.close()" alt="${generatedQrData?.label || "QR Code"}" />
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    });
   };
 
   const viewQR = (code) => {
-    setGeneratedQrData({ scan_url: code.url, qrcode_url: code.qrcode_url, label: code.title });
+    setGeneratedQrData({ scan_url: code.url, label: code.title });
     setActiveTab("create");
   };
 
@@ -567,7 +639,7 @@ export default function QRGenerator() {
                 <div className="w-10 h-10 text-white mx-auto bg-blue-500 mr-2 rounded-full flex items-center justify-center">
                   <QrCode className="w-6 h-6" />
                 </div>
-                <span className="text-xl font-bold text-black">RevuAi</span>
+                <span className="text-xl font-bold text-black">RevuAI</span>
               </Link>
               <span className="text-gray-500">Business Portal</span>
             </div>
@@ -633,8 +705,8 @@ export default function QRGenerator() {
           </div>
           {activeTab === "create" ? (
             isCategoriesLoading ? (
-              <LoadingState />
-            ) : (
+          <LoadingState />
+        ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 sm:p-6">
                 <div className="space-y-6">
                   <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
@@ -657,14 +729,14 @@ export default function QRGenerator() {
                         title="Location/Area"
                         desc="Specific location within business"
                         icon={<Tag className="h-5 w-5" />}
-                      />
+                />
                       <TypeCard
                         id="service"
                         title="Service Type"
                         desc="Specific service offering"
                         icon={<Star className="h-5 w-5" />}
-                      />
-                    </div>
+                />
+              </div>
                   </section>
                   <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
                     <div className="text-sm font-semibold text-slate-700">2. Basic Information</div>
@@ -747,18 +819,21 @@ export default function QRGenerator() {
                   <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
                     <div className="text-sm font-semibold text-slate-700">3. Customization</div>
                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-[auto_1fr] items-center gap-3">
-                      <div className="text-[13px] font-medium text-slate-600">Primary Color</div>
+                      <div className="text-[13px] font-medium text-slate-600">QR Code Color</div>
                       <div className="flex items-center gap-3">
                         <input
                           type="color"
                           value={primaryColor}
                           onChange={(e) => setPrimaryColor(e.target.value)}
                           className="h-10 w-14 cursor-pointer rounded-md border border-slate-300 bg-white"
+                          aria-label="Select QR code color"
                         />
                         <input
                           value={primaryColor}
                           onChange={(e) => setPrimaryColor(e.target.value)}
                           className="w-32 rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm font-mono"
+                          placeholder="#0E5FD8"
+                          aria-label="Enter QR code color hex code"
                         />
                       </div>
                     </div>
@@ -796,32 +871,19 @@ export default function QRGenerator() {
                     <div className="text-sm font-semibold text-slate-700">Preview</div>
                     <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 min-h-[300px] flex items-center justify-center">
                       <div className="flex flex-col items-center">
-                        {generatedQrData?.qrcode_url ? (
-                          <img
-                            src={generatedQrData.qrcode_url}
-                            alt="Generated QR Code"
-                            style={{
-                              width: 160,
-                              height: 160,
-                              borderRadius: "16px",
-                              border: "1px solid #E5E7EB",
-                              boxShadow: "0 1px 0 rgba(0,0,0,0.02)",
-                            }}
-                          />
-                        ) : (
-                          <div
-                            className="flex items-center justify-center rounded-2xl"
-                            style={{
-                              width: 160,
-                              height: 160,
-                              background: "white",
-                              border: "1px solid #E5E7EB",
-                              boxShadow: "0 1px 0 rgba(0,0,0,0.02)",
-                            }}
-                          >
-                            <QrCode className="h-16 w-16" style={{ color: primaryColor }} />
-                          </div>
-                        )}
+                        <div
+                          ref={qrRef}
+                          className="flex items-center justify-center rounded-2xl"
+                          style={{
+                            width: 160,
+                            height: 160,
+                            background: "white",
+                            border: "1px solid #E5E7EB",
+                            boxShadow: "0 1px 0 rgba(0,0,0,0.02)",
+                          }}
+                        >
+                          {!generatedQrData?.scan_url && <QrCode className="h-16 w-16" style={{ color: primaryColor }} />}
+                        </div>
                         <div className="mt-3 text-[13px] font-medium text-slate-600">QR Code Preview</div>
                         <div className="mt-1 text-[12px] text-slate-500 text-center max-w-[520px] truncate">
                           {generatedUrl}
@@ -845,23 +907,16 @@ export default function QRGenerator() {
                           {copied ? "Copied" : "Copy"}
                         </button>
                       </div>
-                      <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
                         <button
-                          onClick={() => downloadPNG(generatedQrData?.qrcode_url, `qr_${generatedQrData?.label || 'code'}.png`)}
+                          onClick={downloadPNG}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50"
                           aria-label="Download QR Code as PNG"
                         >
                           <Download className="h-4 w-4" /> PNG
                         </button>
                         <button
-                          onClick={() => downloadSVG(generatedQrData?.qrcode_url, `qr_${generatedQrData?.label || 'code'}.png`)}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50"
-                          aria-label="Download QR Code as SVG"
-                        >
-                          <Download className="h-4 w-4" /> SVG
-                        </button>
-                        <button
-                          onClick={() => printQR(generatedQrData?.qrcode_url, generatedQrData?.label || 'QR Code')}
+                          onClick={printQR}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50"
                           aria-label="Print QR Code"
                         >
@@ -966,7 +1021,8 @@ export default function QRGenerator() {
                             : "Service Type"}
                         </span>
                       </div>
-                      <p className="text-slate-600 text-sm">{code.location}</p>
+                      <p className="text-slate-600 text-sm">Business: {code.businessName} | Category: {code.categoryName}</p>
+                      <p className="text-slate-600 text-sm">Location/ID: {code.location}</p>
                       <div className="flex flex-wrap gap-4 text-sm text-slate-500">
                         <span className="flex items-center gap-1">
                           <Eye className="h-4 w-4" /> {code.scans} scans
@@ -995,16 +1051,32 @@ export default function QRGenerator() {
                           <Settings className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => downloadPNG(code.qrcode_url, `qr_${code.title}.png`)}
+                          onClick={() => {
+                            QRCode.toDataURL(code.url, {
+                              width: 160,
+                              height: 160,
+                              color: {
+                                dark: primaryColor,
+                                light: "#ffffff",
+                              },
+                              errorCorrectionLevel: "H",
+                            }, (error, url) => {
+                              if (error) {
+                                console.error("QRCode download error:", error);
+                                toast.error("Failed to download QR code.", {
+                                  position: "top-right",
+                                  autoClose: 3000,
+                                });
+                                return;
+                              }
+                              const link = document.createElement("a");
+                              link.href = url;
+                              link.download = `qr_${code.title}.png`;
+                              link.click();
+                            });
+                          }}
                           className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
                           aria-label="Download QR Code as PNG"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => downloadSVG(code.qrcode_url, `qr_${code.title}.png`)}
-                          className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
-                          aria-label="Download QR Code as SVG"
                         >
                           <Download className="w-4 h-4" />
                         </button>
@@ -1032,8 +1104,8 @@ export default function QRGenerator() {
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
+        )}
+      </div>
           )}
         </div>
       </main>

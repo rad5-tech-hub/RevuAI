@@ -1,55 +1,94 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { QrCode } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { QrCode, Tag } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import axios from 'axios';
+import QRCode from 'qrcode';
 
 function LandingPage() {
   const navigate = useNavigate();
-  const { businessId, qrcodeId } = useParams(); // Extract parameters from URL
-  const [businessName, setBusinessName] = useState('Demo Coffee Shop'); // Default fallback
+  const { businessId, qrcodeId } = useParams();
+  const [qrData, setQrData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const qrRef = useRef(null);
   const BASE_URL = import.meta.env.VITE_API_URL;
 
-  // Fetch QR code details
   useEffect(() => {
-    if (qrcodeId) {
-      const fetchQrDetails = async () => {
-        setLoading(true);
-        try {
-          const response = await fetch(`${BASE_URL}/api/v1/qr/${qrcodeId}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
+    const fetchQrDetails = async () => {
+      if (!businessId || !qrcodeId) {
+        setError('Invalid URL parameters. Please scan a valid QR code.');
+        setLoading(false);
+        return;
+      }
 
-          if (!response.ok) {
-            throw new Error('Failed to fetch QR code details');
-          }
+      setLoading(true);
+      try {
+        const response = await axios.get(`${BASE_URL}/api/v1/qrcode/qrcode/${qrcodeId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(localStorage.getItem('authToken') && {
+              Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+            }),
+          },
+        });
 
-          const data = await response.json();
-          // Assuming API returns { business_name, label, businessId, qrcodeId }
-          setBusinessName(data.business_name || data.label || 'Unknown Business');
-        } catch (err) {
-          console.error('Error fetching QR details:', err);
-          setError(err.message);
-          toast.error(err.message || 'Failed to load business details');
-        } finally {
-          setLoading(false);
+        const qr = response.data.qr || response.data;
+        if (!qr.is_active) {
+          throw new Error('This QR code is inactive.');
         }
-      };
 
-      fetchQrDetails();
+        // Construct scan_url to match /qr/:businessId/:qrcodeId
+        const constructedScanUrl = `${import.meta.env.VITE_SCAN_URL}/qr/${qr.businessId}/${qr.id}`;
+        setQrData({
+          ...qr,
+          scan_url: constructedScanUrl,
+        });
+      } catch (err) {
+        console.error('Error fetching QR details:', err);
+        const errorMessage = err.response?.data?.message || err.message || 'Failed to load business details';
+        setError(errorMessage);
+        toast.error(errorMessage, {
+          position: 'top-right',
+          autoClose: 5000,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQrDetails();
+  }, [businessId, qrcodeId, BASE_URL]);
+
+  useEffect(() => {
+    if (qrData?.scan_url && qrRef.current) {
+      qrRef.current.innerHTML = '';
+      QRCode.toCanvas(qrRef.current, qrData.scan_url, {
+        width: 120,
+        height: 120,
+        color: {
+          dark: '#0E5FD8',
+          light: '#ffffff',
+        },
+        errorCorrectionLevel: 'H',
+      }, (error) => {
+        if (error) {
+          console.error('QRCode generation error:', error);
+          toast.error('Failed to generate QR code preview.', {
+            position: 'top-right',
+            autoClose: 3000,
+          });
+        }
+      });
     }
-  }, [qrcodeId]);
+  }, [qrData]);
 
   const handleSignIn = () => {
     navigate('/userAuth');
   };
 
   const handleContinueAnonymously = () => {
-    // Pass businessId and qrcodeId to feedbackForm
     if (businessId && qrcodeId) {
       navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
     } else {
@@ -57,7 +96,6 @@ function LandingPage() {
     }
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -69,8 +107,7 @@ function LandingPage() {
     );
   }
 
-  // Error state
-  if (error) {
+  if (error || !qrData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
@@ -85,7 +122,7 @@ function LandingPage() {
             </svg>
           </div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Error Loading Business</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <p className="text-gray-600 mb-4">{error || 'No data available. Please scan a valid QR code.'}</p>
           <button
             onClick={() => window.location.reload()}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
@@ -99,57 +136,85 @@ function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center">
-      {/* Header */}
-      <div className="w-full max-w-md md:max-w-2xl lg:max-w-[88rem] mx-auto px-6 pt-12 pb-8 text-center">
-        {/* Logo */}
+      <ToastContainer />
+      <div className="w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto px-6 pt-12 pb-8">
         <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white">
           <QrCode />
         </div>
-
-        {/* ScanReview Title */}
-        <h1 className="text-2xl font-bold text-black mb-2">RevuAI</h1>
-        <p className="text-black text-sm mb-8">Share your experience</p>
-
-        {/* Welcome Card */}
+        <h1 className="text-2xl font-bold text-black mb-2 text-center">RevuAI</h1>
+        <p className="text-black text-sm mb-8 text-center">Share your experience</p>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
-          <h2 className="text-black text-base mb-2">Welcome to</h2>
-          <h3 className="text-2xl font-bold text-blue-500 mb-4">{businessName}</h3>
-          <p className="text-black text-sm leading-relaxed">
-            Your feedback helps us serve you better. Share your thoughts and get rewarded!
+          <h2 className="text-black text-base mb-2 text-center">Welcome to</h2>
+          <h3 className="text-2xl font-bold text-blue-500 mb-4 text-center">{qrData.business.business_name}</h3>
+          <p className="text-black text-sm leading-relaxed text-center">
+            Provide feedback for {qrData.label} to help us improve our {qrData.type.toLowerCase()}.
           </p>
+          <div className="mt-4 flex justify-center">
+            <div
+              ref={qrRef}
+              className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2"
+              style={{ width: 120, height: 120 }}
+            />
+          </div>
         </div>
-
-        {/* Sign In Button */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">About {qrData.business.business_name}</h3>
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">
+              <span className="font-medium">Category:</span> {qrData.category.name || 'N/A'}
+            </p>
+            <p className="text-sm text-gray-600">
+              <span className="font-medium">Contact:</span> {qrData.business.email || 'N/A'}
+            </p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Feedback For: {qrData.label}</h3>
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">
+              <span className="font-medium">Type:</span> {qrData.type.charAt(0).toUpperCase() + qrData.type.slice(1)}
+            </p>
+            <p className="text-sm text-gray-600">
+              <span className="font-medium">Description:</span> {qrData.description || 'No description provided'}
+            </p>
+            <div className="text-sm text-gray-600">
+              <span className="font-medium">Tags:</span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {qrData.qrcode_tags?.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-gray-50 px-2.5 py-1 text-xs text-gray-700"
+                  >
+                    <Tag className="h-3.5 w-3.5" />
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
         <button
           onClick={handleSignIn}
           className="w-full cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-semibold py-4 px-6 rounded-xl transition-colors duration-200 mb-4"
         >
           Sign In
         </button>
-
-        {/* Continue Anonymously */}
         <button
           onClick={handleContinueAnonymously}
           className="w-full cursor-pointer bg-white hover:bg-blue-200 text-black hover:text-blue-700 font-medium py-4 px-6 rounded-xl border hover:border-blue-700 transition-colors duration-200 mb-6"
         >
           Continue Anonymously
         </button>
-
-        {/* Business Owner Link */}
         <div className="text-center">
           <Link
             to="/businessAuth"
             className="text-black text-sm underline hover:text-blue-500 transition-colors"
-            // target="_blank"
-            // rel="noopener noreferrer"
-     // commented the open new tab out for development purposes, would be brought back in production
           >
             Business Owner? Access Portal
           </Link>
         </div>
       </div>
-
-      <p className="text-center text-gray-600 text-sm">Powered by RevuAi . Privacy Protected</p>
+      <p className="text-center text-gray-600 text-sm pb-4">Powered by RevuAI . Privacy Protected</p>
     </div>
   );
 }
