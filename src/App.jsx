@@ -1,14 +1,14 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './LandingPage.jsx';
-import BusinessAuth from '../src/components/business/pages/BusinessAuth.jsx';
-import BusinessDashboard from '../src/components/business/pages/BusinessDashboard.jsx';
-import Qr from '../src/components/business/pages/QrGenerator.jsx';
-import Feedback from '../src/components/business/pages/FeedbackExplorer.jsx';
-import Report from '../src/components/business/pages/ReportSection.jsx';
-import FeedbackForm from '../src/components/customer/pages/feedbackform.jsx';
-import ThankYou from '../src/components/customer/pages/ThankYouPage.jsx';
-import UserAuth from '../src/components/customer/pages/UserAuth.jsx';
-import UserAcc from '../src/components/customer/pages/UserAccount.jsx';
+import BusinessAuth from './components/business/pages/BusinessAuth.jsx';
+import BusinessDashboard from './components/business/pages/BusinessDashboard.jsx';
+import Qr from './components/business/pages/QrGenerator.jsx';
+import Feedback from './components/business/pages/FeedbackExplorer.jsx';
+import Report from './components/business/pages/ReportSection.jsx';
+import FeedbackForm from './components/customer/pages/FeedbackForm.jsx'; // Consistent case
+import ThankYou from './components/customer/pages/ThankYouPage.jsx';
+import UserAuth from './components/customer/pages/UserAuth.jsx';
+import UserAcc from './components/customer/pages/UserAccount.jsx';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -22,7 +22,7 @@ function App() {
   return (
     <div>
       <ToastContainer />
-      <Router basename="/">
+      <Router basename="/RevuAI">
         <Routes>
           {/* Dynamic landing page route with businessId and qrcodeId */}
           <Route path="/qr/:businessId/:qrcodeId" element={<LandingPage />} />

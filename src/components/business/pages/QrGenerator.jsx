@@ -1,8 +1,6 @@
-
-import React, { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import {
   QrCode,
-  ChevronDown,
   Star,
   ImageIcon,
   Tag,
@@ -23,13 +21,6 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import QRCode from "qrcode";
-// import NavigationBar from "./NavigationBar";
-// import NavigationBar from "../components/NavigationBar";
-// import TabNavigation from "../components/TabNavigation";
-// import QRCreateForm from "../components/QRCreateForm";
-// import QRDisplay from "../components/QRDisplay";
-// import QRManageList from "../components/QRManageList";
-// import LoadingState from "../components/LoadingStates";
 
 export default function QRGenerator() {
   const qrRef = useRef(null);
@@ -150,7 +141,7 @@ export default function QRGenerator() {
   // Generate QR code on frontend when generatedQrData or primaryColor changes
   useEffect(() => {
     if (generatedQrData?.scan_url && qrRef.current) {
-      qrRef.current.innerHTML = ""; // Clear previous content
+      qrRef.current.innerHTML = "";
       const canvas = document.createElement("canvas");
       qrRef.current.appendChild(canvas);
       QRCode.toCanvas(canvas, generatedQrData.scan_url, {
@@ -160,7 +151,7 @@ export default function QRGenerator() {
           dark: primaryColor,
           light: "#ffffff",
         },
-        errorCorrectionLevel: "H", // Use string "H" for high error correction
+        errorCorrectionLevel: "H",
       }, (error) => {
         if (error) {
           console.error("QRCode generation error:", error);
@@ -199,7 +190,7 @@ export default function QRGenerator() {
   };
 
   const generatedUrl = useMemo(() => {
-    return generatedQrData?.scan_url || `${import.meta.env.VITE_SCAN_URL}/review/feedback`;
+    return generatedQrData?.scan_url || `${import.meta.env.VITE_SCAN_URL}/qr/feedback`;
   }, [generatedQrData]);
 
   const copyUrl = async () => {
@@ -219,107 +210,104 @@ export default function QRGenerator() {
     }
   };
 
-const handleCreateQR = async () => {
-  if (!qrName || qrName.trim() === "") {
-    toast.error("QR Code Name is required.", {
-      position: "top-right",
-      autoClose: 3000,
-    });
-    return;
-  }
-  if (!tags.length || tags.some((tag) => tag.trim() === "")) {
-    toast.error("At least one valid tag is required.", {
-      position: "top-right",
-      autoClose: 3000,
-    });
-    return;
-  }
-  if (!categoryId || !isValidUUID(categoryId)) {
-    toast.error("Please select a valid category.", {
-      position: "top-right",
-      autoClose: 3000,
-    });
-    return;
-  }
-
-  setIsLoading(true);
-  try {
-    const token = localStorage.getItem("authToken");
-    console.log("Auth Token:", token ? "Present" : "Missing"); // Debug token presence
-    if (!token) {
-      toast.error("Please log in to create a QR code.", {
+  const handleCreateQR = async () => {
+    if (!qrName || qrName.trim() === "") {
+      toast.error("QR Code Name is required.", {
         position: "top-right",
         autoClose: 3000,
       });
-      navigate("/businessAuth");
+      return;
+    }
+    if (!tags.length || tags.some((tag) => tag.trim() === "")) {
+      toast.error("At least one valid tag is required.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    if (!categoryId || !isValidUUID(categoryId)) {
+      toast.error("Please select a valid category.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
       return;
     }
 
-    const apiType = qrType === "product" ? "Product" : "Service";
-    const payload = {
-      label: qrName.trim(),
-      type: apiType,
-      productOrServiceId: qrName.toLowerCase().replace(/\s+/g, "-"),
-      qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
-      description: description?.trim() || undefined,
-      categoryId,
-    };
-
-    console.log("Sending payload to API:", payload); // Debug payload
-    const response = await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/v1/qrcode/generate`,
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        toast.error("Please log in to create a QR code.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        navigate("/businessAuth");
+        return;
       }
-    );
 
-    const qrData = response.data.data;
-    console.log("API Response:", response.data); // Debug response
-    const constructedScanUrl = `${import.meta.env.VITE_SCAN_URL}/qr/${qrData.businessId}/${qrData.id}`;
-    setGeneratedQrData({
-      ...qrData,
-      scan_url: constructedScanUrl,
-    });
-    setQrCodeIds((prev) => [...new Set([...prev, qrData.id])]);
-    const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
-    qrTypeMap[qrData.id] = qrType;
-    localStorage.setItem("qrTypeMap", JSON.stringify(qrTypeMap));
-    toast.success("QR code generated successfully!", {
-      position: "top-right",
-      autoClose: 3000,
-    });
-    setQrName("");
-    setDescription("");
-    setTags(["Service Quality", "Customer Experience"]);
-    setCategoryId(categories[0]?.id || "");
-  } catch (error) {
-    console.error("QR Code generation error:", {
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message,
-    }); // Detailed error logging
-    if (error.response?.status === 401) {
-      toast.error("Session expired or invalid token. Please log in again.", {
+      const apiType = qrType === "product" ? "Product" : "Service";
+      const payload = {
+        label: qrName.trim(),
+        type: apiType,
+        productOrServiceId: qrName.toLowerCase().replace(/\s+/g, "-"),
+        qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
+        description: description?.trim() || undefined,
+        categoryId,
+      };
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/v1/qrcode/generate`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const qrData = response.data.data;
+      const constructedScanUrl = `${import.meta.env.VITE_SCAN_URL}/qr/${qrData.businessId}/${qrData.id}`;
+      setGeneratedQrData({
+        ...qrData,
+        scan_url: constructedScanUrl,
+      });
+      setQrCodeIds((prev) => [...new Set([...prev, qrData.id])]);
+      const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
+      qrTypeMap[qrData.id] = qrType;
+      localStorage.setItem("qrTypeMap", JSON.stringify(qrTypeMap));
+      toast.success("QR code generated successfully!", {
         position: "top-right",
         autoClose: 3000,
       });
-      localStorage.removeItem("authToken");
-      navigate("/businessAuth");
-    } else {
-      const errorMessage = error.response?.data?.message || "Failed to generate QR code. Please try again.";
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 3000,
+      setQrName("");
+      setDescription("");
+      setTags(["Service Quality", "Customer Experience"]);
+      setCategoryId(categories[0]?.id || "");
+    } catch (error) {
+      console.error("QR Code generation error:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
       });
+      if (error.response?.status === 401) {
+        toast.error("Session expired or invalid token. Please log in again.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        localStorage.removeItem("authToken");
+        navigate("/businessAuth");
+      } else {
+        const errorMessage = error.response?.data?.message || "Failed to generate QR code. Please try again.";
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
+    } finally {
+      setIsLoading(false);
     }
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     if (activeTab !== "manage" || !qrCodeIds.length) {
@@ -357,7 +345,7 @@ const handleCreateQR = async () => {
             scans: 0, // Placeholder
             feedback: 0, // Placeholder
             date: qrData.createdAt.split("T")[0],
-            url: `${import.meta.env.VITE_SCAN_URL}/review/${qrData.businessId}/${qrData.id}`,
+            url: `${import.meta.env.VITE_SCAN_URL}/qr/${qrData.businessId}/${qrData.id}`,
             businessName: qrData.business.business_name,
             categoryName: qrData.category.name,
           });
@@ -705,8 +693,8 @@ const handleCreateQR = async () => {
           </div>
           {activeTab === "create" ? (
             isCategoriesLoading ? (
-          <LoadingState />
-        ) : (
+              <LoadingState />
+            ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 sm:p-6">
                 <div className="space-y-6">
                   <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
@@ -729,14 +717,14 @@ const handleCreateQR = async () => {
                         title="Location/Area"
                         desc="Specific location within business"
                         icon={<Tag className="h-5 w-5" />}
-                />
+                      />
                       <TypeCard
                         id="service"
                         title="Service Type"
                         desc="Specific service offering"
                         icon={<Star className="h-5 w-5" />}
-                />
-              </div>
+                      />
+                    </div>
                   </section>
                   <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
                     <div className="text-sm font-semibold text-slate-700">2. Basic Information</div>
@@ -1104,8 +1092,8 @@ const handleCreateQR = async () => {
                     </div>
                   ))}
                 </div>
-        )}
-      </div>
+              )}
+            </div>
           )}
         </div>
       </main>
