@@ -1,5 +1,5 @@
 import { User, Clock, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -14,7 +14,16 @@ const UserAccount = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const BASE_URL = import.meta.env.VITE_API_URL;
+
+  // Extract businessId and qrcodeId from navigation state
+  const { businessId, qrcodeId } = location.state || {};
+
+  // Debug location.state
+  useEffect(() => {
+    console.log('UserAccount Location State:', location.state);
+  }, [location.state]);
 
   // Fetch user dashboard data
   useEffect(() => {
@@ -25,7 +34,7 @@ const UserAccount = () => {
 
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
         if (!token) {
-          navigate('/userAuth');
+          navigate('/userAuth', { state: { businessId, qrcodeId } });
           return;
         }
 
@@ -41,7 +50,7 @@ const UserAccount = () => {
           if (response.status === 401) {
             localStorage.removeItem('authToken');
             sessionStorage.removeItem('authToken');
-            navigate('/userAuth');
+            navigate('/userAuth', { state: { businessId, qrcodeId } });
             return;
           }
           throw new Error(`Failed to fetch dashboard data: ${response.status}`);
@@ -66,25 +75,38 @@ const UserAccount = () => {
     };
 
     fetchUserDashboard();
-  }, [navigate]);
+  }, [navigate, businessId, qrcodeId]);
 
-  const handleBack = () => {
-    navigate('/');
-  };
-
-  const handleContinueToFeedback = () => {
-    // Use the most recent feedback's businessId and qrcodeId if available
-    if (recentFeedback.length > 0) {
-      const { businessId, qrcodeId } = recentFeedback[0]; // Assuming these fields exist in feedback
-      if (businessId && qrcodeId) {
-        navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
+    const handleBack = () => {
+      console.log('handleBack - location.state:', location.state, 'recentFeedback:', recentFeedback);
+      if (location.state?.businessId && location.state?.qrcodeId) {
+        navigate(`/qr/${location.state.businessId}/${location.state.qrcodeId}`);
       } else {
-        navigate('/feedbackForm');
+        const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
+        if (storedQrContext.businessId && storedQrContext.qrcodeId) {
+          navigate(`/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
+        } else if (recentFeedback.length > 0 && recentFeedback[0].businessId && recentFeedback[0].qrcodeId) {
+          navigate(`/qr/${recentFeedback[0].businessId}/${recentFeedback[0].qrcodeId}`);
+        } else {
+          navigate(-1);
+        }
       }
-    } else {
-      navigate('/feedbackForm');
-    }
-  };
+    };
+
+    const handleContinueToFeedback = () => {
+      if (location.state?.businessId && location.state?.qrcodeId) {
+        navigate(`/feedbackForm/${location.state.businessId}/${location.state.qrcodeId}`);
+      } else {
+        const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
+        if (storedQrContext.businessId && storedQrContext.qrcodeId) {
+          navigate(`/feedbackForm/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
+        } else if (recentFeedback.length > 0 && recentFeedback[0].businessId && recentFeedback[0].qrcodeId) {
+          navigate(`/feedbackForm/${recentFeedback[0].businessId}/${recentFeedback[0].qrcodeId}`);
+        } else {
+          navigate('/feedbackForm');
+        }
+      }
+    };
 
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, index) => (

@@ -35,16 +35,45 @@ function LandingPage() {
         });
 
         const qr = response.data.qr || response.data;
+        console.log('QR API Response:', JSON.stringify(qr, null, 2));
         if (!qr.is_active) {
           throw new Error('This QR code is inactive.');
         }
 
-        // Construct scan_url to match /qr/:businessId/:qrcodeId
-        const constructedScanUrl = `${import.meta.env.VITE_SCAN_URL}/qr/${qr.businessId}/${qr.id}`;
+        // Normalize qrcode_tags to an array and lowercase
+        let normalizedTags = [];
+        if (qr.qrcode_tags) {
+          if (Array.isArray(qr.qrcode_tags)) {
+            normalizedTags = qr.qrcode_tags.map(tag => tag.trim().toLowerCase());
+          } else if (typeof qr.qrcode_tags === 'string') {
+            try {
+              normalizedTags = JSON.parse(qr.qrcode_tags).map(tag => tag.trim().toLowerCase());
+              if (!Array.isArray(normalizedTags)) {
+                throw new Error('Parsed qrcode_tags is not an array');
+              }
+            } catch (e) {
+              normalizedTags = qr.qrcode_tags.split(',').map(tag => tag.trim().toLowerCase()).filter(tag => tag);
+            }
+          } else {
+            console.warn('Unexpected qrcode_tags format:', qr.qrcode_tags);
+          }
+        }
+        console.log('Normalized qrcode_tags:', normalizedTags);
+
+        const qrContext = {
+          businessId,
+          qrcodeId,
+          businessName: qr.business?.business_name || qr.label || 'Unknown Business',
+          qrcodeTags: normalizedTags,
+        };
         setQrData({
           ...qr,
-          scan_url: constructedScanUrl,
+          scan_url: qr.scan_url,
+          qrcode_tags: normalizedTags,
         });
+        // Store in localStorage
+        localStorage.setItem('qrContext', JSON.stringify(qrContext));
+        console.log('Stored qrContext in localStorage:', qrContext);
       } catch (err) {
         console.error('Error fetching QR details:', err);
         const errorMessage = err.response?.data?.message || err.message || 'Failed to load business details';
@@ -53,6 +82,15 @@ function LandingPage() {
           position: 'top-right',
           autoClose: 5000,
         });
+        // Store fallback data
+        const qrContext = {
+          businessId,
+          qrcodeId,
+          businessName: 'Unknown Business',
+          qrcodeTags: [],
+        };
+        localStorage.setItem('qrContext', JSON.stringify(qrContext));
+        console.log('Stored fallback qrContext in localStorage:', qrContext);
       } finally {
         setLoading(false);
       }
@@ -62,7 +100,7 @@ function LandingPage() {
   }, [businessId, qrcodeId, BASE_URL]);
 
   useEffect(() => {
-    if (qrData?.scan_url && qrRef.current) {
+    if (qrData?.scan_url && qrRef.current && !qrData.qrcode_url) {
       qrRef.current.innerHTML = '';
       QRCode.toCanvas(qrRef.current, qrData.scan_url, {
         width: 120,
@@ -85,14 +123,21 @@ function LandingPage() {
   }, [qrData]);
 
   const handleSignIn = () => {
-    navigate('/userAuth');
+    console.log('LandingPage handleSignIn - businessId:', businessId, 'qrcodeId:', qrcodeId);
+    navigate('/userAuth', { state: { businessId, qrcodeId } });
   };
 
   const handleContinueAnonymously = () => {
+    console.log('LandingPage handleContinueAnonymously - businessId:', businessId, 'qrcodeId:', qrcodeId);
     if (businessId && qrcodeId) {
       navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
     } else {
-      navigate('/feedbackForm');
+      const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
+      if (storedQrContext.businessId && storedQrContext.qrcodeId) {
+        navigate(`/feedbackForm/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
+      } else {
+        navigate('/feedbackForm');
+      }
     }
   };
 
@@ -147,14 +192,23 @@ function LandingPage() {
           <h2 className="text-black text-base mb-2 text-center">Welcome to</h2>
           <h3 className="text-2xl font-bold text-blue-500 mb-4 text-center">{qrData.business.business_name}</h3>
           <p className="text-black text-sm leading-relaxed text-center">
-            Provide feedback for {qrData.label} to help us improve our {qrData.type.toLowerCase()}.
+            Provide feedback for our <span className="font-bold text-blue-500">{qrData.label}</span> to help us improve our {qrData.type.toLowerCase()}.
           </p>
           <div className="mt-4 flex justify-center">
-            <div
-              ref={qrRef}
-              className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2"
-              style={{ width: 120, height: 120 }}
-            />
+            {qrData.qrcode_url ? (
+              <img
+                src={qrData.qrcode_url}
+                alt="QR Code"
+                className="rounded-lg border border-gray-200"
+                style={{ width: 120, height: 120 }}
+              />
+            ) : (
+              <canvas
+                ref={qrRef}
+                className="rounded-lg border border-gray-200 bg-white p-2"
+                style={{ width: 120, height: 120 }}
+              />
+            )}
           </div>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
@@ -180,15 +234,19 @@ function LandingPage() {
             <div className="text-sm text-gray-600">
               <span className="font-medium">Tags:</span>
               <div className="mt-2 flex flex-wrap gap-2">
-                {qrData.qrcode_tags?.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-gray-50 px-2.5 py-1 text-xs text-gray-700"
-                  >
-                    <Tag className="h-3.5 w-3.5" />
-                    {tag}
-                  </span>
-                ))}
+                {qrData.qrcode_tags.length > 0 ? (
+                  qrData.qrcode_tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-gray-50 px-2.5 py-1 text-xs text-gray-700"
+                    >
+                      <Tag className="h-3.5 w-3.5" />
+                      {tag}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-gray-500">No tags available</span>
+                )}
               </div>
             </div>
           </div>

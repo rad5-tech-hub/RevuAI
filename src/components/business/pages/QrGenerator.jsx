@@ -915,7 +915,7 @@ export default function QRGenerator() {
                           className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50"
                           aria-label="Share QR Code"
                         >
-                          <Share2 className="h-4 w-4" /> Share
+                          <Share2 className="h-4 w-4 cursor-pointer" /> Share
                         </button>
                       </div>
                     </div>
@@ -1013,10 +1013,10 @@ export default function QRGenerator() {
                       <p className="text-slate-600 text-sm">Location/ID: {code.location}</p>
                       <div className="flex flex-wrap gap-4 text-sm text-slate-500">
                         <span className="flex items-center gap-1">
-                          <Eye className="h-4 w-4" /> {code.scans} scans
+                          <Eye className="h-4 w-4 cursor-pointer" /> {code.scans} scans
                         </span>
                         <span className="flex items-center gap-1">
-                          <Star className="h-4 w-4" /> {code.feedback} feedback
+                          <Star className="h-4 w-4 cursor-pointer" /> {code.feedback} feedback
                         </span>
                         <span>Created {code.date}</span>
                       </div>
@@ -1029,14 +1029,14 @@ export default function QRGenerator() {
                           className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
                           aria-label="View QR Code"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-4 h-4 cursor-pointer" />
                         </button>
                         <button
                           onClick={() => editQR(code)}
                           className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
                           aria-label="Edit QR Code"
                         >
-                          <Settings className="w-4 h-4" />
+                          <Settings className="w-4 h-4 cursor-pointer" />
                         </button>
                         <button
                           onClick={() => {
@@ -1066,14 +1066,14 @@ export default function QRGenerator() {
                           className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
                           aria-label="Download QR Code as PNG"
                         >
-                          <Download className="w-4 h-4" />
+                          <Download className="w-4 h-4 cursor-pointer" />
                         </button>
                         <button
                           onClick={() => shareQR(code.url, code.title)}
                           className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
                           aria-label="Share QR Code"
                         >
-                          <Share2 className="w-4 h-4" />
+                          <Share2 className="w-4 h-4 cursor-pointer" />
                         </button>
                         <button
                           onClick={() => {
@@ -1086,7 +1086,7 @@ export default function QRGenerator() {
                           className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
                           aria-label="Copy QR Code URL"
                         >
-                          <Copy className="w-4 h-4" />
+                          <Copy className="w-4 h-4 cursor-pointer" />
                         </button>
                       </div>
                     </div>

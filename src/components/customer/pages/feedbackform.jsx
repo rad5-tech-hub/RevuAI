@@ -11,7 +11,8 @@ const FeedbackForm = () => {
   const [textFeedback, setTextFeedback] = useState('');
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [businessName, setBusinessName] = useState('Demo Coffee Shop');
+  const [businessName, setBusinessName] = useState('Unknown Business');
+  const [qrContext, setQrContext] = useState(null);
   const navigate = useNavigate();
   const { businessId, qrcodeId } = useParams();
   const BASE_URL = import.meta.env.VITE_API_URL;
@@ -30,39 +31,45 @@ const FeedbackForm = () => {
     }
   }, []);
 
-  // Fetch business name using qrcodeId
+  // Retrieve QR context from localStorage
   useEffect(() => {
-    if (qrcodeId) {
-      const fetchBusinessName = async () => {
-        try {
-          const response = await fetch(`${BASE_URL}/api/v1/qr/${qrcodeId}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to fetch business details');
-          }
-
-          const data = await response.json();
-          setBusinessName(data.business_name || data.label || 'Unknown Business');
-        } catch (err) {
-          console.error('Error fetching business details:', err);
-          toast.error(err.message || 'Failed to load business details');
+    console.log('FeedbackForm Mounted - businessId:', businessId, 'qrcodeId:', qrcodeId);
+    const storedQrContext = localStorage.getItem('qrContext');
+    if (storedQrContext) {
+      try {
+        const parsedQrContext = JSON.parse(storedQrContext);
+        if (
+          parsedQrContext.businessId === businessId &&
+          parsedQrContext.qrcodeId === qrcodeId
+        ) {
+          // Normalize tags to lowercase
+          parsedQrContext.qrcodeTags = parsedQrContext.qrcodeTags.map(tag => tag.toLowerCase());
+          setQrContext(parsedQrContext);
+          setBusinessName(parsedQrContext.businessName || 'Unknown Business');
+          console.log('Loaded qrContext from localStorage:', parsedQrContext);
+        } else {
+          console.error('QR context mismatch:', parsedQrContext, { businessId, qrcodeId });
+          toast.error('Invalid QR code data');
+          navigate('/');
         }
-      };
-
-      fetchBusinessName();
+      } catch (error) {
+        console.error('Error parsing QR context:', error);
+        toast.error('Failed to load QR code data');
+        navigate('/');
+      }
+    } else {
+      console.error('No QR context found in localStorage');
+      toast.error('Please scan a QR code to provide feedback');
+      navigate('/');
     }
-  }, [qrcodeId]);
+  }, [businessId, qrcodeId, navigate]);
 
   const handleStarClick = (value) => {
     setRating(value);
   };
 
   const handleBack = () => {
+    console.log('FeedbackForm handleBack - businessId:', businessId, 'qrcodeId:', qrcodeId);
     navigate(qrcodeId && businessId ? `/qr/${businessId}/${qrcodeId}` : '/');
   };
 
@@ -75,7 +82,18 @@ const FeedbackForm = () => {
   };
 
   const handleTagClick = (tag) => {
-    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+    const normalizedTag = tag.toLowerCase();
+    if (!qrContext.qrcodeTags.includes(normalizedTag)) {
+      console.warn('Attempted to select invalid tag:', tag);
+      toast.error(`Tag "${tag}" is not valid for this QR code`);
+      return;
+    }
+    setSelectedTags((prev) => {
+      const normalizedPrev = prev.map(t => t.toLowerCase());
+      return normalizedPrev.includes(normalizedTag)
+        ? prev.filter((t) => t.toLowerCase() !== normalizedTag)
+        : [...prev, tag];
+    });
   };
 
   const handleTextChange = (e) => {
@@ -83,40 +101,49 @@ const FeedbackForm = () => {
   };
 
   const handleSubmit = async () => {
-    if (!businessId || !qrcodeId) {
-      toast.error('Please scan a QR code to provide feedback');
+    if (!businessId || !qrcodeId || !qrContext) {
+      toast.error('Please scan a valid QR code to provide feedback');
       return;
     }
-
+    if (selectedTags.length === 0) {
+      toast.error('Please select at least one tag');
+      return;
+    }
+    // Validate selectedTags against qrContext.qrcodeTags
+    const normalizedSelectedTags = selectedTags.map(tag => tag.toLowerCase());
+    const invalidTags = normalizedSelectedTags.filter(tag => !qrContext.qrcodeTags.includes(tag));
+    if (invalidTags.length > 0) {
+      console.error('Invalid tags selected:', invalidTags);
+      toast.error('Selected tags are not valid for this QR code');
+      return;
+    }
     setLoading(true);
-
     try {
+      const token = localStorage.getItem('authToken');
       const payload = {
         businessId,
         qrcodeId,
         rating,
         comment: textFeedback.trim() || null,
         isAnonymous: !user,
-        qrcode_tags: selectedTags,
+        qrcode_tags: JSON.stringify(normalizedSelectedTags), // Send as JSON string
       };
-
-      console.log('Submitting feedback:', payload);
+      console.log('Submitting feedback:', JSON.stringify(payload, null, 2));
       const response = await fetch(`${BASE_URL}/api/v1/review/reviews`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && !payload.isAnonymous ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(payload),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.message || 'Failed to submit feedback');
       }
-
       console.log('Feedback submitted successfully:', data);
       toast.success('Feedback submitted successfully!');
+      localStorage.removeItem('qrContext');
       navigate('/thankYou');
     } catch (error) {
       console.error('Error submitting feedback:', error);
@@ -155,6 +182,10 @@ const FeedbackForm = () => {
         return { star: 'text-gray-300 fill-gray-300', label: 'text-gray-500' };
     }
   };
+
+  if (!qrContext) {
+    return null; // Render nothing during redirect
+  }
 
   return (
     <div className="min-h-screen bg-[#F7FAFF]">
@@ -219,8 +250,8 @@ const FeedbackForm = () => {
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
           <p className="text-gray-800 text-sm font-medium mb-3">What stood out? (Optional)</p>
           <div className="flex flex-wrap gap-2">
-            {['Service', 'Food Quality', 'Cleanliness', 'Atmosphere', 'Speed', 'Value', 'Staff Friendly', 'Would Recommend'].map(
-              (item) => (
+            {qrContext.qrcodeTags && qrContext.qrcodeTags.length > 0 ? (
+              qrContext.qrcodeTags.map((item) => (
                 <button
                   key={item}
                   onClick={() => handleTagClick(item)}
@@ -232,7 +263,9 @@ const FeedbackForm = () => {
                 >
                   {item}
                 </button>
-              )
+              ))
+            ) : (
+              <p className="text-gray-500 text-sm">No tags available</p>
             )}
           </div>
         </div>
@@ -251,9 +284,11 @@ const FeedbackForm = () => {
 
         <button
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || !qrContext || qrContext.qrcodeTags.length === 0}
           className={`w-full cursor-pointer py-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center ${
-            loading ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'
+            loading || !qrContext || qrContext.qrcodeTags.length === 0
+              ? 'bg-gray-400 cursor-not-allowed text-white'
+              : 'bg-blue-600 hover:bg-blue-700 text-white'
           }`}
         >
           {loading ? (

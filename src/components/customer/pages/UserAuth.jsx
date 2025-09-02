@@ -1,20 +1,24 @@
 import { User, Mail, Lock } from 'lucide-react';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useState } from "react";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const UserAuth = () => {
   const [activeTab, setActiveTab] = useState('signin');
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     fullname: '',
     email: '',
     password: '',
   });
   const [loading, setLoading] = useState(false);
-  const BASE_URL = import.meta.env.VITE_API_URL;
   const [error, setError] = useState('');
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
+  // Extract businessId and qrcodeId from navigation state
+  const { businessId, qrcodeId } = location.state || {};
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -121,12 +125,14 @@ const UserAuth = () => {
 
         // Store user data
         const userData = {
-          fullname: data.fullname || formData.email, // Fallback to email if fullname not provided
+          fullname: data.fullname || formData.email,
           email: formData.email,
         };
         localStorage.setItem('userData', JSON.stringify(userData));
 
-        navigate('/userAccount');
+        // Navigate to userAccount with businessId and qrcodeId
+        console.log('UserAuth handleSubmit - Location State:', location.state);
+        navigate('/userAccount', { state: { businessId, qrcodeId } });
       } else {
         setActiveTab('signin');
         toast.info('Account created successfully! Please sign in.');
@@ -139,13 +145,33 @@ const UserAuth = () => {
     }
   };
 
-  const handleSkip = () => {
-    navigate('/feedbackForm');
-  };
+    const handleSkip = () => {
+      console.log('UserAuth handleSkip - Location State:', location.state);
+      if (businessId && qrcodeId) {
+        navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
+      } else {
+        const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
+        if (storedQrContext.businessId && storedQrContext.qrcodeId) {
+          navigate(`/feedbackForm/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
+        } else {
+          navigate('/feedbackForm');
+        }
+      }
+    };
 
-  const handleBack = () => {
-    navigate('/');
-  };
+    const handleBack = () => {
+      console.log('UserAuth handleBack - Location State:', location.state);
+      if (businessId && qrcodeId) {
+        navigate(`/qr/${businessId}/${qrcodeId}`);
+      } else {
+        const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
+        if (storedQrContext.businessId && storedQrContext.qrcodeId) {
+          navigate(`/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
+        } else {
+          navigate(-1);
+        }
+      }
+    };
 
   return (
     <div className="min-h-screen bg-gray-50">
