@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import axios from "axios";
@@ -27,29 +28,25 @@ const useFetchReviews = ({ search, ratingFilter }) => {
           position: "top-right",
           autoClose: 3000,
         });
+        setLoading(false);
         return;
       }
+
       try {
         const query = new URLSearchParams();
         if (search) query.append("search", search);
         if (ratingFilter && ratingFilter !== "All Ratings") {
           query.append("rating", parseInt(ratingFilter));
         }
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/v1/review/filter?${query.toString()}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            data: {
-              label: "",
-              type: "",
-              productOrServiceId: "",
-              qrcode_tags: [],
-              description: "",
-              categoryId: "",
-            },
-          }
-        );
-        const { reviews, meta, ratingSummary, averageRating } = response.data;
+        const endpoint = query.toString()
+          ? `${import.meta.env.VITE_API_URL}/api/v1/review/filter?${query.toString()}`
+          : `${import.meta.env.VITE_API_URL}/api/v1/review/all-reviews`;
+
+        const response = await axios.get(endpoint, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const { reviews, totalReviews, ratingSummary, averageRating } = response.data;
         setFeedback(
           reviews.map((review) => ({
             id: review.id,
@@ -60,16 +57,22 @@ const useFetchReviews = ({ search, ratingFilter }) => {
               year: "numeric",
             }),
             rating: review.rating,
+            ratingLabel: review.ratingLabel,
             sentiment: getSentiment(review.rating),
-            text: review.comment,
-            aspects: review.qrcode_tags,
+            text: review.comment || "No comment provided",
+            aspects: Array.isArray(review.qrcode_tags) ? review.qrcode_tags : [], // Ensure aspects is always an array
             qrCode: review.qrcode.label || review.qrcode.id,
-            qrcode_url: review.qrcode.qrcode_url || "",
+            qrcode_url: review.qrcode.qrcode_url || `${import.meta.env.VITE_SCAN_URL}/qr/${review.businessId}/${review.qrcodeId}`,
             businessName: review.business.business_name,
-            hasMedia: review.hasMedia || false, // Placeholder
+            hasMedia: review.hasMedia || false,
           }))
         );
-        setMeta(meta || { total: reviews.length, totalPages: 1, page: 1, limit: 10 });
+        setMeta({
+          total: totalReviews || reviews.length,
+          totalPages: response.data.meta?.totalPages || 1,
+          page: response.data.meta?.page || 1,
+          limit: response.data.meta?.limit || 10,
+        });
         setRatingSummary(ratingSummary || {});
         setAverageRating(averageRating || "0.00");
       } catch (err) {
@@ -81,10 +84,10 @@ const useFetchReviews = ({ search, ratingFilter }) => {
           localStorage.removeItem("authToken");
           localStorage.removeItem("qrCodeIds");
           localStorage.removeItem("qrTypeMap");
-          window.location.href = "/businessAuth"; // Use window.location for redirect in hook
+          window.location.href = "/businessAuth";
         } else {
-          setError(err.response?.data?.message || "Failed to fetch reviews.");
-          toast.error(err.response?.data?.message || "Failed to fetch reviews.", {
+          setError("Failed to fetch reviews. Please try again later.");
+          toast.error("Failed to fetch reviews.", {
             position: "top-right",
             autoClose: 3000,
           });

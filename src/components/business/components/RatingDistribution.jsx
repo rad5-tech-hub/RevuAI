@@ -1,21 +1,32 @@
+
 import { Star } from "lucide-react";
 
 const RatingDistribution = ({ data }) => {
   return (
-    <>
+    <div className="w-full max-w-md">
       <h3 className="text-lg font-semibold text-gray-900 mb-6">Rating Distribution</h3>
       <div className="space-y-4">
         {data?.length > 0 ? (
           data.map((item, index) => (
-            <div key={`rating-dist-${item.rating}-${index}`} className="flex items-center space-x-3">
-              <span className="text-sm font-medium text-gray-600 w-8">{item.rating}</span>
+            <div
+              key={`rating-dist-${item.rating}-${index}`}
+              className="flex items-center space-x-3 w-full"
+            >
+              <span className="text-sm font-medium text-gray-600 min-w-[60px] sm:min-w-[80px]">
+                {item.rating}
+              </span>
               <div className="flex-1 bg-gray-200 rounded-full h-3">
                 <div
                   className="bg-blue-500 h-3 rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${item.percentage}%`, animation: `growWidth 1s ease-out ${index * 0.1}s both` }}
+                  style={{
+                    width: `${item.percentage}%`,
+                    animation: `growWidth 1s ease-out ${index * 0.1}s both`,
+                  }}
                 ></div>
               </div>
-              <span className="text-sm font-medium text-gray-900 w-10 text-right">{item.count}</span>
+              <span className="text-sm font-medium text-gray-900 min-w-[40px] text-right">
+                {item.count}
+              </span>
             </div>
           ))
         ) : (
@@ -30,7 +41,7 @@ const RatingDistribution = ({ data }) => {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 };
 

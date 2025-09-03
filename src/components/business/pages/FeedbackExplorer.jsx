@@ -1,4 +1,5 @@
-import { useState, } from "react";
+
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -12,18 +13,11 @@ import {
   QrCode,
   Download,
   Share2,
-  MessageCircle,
+  MessageSquare,
   Star,
-  RefreshCw,
   LogOut,
   Loader2,
 } from "lucide-react";
-
-// const sentimentColors = {
-//   Positive: "bg-green-100 text-green-700",
-//   Neutral: "bg-yellow-100 text-yellow-700",
-//   Negative: "bg-red-100 text-red-700",
-// };
 
 const FeedbackExplorer = () => {
   const [search, setSearch] = useState("");
@@ -31,7 +25,6 @@ const FeedbackExplorer = () => {
   const [sentimentFilter, setSentimentFilter] = useState("All Sentiments");
   const [dateFilter, setDateFilter] = useState("All Time");
   const navigate = useNavigate();
-
   const {
     feedback,
     loading,
@@ -165,35 +158,12 @@ const FeedbackExplorer = () => {
     }
   };
 
-  const handleRetry = () => {
-    // Retry logic could be handled in the hook if needed
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-slate-600 text-lg">Loading feedback data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
-            <p className="text-lg font-medium">{error}</p>
-          </div>
-          <button
-            onClick={handleRetry}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <RefreshCw size={18} />
-            <span>Retry</span>
-          </button>
         </div>
       </div>
     );
@@ -257,9 +227,9 @@ const FeedbackExplorer = () => {
         <div className="mt-6 grid grid-cols-2 md:grid-cols-6 gap-4">
           {[
             { label: "Total", value: meta.total.toString() },
-            { label: "Positive", value: ratingSummary["Excellent"] + ratingSummary["Very Good"] || 0 },
+            { label: "Positive", value: (ratingSummary["Excellent"] || 0) + (ratingSummary["Very Good"] || 0) },
             { label: "Neutral", value: ratingSummary["Average"] || 0 },
-            { label: "Negative", value: ratingSummary["Poor"] + ratingSummary["Very Poor"] || 0 },
+            { label: "Negative", value: (ratingSummary["Poor"] || 0) + (ratingSummary["Very Poor"] || 0) },
             { label: "Average Rating", value: averageRating },
             { label: "With Media", value: feedback.filter((f) => f.hasMedia).length.toString() },
           ].map((stat) => (
@@ -283,14 +253,7 @@ const FeedbackExplorer = () => {
           <FilterDropdown
             value={ratingFilter}
             onChange={setRatingFilter}
-            options={[
-              "All Ratings",
-              "5 Stars",
-              "4 Stars",
-              "3 Stars",
-              "2 Stars",
-              "1 Star",
-            ]}
+            options={["All Ratings", "5 Stars", "4 Stars", "3 Stars", "2 Stars", "1 Star"]}
           />
           <FilterDropdown
             value={sentimentFilter}
@@ -305,8 +268,22 @@ const FeedbackExplorer = () => {
         </div>
         <div className="mt-6 space-y-4 pb-10">
           {feedback.length === 0 ? (
-            <div className="text-center text-slate-600">
-              No feedback found. Try adjusting your filters.
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <MessageSquare className="w-6 h-6 text-gray-400" />
+              </div>
+              <h4 className="text-lg font-medium text-gray-900 mb-2">No feedback yet</h4>
+              <p className="text-gray-500 text-sm max-w-xs">
+                When customers start sharing their thoughts, their feedback will appear here.
+              </p>
+              <Link
+                to="/businessQrpage"
+                className="mt-4 text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+                aria-label="Share QR codes"
+              >
+                <QrCode className="w-4 h-4" />
+                Share your QR codes to get started
+              </Link>
             </div>
           ) : (
             feedback.map((fb) => (
