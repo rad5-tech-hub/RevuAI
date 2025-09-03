@@ -1,14 +1,15 @@
-import { User, Clock, ArrowRight } from 'lucide-react';
+import { User, Clock, ArrowRight, Tag } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const UserAccount = () => {
   const [userStats, setUserStats] = useState({
-    feedbacks: 0,
     fullName: '',
-    reviewedBusinesses: 0,
+    totalFeedbacks: 0,
+    totalBusinessesReviewed: 0,
+    businessesReviewed: [],
   });
   const [recentFeedback, setRecentFeedback] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +35,7 @@ const UserAccount = () => {
 
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
         if (!token) {
+          toast.error('Please sign in to view your dashboard');
           navigate('/userAuth', { state: { businessId, qrcodeId } });
           return;
         }
@@ -50,6 +52,7 @@ const UserAccount = () => {
           if (response.status === 401) {
             localStorage.removeItem('authToken');
             sessionStorage.removeItem('authToken');
+            toast.error('Session expired. Please sign in again.');
             navigate('/userAuth', { state: { businessId, qrcodeId } });
             return;
           }
@@ -57,18 +60,25 @@ const UserAccount = () => {
         }
 
         const data = await response.json();
+        console.log('Dashboard API Response:', JSON.stringify(data, null, 2));
+
         setUserStats({
-          feedbacks: data.total_feedbacks || 0,
-          fullName: data.fullname || '',
-          reviewedBusinesses: data.total_businesses_reviewed || 0,
+          fullName: data.fullname || 'User',
+          totalFeedbacks: data.total_feedbacks || 0,
+          totalBusinessesReviewed: data.total_businesses_reviewed || 0,
+          businessesReviewed: Array.isArray(data.businesses_reviewed) ? data.businesses_reviewed : [],
         });
 
-        if (data.recent_feedbacks && Array.isArray(data.recent_feedbacks)) {
+        if (Array.isArray(data.recent_feedbacks)) {
           setRecentFeedback(data.recent_feedbacks);
+        } else {
+          console.warn('recent_feedbacks is not an array:', data.recent_feedbacks);
+          setRecentFeedback([]);
         }
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
-        setError(err.message);
+        setError(err.message || 'Failed to load dashboard data');
+        toast.error(err.message || 'Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
@@ -77,36 +87,36 @@ const UserAccount = () => {
     fetchUserDashboard();
   }, [navigate, businessId, qrcodeId]);
 
-    const handleBack = () => {
-      console.log('handleBack - location.state:', location.state, 'recentFeedback:', recentFeedback);
-      if (location.state?.businessId && location.state?.qrcodeId) {
-        navigate(`/qr/${location.state.businessId}/${location.state.qrcodeId}`);
+  const handleBack = () => {
+    console.log('handleBack - location.state:', location.state, 'recentFeedback:', recentFeedback);
+    if (location.state?.businessId && location.state?.qrcodeId) {
+      navigate(`/qr/${location.state.businessId}/${location.state.qrcodeId}`);
+    } else {
+      const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
+      if (storedQrContext.businessId && storedQrContext.qrcodeId) {
+        navigate(`/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
+      } else if (recentFeedback.length > 0 && recentFeedback[0].businessId && recentFeedback[0].qrcodeId) {
+        navigate(`/qr/${recentFeedback[0].businessId}/${recentFeedback[0].qrcodeId}`);
       } else {
-        const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
-        if (storedQrContext.businessId && storedQrContext.qrcodeId) {
-          navigate(`/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
-        } else if (recentFeedback.length > 0 && recentFeedback[0].businessId && recentFeedback[0].qrcodeId) {
-          navigate(`/qr/${recentFeedback[0].businessId}/${recentFeedback[0].qrcodeId}`);
-        } else {
-          navigate(-1);
-        }
+        navigate(-1);
       }
-    };
+    }
+  };
 
-    const handleContinueToFeedback = () => {
-      if (location.state?.businessId && location.state?.qrcodeId) {
-        navigate(`/feedbackForm/${location.state.businessId}/${location.state.qrcodeId}`);
+  const handleContinueToFeedback = () => {
+    if (location.state?.businessId && location.state?.qrcodeId) {
+      navigate(`/feedbackForm/${location.state.businessId}/${location.state.qrcodeId}`);
+    } else {
+      const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
+      if (storedQrContext.businessId && storedQrContext.qrcodeId) {
+        navigate(`/feedbackForm/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
+      } else if (recentFeedback.length > 0 && recentFeedback[0].businessId && recentFeedback[0].qrcodeId) {
+        navigate(`/feedbackForm/${recentFeedback[0].businessId}/${recentFeedback[0].qrcodeId}`);
       } else {
-        const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
-        if (storedQrContext.businessId && storedQrContext.qrcodeId) {
-          navigate(`/feedbackForm/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
-        } else if (recentFeedback.length > 0 && recentFeedback[0].businessId && recentFeedback[0].qrcodeId) {
-          navigate(`/feedbackForm/${recentFeedback[0].businessId}/${recentFeedback[0].qrcodeId}`);
-        } else {
-          navigate('/feedbackForm');
-        }
+        navigate('/feedbackForm');
       }
-    };
+    }
+  };
 
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, index) => (
@@ -179,13 +189,38 @@ const UserAccount = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-6 text-center">
-            <div className="text-2xl font-bold text-blue-600 mb-1">{userStats.feedbacks}</div>
+            <div className="text-2xl font-bold text-blue-600 mb-1">{userStats.totalFeedbacks}</div>
             <div className="text-gray-600 text-sm">Total Feedbacks</div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6 text-center">
-            <div className="text-2xl font-bold text-green-600 mb-1">{userStats.reviewedBusinesses}</div>
+            <div className="text-2xl font-bold text-green-600 mb-1">{userStats.totalBusinessesReviewed}</div>
             <div className="text-gray-600 text-sm">Reviewed Businesses</div>
           </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Tag className="w-5 h-5 text-blue-600" />
+            <h2 className="text-gray-800 font-medium">Reviewed Businesses</h2>
+          </div>
+          {userStats.businessesReviewed.length > 0 ? (
+            <div className="space-y-2">
+              {userStats.businessesReviewed.map((business, index) => (
+                <div
+                  key={business.id || index}
+                  className="flex items-center justify-between bg-gray-50 rounded-sm px-4 py-3 border-b border-gray-100 last:border-b-0"
+                >
+                  <div className="text-sm text-gray-800">{business.name || 'Unknown Business'}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Tag className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p>No businesses reviewed yet</p>
+              <p className="text-sm">Start giving feedback to see businesses here!</p>
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -193,25 +228,43 @@ const UserAccount = () => {
             <Clock className="w-5 h-5 text-blue-600" />
             <h2 className="text-gray-800 font-medium">Recent Feedback</h2>
           </div>
-
           {recentFeedback.length > 0 ? (
             <div className="space-y-4">
-              {recentFeedback.map((feedback, index) => (
+              {recentFeedback.map((feedback) => (
                 <div
-                  key={index}
+                  key={feedback.id}
                   className="flex items-center justify-between bg-blue-50 rounded-sm px-4 py-3 border-b border-gray-100 last:border-b-0"
                 >
                   <div className="flex-1">
                     <h3 className="text-black font-medium text-sm mb-1">
                       {feedback.business?.business_name || 'Unknown Business'}
                     </h3>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <div className="flex">{renderStars(feedback.rating || 0)}</div>
-                      <span className="text-gray-500 text-xs">{new Date(feedback.createdAt).toLocaleDateString()}</span>
+                      <span className="text-gray-500 text-xs">
+                        {new Date(feedback.createdAt).toLocaleDateString()}
+                      </span>
                       <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
                         {feedback.ratingLabel || 'No Label'}
                       </span>
+                      {feedback.isAnonymous && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800">
+                          Anonymous
+                        </span>
+                      )}
                     </div>
+                    {feedback.qrcode_tags && feedback.qrcode_tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {feedback.qrcode_tags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {feedback.comment && (
                       <p className="text-gray-600 text-xs mt-1 truncate">"{feedback.comment}"</p>
                     )}

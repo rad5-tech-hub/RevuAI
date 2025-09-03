@@ -45,6 +45,11 @@ const FeedbackForm = () => {
           setQrContext(parsedQrContext);
           setBusinessName(parsedQrContext.businessName || 'Unknown Business');
           console.log('Loaded qrContext from localStorage:', parsedQrContext);
+          if (parsedQrContext.qrcodeTags.length === 0) {
+            console.warn('No tags available in qrContext for qrcodeId:', qrcodeId);
+            toast.error('No feedback tags available for this QR code');
+            navigate(`/qr/${businessId}/${qrcodeId}`);
+          }
         } else {
           console.error('QR context mismatch:', parsedQrContext, { businessId, qrcodeId });
           toast.error('Invalid QR code data');
@@ -99,6 +104,10 @@ const FeedbackForm = () => {
       toast.error('Please scan a valid QR code to provide feedback');
       return;
     }
+    if (qrContext.qrcodeTags.length === 0) {
+      toast.error('No feedback tags available for this QR code');
+      return;
+    }
     if (selectedTags.length === 0) {
       toast.error('Please select at least one tag');
       return;
@@ -138,7 +147,7 @@ const FeedbackForm = () => {
       console.log('Feedback submitted successfully:', data);
       toast.success('Feedback submitted successfully!');
       localStorage.removeItem('qrContext');
-      navigate('/thankYou');
+      navigate('/thankYou', { state: { businessId, qrcodeId } }); // Pass businessId and qrcodeId
     } catch (error) {
       console.error('Error submitting feedback:', error);
       toast.error(error.message || 'Failed to submit feedback. Please try again.');

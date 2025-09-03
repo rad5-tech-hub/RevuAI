@@ -1,15 +1,23 @@
 import { Check, Star, Users, QrCode } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const ThankYouPage = () => {
   const navigate = useNavigate();
+  const { state } = useLocation();
 
   const handleCreateAccount = () => {
     navigate('/userAuth');
   };
 
   const handleSubmitAnother = () => {
-    navigate('/');
+    const { businessId, qrcodeId } = state || {};
+    if (businessId && qrcodeId) {
+      console.log('Navigating to QR landing page:', `/qr/${businessId}/${qrcodeId}`);
+      navigate(`/qr/${businessId}/${qrcodeId}`);
+    } else {
+      console.warn('No businessId or qrcodeId in state, navigating to home');
+      navigate('/');
+    }
   };
 
   const handleShareQR = () => {
@@ -21,15 +29,27 @@ const ThankYouPage = () => {
   };
 
   const handleBack = () => {
-    navigate('/feedbackForm')
-  };
+      console.log('UserAuth handleBack - Location State:', location.state);
+      if (businessId && qrcodeId) {
+        navigate(`/qr/${businessId}/${qrcodeId}`);
+      } else {
+        const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
+        if (storedQrContext.businessId && storedQrContext.qrcodeId) {
+          navigate(`/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
+        } else {
+          navigate(-1);
+        }
+      }
+    };
 
   return (
     <div className="min-h-screen bg-[#E8F5E8]">
       {/* Header */}
       <div className="bg-white flex items-center px-4 py-4 shadow-sm">
-        <button onClick={handleBack}
-          className="text-black cursor-pointer hover:bg-blue-100 hover:text-blue-700 px-2 py-1 rounded flex items-center text-sm">
+        <button
+          onClick={handleBack}
+          className="text-black cursor-pointer hover:bg-blue-100 hover:text-blue-700 px-2 py-1 rounded flex items-center text-sm"
+        >
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
