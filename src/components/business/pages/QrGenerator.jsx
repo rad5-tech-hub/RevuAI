@@ -1,3 +1,4 @@
+
 import { useMemo, useRef, useState, useEffect } from "react";
 import {
   QrCode,
@@ -33,10 +34,11 @@ export default function QRGenerator() {
   const [allowImages, setAllowImages] = useState(true);
   const [primaryColor, setPrimaryColor] = useState("#0E5FD8");
   const [tagInput, setTagInput] = useState("");
-  const [tags, setTags] = useState(["Service Quality", "Customer Experience"]);
+  const [tags, setTags] = useState([]);
   const [categoryId, setCategoryId] = useState("");
   const [categories, setCategories] = useState([]);
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
+  const [isTagsLoading, setIsTagsLoading] = useState(false); // Added for tags loading state
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [generatedQrData, setGeneratedQrData] = useState(null);
@@ -125,18 +127,49 @@ export default function QRGenerator() {
 
   // Update tags when qrType or categoryId changes
   useEffect(() => {
-    const selectedCategory = categories.find((cat) => cat.id === categoryId);
-    const businessCategory = selectedCategory?.name || "Others";
-    let defaultTags = ["Service Quality", "Customer Experience"];
-    if (businessCategory === "Hotels") {
-      defaultTags = ["Cleanliness", "Staff Service", "Amenities"];
-    } else if (businessCategory === "Restaurants") {
-      defaultTags = ["Food Quality", "Service Speed", "Ambiance"];
-    } else if (businessCategory === "Schools") {
-      defaultTags = ["Teaching Quality", "Facilities", "Safety"];
+    if (!categoryId || !isValidUUID(categoryId)) {
+      setTags([]); // Set empty tags but skip fetch and toast on mount
+      return;
     }
-    setTags(defaultTags);
-  }, [qrType, categoryId, categories]);
+
+    const fetchTags = async () => {
+      setIsTagsLoading(true);
+      try {
+        const token = localStorage.getItem("authToken");
+        const headers = token ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
+
+        // Fetch tags from the backend
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/v1/tags/${categoryId}`,
+          { headers }
+        );
+
+        const fetchedTags = response.data.data?.map((tag) => tag.name) || [];
+        setTags(fetchedTags);
+      } catch (error) {
+        console.error("Error fetching tags:", error);
+        // Handle 401/403 errors
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          toast.error("Session expired or unauthorized. Please log in again.", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          localStorage.removeItem("authToken");
+          navigate("/businessAuth");
+        } else {
+          toast.error("Failed to fetch tags. Please add tags manually.", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          setTags([]);
+        }
+      } finally {
+        setIsTagsLoading(false);
+      }
+    };
+
+    fetchTags();
+  }, [qrType, categoryId, navigate]); // Removed categories from dependencies
 
   // Generate QR code on frontend when generatedQrData or primaryColor changes
   useEffect(() => {
@@ -232,7 +265,6 @@ export default function QRGenerator() {
       });
       return;
     }
-
     setIsLoading(true);
     try {
       const token = localStorage.getItem("authToken");
@@ -244,7 +276,6 @@ export default function QRGenerator() {
         navigate("/businessAuth");
         return;
       }
-
       const apiType = qrType === "product" ? "Product" : "Service";
       const payload = {
         label: qrName.trim(),
@@ -254,7 +285,6 @@ export default function QRGenerator() {
         description: description?.trim() || undefined,
         categoryId,
       };
-
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/v1/qrcode/generate`,
         payload,
@@ -265,7 +295,6 @@ export default function QRGenerator() {
           },
         }
       );
-
       const qrData = response.data.data;
       const constructedScanUrl = `${import.meta.env.VITE_SCAN_URL}/qr/${qrData.businessId}/${qrData.id}`;
       setGeneratedQrData({
@@ -282,7 +311,7 @@ export default function QRGenerator() {
       });
       setQrName("");
       setDescription("");
-      setTags(["Service Quality", "Customer Experience"]);
+      setTags([]);
       setCategoryId(categories[0]?.id || "");
     } catch (error) {
       console.error("QR Code generation error:", {
@@ -493,7 +522,7 @@ export default function QRGenerator() {
     setQrType(qrTypeMap[code.id] || (code.type === "Product" ? "product" : "service"));
     setQrName(code.title);
     setDescription("");
-    setTags(["Service Quality", "Customer Experience"]);
+    setTags([]);
     setCategoryId(categories[0]?.id || "");
     setActiveTab("create");
   };
@@ -777,11 +806,20 @@ export default function QRGenerator() {
                         onKeyDown={onTagKeyDown}
                         placeholder="e.g., Food Quality, Cleanliness, Speed, Friendliness"
                         className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                        disabled={isTagsLoading}
                       />
-                      <div className="mt-1.5 text-[12px] text-slate-500 flex items-center gap-2">
-                        <Plus className="h-3.5 w-3.5" />
-                        Type a tag then press Enter or comma. Backspace deletes the last tag.
-                      </div>
+                      {isTagsLoading && (
+                        <div className="mt-1.5 text-[12px] text-slate-500 flex items-center gap-2">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Loading tags...
+                        </div>
+                      )}
+                      {!isTagsLoading && (
+                        <div className="mt-1.5 text-[12px] text-slate-500 flex items-center gap-2">
+                          <Plus className="h-3.5 w-3.5" />
+                          Type a tag then press Enter or comma. Backspace deletes the last tag.
+                        </div>
+                      )}
                       {!!tags.length && (
                         <div className="mt-2 flex flex-wrap gap-2">
                           {tags.map((t) => (
@@ -911,7 +949,7 @@ export default function QRGenerator() {
                           <Printer className="h-4 w-4" /> Print
                         </button>
                         <button
-                          onClick={() => shareQR(generatedUrl, generatedQrData?.label || 'QR Code')}
+                          onClick={() => shareQR(generatedUrl, generatedQrData?.label || "QR Code")}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm hover:bg-slate-50"
                           aria-label="Share QR Code"
                         >
