@@ -40,19 +40,19 @@ function LandingPage() {
           throw new Error('This QR code is inactive.');
         }
 
-        // Normalize qrcode_tags to an array and lowercase
+        // Parse qrcode_tags to an array, preserving original case
         let normalizedTags = [];
         if (qr.qrcode_tags) {
           if (Array.isArray(qr.qrcode_tags)) {
-            normalizedTags = qr.qrcode_tags.map(tag => tag.trim().toLowerCase());
+            normalizedTags = qr.qrcode_tags.map(tag => tag.trim());
           } else if (typeof qr.qrcode_tags === 'string') {
             try {
-              normalizedTags = JSON.parse(qr.qrcode_tags).map(tag => tag.trim().toLowerCase());
+              normalizedTags = JSON.parse(qr.qrcode_tags).map(tag => tag.trim());
               if (!Array.isArray(normalizedTags)) {
                 throw new Error('Parsed qrcode_tags is not an array');
               }
             } catch (e) {
-              normalizedTags = qr.qrcode_tags.split(',').map(tag => tag.trim().toLowerCase()).filter(tag => tag);
+              normalizedTags = qr.qrcode_tags.split(',').map(tag => tag.trim()).filter(tag => tag);
             }
           } else {
             console.warn('Unexpected qrcode_tags format:', qr.qrcode_tags);

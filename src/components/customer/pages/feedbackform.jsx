@@ -42,8 +42,6 @@ const FeedbackForm = () => {
           parsedQrContext.businessId === businessId &&
           parsedQrContext.qrcodeId === qrcodeId
         ) {
-          // Normalize tags to lowercase
-          parsedQrContext.qrcodeTags = parsedQrContext.qrcodeTags.map(tag => tag.toLowerCase());
           setQrContext(parsedQrContext);
           setBusinessName(parsedQrContext.businessName || 'Unknown Business');
           console.log('Loaded qrContext from localStorage:', parsedQrContext);
@@ -82,18 +80,14 @@ const FeedbackForm = () => {
   };
 
   const handleTagClick = (tag) => {
-    const normalizedTag = tag.toLowerCase();
-    if (!qrContext.qrcodeTags.includes(normalizedTag)) {
+    if (!qrContext.qrcodeTags.includes(tag)) {
       console.warn('Attempted to select invalid tag:', tag);
       toast.error(`Tag "${tag}" is not valid for this QR code`);
       return;
     }
-    setSelectedTags((prev) => {
-      const normalizedPrev = prev.map(t => t.toLowerCase());
-      return normalizedPrev.includes(normalizedTag)
-        ? prev.filter((t) => t.toLowerCase() !== normalizedTag)
-        : [...prev, tag];
-    });
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
   };
 
   const handleTextChange = (e) => {
@@ -110,8 +104,7 @@ const FeedbackForm = () => {
       return;
     }
     // Validate selectedTags against qrContext.qrcodeTags
-    const normalizedSelectedTags = selectedTags.map(tag => tag.toLowerCase());
-    const invalidTags = normalizedSelectedTags.filter(tag => !qrContext.qrcodeTags.includes(tag));
+    const invalidTags = selectedTags.filter(tag => !qrContext.qrcodeTags.includes(tag));
     if (invalidTags.length > 0) {
       console.error('Invalid tags selected:', invalidTags);
       toast.error('Selected tags are not valid for this QR code');
@@ -126,7 +119,7 @@ const FeedbackForm = () => {
         rating,
         comment: textFeedback.trim() || null,
         isAnonymous: !user,
-        qrcode_tags: JSON.stringify(normalizedSelectedTags), // Send as JSON string
+        qrcode_tags: selectedTags, // Send as array, preserving original case
       };
       console.log('Submitting feedback:', JSON.stringify(payload, null, 2));
       const response = await fetch(`${BASE_URL}/api/v1/review/reviews`, {
@@ -139,6 +132,7 @@ const FeedbackForm = () => {
       });
       const data = await response.json();
       if (!response.ok) {
+        console.error('Backend response:', data);
         throw new Error(data.message || 'Failed to submit feedback');
       }
       console.log('Feedback submitted successfully:', data);
