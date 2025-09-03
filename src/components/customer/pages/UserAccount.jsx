@@ -21,9 +21,11 @@ const UserAccount = () => {
   // Extract businessId and qrcodeId from navigation state
   const { businessId, qrcodeId } = location.state || {};
 
-  // Debug location.state
+  // Debug location.state and token
   useEffect(() => {
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
     console.log('UserAccount Location State:', location.state);
+    console.log('Auth token:', token || 'No token');
   }, [location.state]);
 
   // Fetch user dashboard data
@@ -56,7 +58,8 @@ const UserAccount = () => {
             navigate('/userAuth', { state: { businessId, qrcodeId } });
             return;
           }
-          throw new Error(`Failed to fetch dashboard data: ${response.status}`);
+          const errorData = await response.json();
+          throw new Error(errorData.message || `Failed to fetch dashboard data: ${response.status}`);
         }
 
         const data = await response.json();
@@ -70,7 +73,20 @@ const UserAccount = () => {
         });
 
         if (Array.isArray(data.recent_feedbacks)) {
-          setRecentFeedback(data.recent_feedbacks);
+          // Parse qrcode_tags if it's a string
+          const parsedFeedbacks = data.recent_feedbacks.map((feedback) => ({
+            ...feedback,
+            qrcode_tags: typeof feedback.qrcode_tags === 'string'
+              ? JSON.parse(feedback.qrcode_tags)
+              : Array.isArray(feedback.qrcode_tags)
+                ? feedback.qrcode_tags
+                : [],
+          }));
+          setRecentFeedback(parsedFeedbacks);
+          // Log qrcode_tags for each feedback
+          parsedFeedbacks.forEach((feedback, index) => {
+            console.log(`Feedback ${index} qrcode_tags:`, feedback.qrcode_tags, 'Type:', typeof feedback.qrcode_tags);
+          });
         } else {
           console.warn('recent_feedbacks is not an array:', data.recent_feedbacks);
           setRecentFeedback([]);
@@ -253,7 +269,7 @@ const UserAccount = () => {
                         </span>
                       )}
                     </div>
-                    {feedback.qrcode_tags && feedback.qrcode_tags.length > 0 && (
+                    {Array.isArray(feedback.qrcode_tags) && feedback.qrcode_tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {feedback.qrcode_tags.map((tag, index) => (
                           <span

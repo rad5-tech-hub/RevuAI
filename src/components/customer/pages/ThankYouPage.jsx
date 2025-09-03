@@ -28,34 +28,8 @@ const ThankYouPage = () => {
     console.log('Rate on Google clicked');
   };
 
-  const handleBack = () => {
-      console.log('UserAuth handleBack - Location State:', location.state);
-      if (businessId && qrcodeId) {
-        navigate(`/qr/${businessId}/${qrcodeId}`);
-      } else {
-        const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
-        if (storedQrContext.businessId && storedQrContext.qrcodeId) {
-          navigate(`/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
-        } else {
-          navigate(-1);
-        }
-      }
-    };
-
   return (
     <div className="min-h-screen bg-[#E8F5E8]">
-      {/* Header */}
-      <div className="bg-white flex items-center px-4 py-4 shadow-sm">
-        <button
-          onClick={handleBack}
-          className="text-black cursor-pointer hover:bg-blue-100 hover:text-blue-700 px-2 py-1 rounded flex items-center text-sm"
-        >
-          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back
-        </button>
-      </div>
 
       <div className="w-full max-w-[80rem] mx-auto px-4 py-8">
         {/* Success Message */}

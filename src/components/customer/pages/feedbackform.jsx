@@ -24,6 +24,7 @@ const FeedbackForm = () => {
       try {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
+        console.log('User data loaded:', JSON.stringify(parsedUser, null, 2));
       } catch (error) {
         console.error('Error parsing user data:', error);
         localStorage.removeItem('userData');
@@ -113,7 +114,7 @@ const FeedbackForm = () => {
       return;
     }
     // Validate selectedTags against qrContext.qrcodeTags
-    const invalidTags = selectedTags.filter(tag => !qrContext.qrcodeTags.includes(tag));
+    const invalidTags = selectedTags.filter((tag) => !qrContext.qrcodeTags.includes(tag));
     if (invalidTags.length > 0) {
       console.error('Invalid tags selected:', invalidTags);
       toast.error('Selected tags are not valid for this QR code');
@@ -128,9 +129,10 @@ const FeedbackForm = () => {
         rating,
         comment: textFeedback.trim() || null,
         isAnonymous: !user,
-        qrcode_tags: selectedTags, // Send as array, preserving original case
+        qrcode_tags: selectedTags,
       };
-      console.log('Submitting feedback:', JSON.stringify(payload, null, 2));
+      console.log('Submitting feedback payload:', JSON.stringify(payload, null, 2));
+      console.log('Auth token:', token || 'No token (anonymous)');
       const response = await fetch(`${BASE_URL}/api/v1/review/reviews`, {
         method: 'POST',
         headers: {
@@ -140,14 +142,14 @@ const FeedbackForm = () => {
         body: JSON.stringify(payload),
       });
       const data = await response.json();
+      console.log('Feedback submission response:', JSON.stringify(data, null, 2));
       if (!response.ok) {
-        console.error('Backend response:', data);
+        console.error('Backend error response:', data);
         throw new Error(data.message || 'Failed to submit feedback');
       }
-      console.log('Feedback submitted successfully:', data);
       toast.success('Feedback submitted successfully!');
       localStorage.removeItem('qrContext');
-      navigate('/thankYou', { state: { businessId, qrcodeId } }); // Pass businessId and qrcodeId
+      navigate('/thankYou', { state: { businessId, qrcodeId } });
     } catch (error) {
       console.error('Error submitting feedback:', error);
       toast.error(error.message || 'Failed to submit feedback. Please try again.');
