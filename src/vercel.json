@@ -1,13 +1,13 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/RevuAI/(.*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
     {
-      "source": "/(.*).js",
+      "source": "/RevuAI/assets/(.*)\\.js",
       "headers": [
         {
           "key": "Content-Type",
@@ -17,4 +17,3 @@
     }
   ]
 }
-
