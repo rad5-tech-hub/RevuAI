@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -8,16 +8,8 @@ import useFetchReviews from "../hooks/useFetchReviews";
 import FeedbackCard from "../components/FeedbackCard";
 import FilterDropdown from "../components/FilterDropdown";
 import { generatePDF } from "./../../../utils/pdfUtils";
-import {
-  Eye,
-  QrCode,
-  Download,
-  Share2,
-  MessageSquare,
-  Star,
-  LogOut,
-  Loader2,
-} from "lucide-react";
+import { QrCode, Download, Share2, MessageSquare, LogOut, Loader2 } from "lucide-react";
+import debounce from "lodash/debounce";
 
 const FeedbackExplorer = () => {
   const [search, setSearch] = useState("");
@@ -26,7 +18,7 @@ const FeedbackExplorer = () => {
   const [dateFilter, setDateFilter] = useState("All Time");
   const navigate = useNavigate();
   const {
-    feedback,
+    feedback: rawFeedback,
     loading,
     error,
     page,
@@ -34,7 +26,62 @@ const FeedbackExplorer = () => {
     ratingSummary,
     averageRating,
     setPage,
-  } = useFetchReviews({ search, ratingFilter });
+  } = useFetchReviews({ search, ratingFilter, sentimentFilter, dateFilter });
+
+  // Debounced search handler
+  const debouncedSetSearch = useCallback(
+    debounce((value) => {
+      console.log("Search value updated:", value); // Debug log
+      setSearch(value);
+    }, 300),
+    []
+  );
+
+  const handleSearchChange = (e) => {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
+    console.log("Search input change:", e.target.value); // Debug log
+    debouncedSetSearch(e.target.value);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault(); // Prevent Enter key reload
+      e.stopPropagation();
+      console.log("Enter key pressed, prevented default"); // Debug log
+    }
+  };
+
+  // Client-side filtering for sentiment and date
+  const feedback = rawFeedback.filter((fb) => {
+    let matchesSentiment = true;
+    let matchesDate = true;
+
+    if (sentimentFilter !== "All Sentiments") {
+      matchesSentiment = fb.sentiment === sentimentFilter;
+    }
+
+    if (dateFilter !== "All Time") {
+      const feedbackDate = new Date(fb.date);
+      const today = new Date();
+      if (dateFilter === "Today") {
+        matchesDate = feedbackDate.toDateString() === today.toDateString();
+      } else if (dateFilter === "This Week") {
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay());
+        matchesDate = feedbackDate >= weekStart;
+      } else if (dateFilter === "This Month") {
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        matchesDate = feedbackDate >= monthStart;
+      } else if (dateFilter === "This Quarter") {
+        const quarterStart = new Date(today);
+        quarterStart.setMonth(Math.floor(today.getMonth() / 3) * 3, 1);
+        matchesDate = feedbackDate >= quarterStart;
+      }
+    }
+
+    return matchesSentiment && matchesDate;
+  });
 
   const handleLogout = async () => {
     const token = localStorage.getItem("authToken");
@@ -169,6 +216,25 @@ const FeedbackExplorer = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
+            <p className="text-lg font-medium">{error}</p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Loader2 size={18} />
+            <span>Retry</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <ToastContainer />
@@ -224,14 +290,19 @@ const FeedbackExplorer = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <h1 className="text-2xl font-bold text-slate-900">Feedback Explorer</h1>
         <p className="mt-1 text-sm text-slate-500">View and manage customer feedback</p>
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {[
             { label: "Total", value: meta.total.toString() },
-            { label: "Positive", value: (ratingSummary["Excellent"] || 0) + (ratingSummary["Very Good"] || 0) },
+            {
+              label: "Positive",
+              value: (ratingSummary["Excellent"] || 0) + (ratingSummary["Very Good"] || 0),
+            },
             { label: "Neutral", value: ratingSummary["Average"] || 0 },
-            { label: "Negative", value: (ratingSummary["Poor"] || 0) + (ratingSummary["Very Poor"] || 0) },
+            {
+              label: "Negative",
+              value: (ratingSummary["Poor"] || 0) + (ratingSummary["Very Poor"] || 0),
+            },
             { label: "Average Rating", value: averageRating },
-            { label: "With Media", value: feedback.filter((f) => f.hasMedia).length.toString() },
           ].map((stat) => (
             <div
               key={stat.label}
@@ -248,7 +319,9 @@ const FeedbackExplorer = () => {
             placeholder="Search feedback..."
             className="flex-1 min-w-[200px] rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={handleSearchChange}
+            onKeyDown={handleKeyDown}
+            onSubmit={(e) => e.preventDefault()} // Extra safety
           />
           <FilterDropdown
             value={ratingFilter}

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Star, QrCode, Eye, MessageCircle, Download, Share2, Send } from "lucide-react";
 import { toast } from "react-toastify";
@@ -11,13 +10,7 @@ const sentimentColors = {
   Negative: "bg-red-100 text-red-700",
 };
 
-const FeedbackCard = ({
-  feedback,
-  onDownloadPNG,
-  onDownloadSVG,
-  onDownloadPDF,
-  onShare,
-}) => {
+const FeedbackCard = ({ feedback, onDownloadPNG, onDownloadSVG, onDownloadPDF, onShare }) => {
   const [replyInput, setReplyInput] = useState("");
   const [isReplying, setIsReplying] = useState(false);
   const [replies, setReplies] = useState(feedback.replies || []);
@@ -30,7 +23,6 @@ const FeedbackCard = ({
       });
       return;
     }
-
     const token = localStorage.getItem("authToken");
     if (!token) {
       toast.error("Please log in to reply.", {
@@ -39,14 +31,12 @@ const FeedbackCard = ({
       });
       return;
     }
-
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/v1/response/reply/${feedback.id}`,
         { response: replyInput.trim() },
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
-
       setReplies([...replies, response.data.data]);
       setReplyInput("");
       setIsReplying(false);
@@ -55,7 +45,7 @@ const FeedbackCard = ({
         autoClose: 3000,
       });
     } catch (err) {
-      console.error("Reply submission error:", err);
+      console.error("Reply submission error:", err.response?.data || err.message);
       toast.error(err.response?.data?.message || "Failed to submit reply.", {
         position: "top-right",
         autoClose: 3000,
