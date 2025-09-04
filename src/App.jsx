@@ -5,7 +5,7 @@ import BusinessDashboard from './components/business/pages/BusinessDashboard.jsx
 import Qr from './components/business/pages/QrGenerator.jsx';
 import Feedback from './components/business/pages/FeedbackExplorer.jsx';
 import Report from './components/business/pages/ReportSection.jsx';
-import FeedbackForm from './components/customer/pages/FeedbackForm.jsx'; // Consistent case
+import FeedbackForm from './components/customer/pages/feedbackform.jsx'; // Consistent case
 import ThankYou from './components/customer/pages/ThankYouPage.jsx';
 import UserAuth from './components/customer/pages/UserAuth.jsx';
 import UserAcc from './components/customer/pages/UserAccount.jsx';
