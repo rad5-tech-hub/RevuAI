@@ -1,4 +1,3 @@
-
 import { useMemo, useRef, useState, useEffect } from "react";
 import {
   QrCode,
@@ -14,8 +13,8 @@ import {
   Plus,
   X,
   Check,
-  Settings,
   Loader2,
+Settings,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
@@ -38,7 +37,7 @@ export default function QRGenerator() {
   const [categoryId, setCategoryId] = useState("");
   const [categories, setCategories] = useState([]);
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
-  const [isTagsLoading, setIsTagsLoading] = useState(false); // Added for tags loading state
+  const [isTagsLoading, setIsTagsLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [generatedQrData, setGeneratedQrData] = useState(null);
@@ -50,18 +49,15 @@ export default function QRGenerator() {
   const [isFetching, setIsFetching] = useState(false);
   const [filterType, setFilterType] = useState("all");
 
-  // UUID validation regex
   const isValidUUID = (str) => {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(str);
   };
 
-  // Save qrCodeIds to localStorage
   useEffect(() => {
     localStorage.setItem("qrCodeIds", JSON.stringify(qrCodeIds));
   }, [qrCodeIds]);
 
-  // Fetch categories on mount
   useEffect(() => {
     const fetchCategories = async () => {
       setIsCategoriesLoading(true);
@@ -125,30 +121,21 @@ export default function QRGenerator() {
     fetchCategories();
   }, [navigate]);
 
-  // Update tags when qrType or categoryId changes
   useEffect(() => {
     if (!categoryId || !isValidUUID(categoryId)) {
-      setTags([]); // Set empty tags but skip fetch and toast on mount
+      setTags([]);
       return;
     }
-
     const fetchTags = async () => {
       setIsTagsLoading(true);
       try {
         const token = localStorage.getItem("authToken");
         const headers = token ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
-
-        // Fetch tags from the backend
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/v1/tags/${categoryId}`,
-          { headers }
-        );
-
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/tags/${categoryId}`, { headers });
         const fetchedTags = response.data.data?.map((tag) => tag.name) || [];
         setTags(fetchedTags);
       } catch (error) {
         console.error("Error fetching tags:", error);
-        // Handle 401/403 errors
         if (error.response?.status === 401 || error.response?.status === 403) {
           toast.error("Session expired or unauthorized. Please log in again.", {
             position: "top-right",
@@ -167,11 +154,9 @@ export default function QRGenerator() {
         setIsTagsLoading(false);
       }
     };
-
     fetchTags();
-  }, [qrType, categoryId, navigate]); // Removed categories from dependencies
+  }, [qrType, categoryId, navigate]);
 
-  // Generate QR code on frontend when generatedQrData or primaryColor changes
   useEffect(() => {
     if (generatedQrData?.scan_url && qrRef.current) {
       qrRef.current.innerHTML = "";
@@ -180,10 +165,7 @@ export default function QRGenerator() {
       QRCode.toCanvas(canvas, generatedQrData.scan_url, {
         width: 160,
         height: 160,
-        color: {
-          dark: primaryColor,
-          light: "#ffffff",
-        },
+        color: { dark: primaryColor, light: "#ffffff" },
         errorCorrectionLevel: "H",
       }, (error) => {
         if (error) {
@@ -196,6 +178,73 @@ export default function QRGenerator() {
       });
     }
   }, [generatedQrData, primaryColor]);
+
+  useEffect(() => {
+    if (activeTab !== "manage") {
+      setQrCodes([]);
+      return;
+    }
+    const fetchQrCodes = async () => {
+      setIsFetching(true);
+      const token = localStorage.getItem("authToken");
+      const businessId = localStorage.getItem("authBusinessId");
+      if (!token || !businessId) {
+        toast.error("Please log in to view QR codes.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        navigate("/businessAuth");
+        return;
+      }
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/v1/business/business-qrcode/${businessId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
+        const fetchedQrCodes = response.data.business.qrcodes.map((qr) => ({
+          id: qr.id,
+          title: qr.label,
+          status: qr.is_active ? "active" : "inactive",
+          type: qrTypeMap[qr.id] || (qr.type === "Product" ? "product" : qr.type === "Service" ? "service" : "general"),
+          location: qr.product_or_service_id || qr.label.toLowerCase().replace(/\s+/g, "-"),
+          scans: 0, // Placeholder, as endpoint doesn't provide this
+          feedback: qr.reviews?.length || 0,
+          date: qr.createdAt?.split("T")[0] || new Date().toISOString().split("T")[0],
+          url: qr.scan_url,
+          businessName: response.data.business.business_name,
+          categoryName: qr.category?.name || "Unknown Category",
+        }));
+        setQrCodes(fetchedQrCodes);
+        const fetchedQrCodeIds = response.data.business.qrcodes
+          .map((qr) => qr.id)
+          .filter((id) => isValidUUID(id));
+        setQrCodeIds(fetchedQrCodeIds);
+        localStorage.setItem("qrCodeIds", JSON.stringify(fetchedQrCodeIds));
+      } catch (error) {
+        console.error("Fetch QR codes error:", error.response?.data || error.message);
+        if (error.response?.status === 401) {
+          toast.error("Session expired. Please log in again.", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("authBusinessId");
+          localStorage.removeItem("qrCodeIds");
+          localStorage.removeItem("qrTypeMap");
+          navigate("/businessAuth");
+        } else {
+          toast.error(error.response?.data?.message || "Failed to fetch QR codes.", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+        }
+      } finally {
+        setIsFetching(false);
+      }
+    };
+    fetchQrCodes();
+  }, [activeTab, navigate]);
 
   const addTag = (value) => {
     const v = (value ?? tagInput).trim();
@@ -276,7 +325,7 @@ export default function QRGenerator() {
         navigate("/businessAuth");
         return;
       }
-      const apiType = qrType === "product" ? "Product" : "Service";
+      const apiType = qrType === "product" ? "Product" : qrType === "service" ? "Service" : "General";
       const payload = {
         label: qrName.trim(),
         type: apiType,
@@ -338,69 +387,6 @@ export default function QRGenerator() {
     }
   };
 
-  useEffect(() => {
-    if (activeTab !== "manage" || !qrCodeIds.length) {
-      setQrCodes([]);
-      return;
-    }
-    const fetchQrCodes = async () => {
-      setIsFetching(true);
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        toast.error("Please log in to view QR codes.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        navigate("/businessAuth");
-        return;
-      }
-      try {
-        const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
-        const fetchedQrCodes = [];
-        for (const id of qrCodeIds) {
-          const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/v1/qrcode/qrcode/${id}`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          const qrData = response.data.qr;
-          fetchedQrCodes.push({
-            id: qrData.id,
-            title: qrData.label,
-            status: qrData.is_active ? "active" : "inactive",
-            type: qrTypeMap[qrData.id] || (qrData.type === "Product" ? "product" : "service"),
-            location: qrData.product_or_service_id,
-            scans: 0, // Placeholder
-            feedback: 0, // Placeholder
-            date: qrData.createdAt.split("T")[0],
-            url: `${import.meta.env.VITE_SCAN_URL}/qr/${qrData.businessId}/${qrData.id}`,
-            businessName: qrData.business.business_name,
-            categoryName: qrData.category.name,
-          });
-        }
-        setQrCodes(fetchedQrCodes);
-      } catch (error) {
-        if (error.response?.status === 401) {
-          toast.error("Session expired. Please log in again.", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-          localStorage.removeItem("authToken");
-          navigate("/businessAuth");
-        } else {
-          toast.error(error.response?.data?.message || "Failed to fetch QR codes.", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-        }
-      } finally {
-        setIsFetching(false);
-      }
-    };
-    fetchQrCodes();
-  }, [activeTab, qrCodeIds, navigate]);
-
   const downloadPNG = () => {
     if (!generatedQrData?.scan_url) {
       toast.error("No QR code available to download.", {
@@ -412,10 +398,7 @@ export default function QRGenerator() {
     QRCode.toDataURL(generatedQrData.scan_url, {
       width: 160,
       height: 160,
-      color: {
-        dark: primaryColor,
-        light: "#ffffff",
-      },
+      color: { dark: primaryColor, light: "#ffffff" },
       errorCorrectionLevel: "H",
     }, (error, url) => {
       if (error) {
@@ -486,10 +469,7 @@ export default function QRGenerator() {
     QRCode.toDataURL(generatedQrData.scan_url, {
       width: 160,
       height: 160,
-      color: {
-        dark: primaryColor,
-        light: "#ffffff",
-      },
+      color: { dark: primaryColor, light: "#ffffff" },
       errorCorrectionLevel: "H",
     }, (error, url) => {
       if (error) {
@@ -519,7 +499,7 @@ export default function QRGenerator() {
 
   const editQR = (code) => {
     const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
-    setQrType(qrTypeMap[code.id] || (code.type === "Product" ? "product" : "service"));
+    setQrType(qrTypeMap[code.id] || (code.type === "Product" ? "product" : code.type === "Service" ? "service" : "general"));
     setQrName(code.title);
     setDescription("");
     setTags([]);
@@ -531,17 +511,11 @@ export default function QRGenerator() {
     <button
       onClick={() => setQrType(id)}
       className={`w-full text-left rounded-xl border px-4 sm:px-5 py-4 sm:py-5 transition ${
-        qrType === id
-          ? "border-blue-600 ring-2 ring-blue-100 bg-white"
-          : "border-slate-200 hover:border-slate-300 bg-white"
+        qrType === id ? "border-blue-600 ring-2 ring-blue-100 bg-white" : "border-slate-200 hover:border-slate-300 bg-white"
       }`}
     >
       <div className="flex items-start gap-4">
-        <div
-          className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl ${
-            qrType === id ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-600"
-          }`}
-        >
+        <div className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl ${qrType === id ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-600"}`}>
           {icon}
         </div>
         <div>
@@ -554,6 +528,7 @@ export default function QRGenerator() {
 
   const handleLogout = async () => {
     localStorage.removeItem("authToken");
+    localStorage.removeItem("authBusinessId");
     localStorage.removeItem("qrCodeIds");
     localStorage.removeItem("qrTypeMap");
     navigate("/businessAuth");
@@ -1010,121 +985,58 @@ export default function QRGenerator() {
                       </div>
                       <div className="h-4 w-32 bg-gray-200 rounded animate-pulse"></div>
                       <div className="flex flex-wrap gap-4">
-                        <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
-                        <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
-                        <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
-                      </div>
-                      <div className="h-10 w-full bg-gray-200 rounded-lg animate-pulse"></div>
-                      <div className="flex gap-2">
-                        {[1, 2, 3, 4, 5].map((j) => (
-                          <div key={`action-${j}`} className="h-10 w-10 bg-gray-200 rounded-lg animate-pulse"></div>
-                        ))}
+                        <div className="h-10 w-24 bg-gray-200 rounded-lg animate-pulse"></div>
+                        <div className="h-10 w-24 bg-gray-200 rounded-lg animate-pulse"></div>
+                        <div className="h-10 w-24 bg-gray-200 rounded-lg animate-pulse"></div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : filteredQrCodes.length === 0 ? (
-                <div className="text-center text-slate-600">No QR codes found for this type. Create a new one to get started.</div>
+                <div className="text-center py-12 text-slate-500">
+                  No QR codes found for this type. Try creating a new one!
+                </div>
               ) : (
                 <div className="space-y-4">
                   {filteredQrCodes.map((code) => (
-                    <div
-                      key={code.id}
-                      className="bg-white shadow rounded-lg p-6 space-y-4 border border-slate-200"
-                    >
+                    <div key={code.id} className="bg-white shadow rounded-lg p-6 border border-slate-200">
                       <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="font-semibold text-lg text-slate-800">{code.title}</h3>
-                        <span className="bg-green-100 text-green-700 text-xs px-2.5 py-1 rounded-full">
-                          {code.status}
+                        <h3 className="text-base font-semibold text-slate-800">{code.title}</h3>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            code.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {code.status.charAt(0).toUpperCase() + code.status.slice(1)}
                         </span>
-                        <span className="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-full">
-                          {code.type === "general"
-                            ? "General Business"
-                            : code.type === "product"
-                            ? "Specific Product"
-                            : code.type === "location"
-                            ? "Location/Area"
-                            : "Service Type"}
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {code.type.charAt(0).toUpperCase() + code.type.slice(1)}
                         </span>
                       </div>
-                      <p className="text-slate-600 text-sm">Business: {code.businessName} | Category: {code.categoryName}</p>
-                      <p className="text-slate-600 text-sm">Location/ID: {code.location}</p>
-                      <div className="flex flex-wrap gap-4 text-sm text-slate-500">
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-4 w-4 cursor-pointer" /> {code.scans} scans
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Star className="h-4 w-4 cursor-pointer" /> {code.feedback} feedback
-                        </span>
-                        <span>Created {code.date}</span>
+                      <div className="mt-2 text-sm text-slate-600">
+                        {code.businessName} • {code.categoryName} • {code.feedback} Feedback • Created {code.date}
                       </div>
-                      <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-700 break-all font-mono">
-                        {code.url}
-                      </div>
-                      <div className="flex gap-2">
+                      <div className="mt-4 flex flex-wrap gap-4">
                         <button
                           onClick={() => viewQR(code)}
-                          className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
-                          aria-label="View QR Code"
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+                          aria-label={`View QR code for ${code.title}`}
                         >
-                          <Eye className="w-4 h-4 cursor-pointer" />
+                          <Eye className="h-4 w-4" /> View
                         </button>
                         <button
                           onClick={() => editQR(code)}
-                          className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
-                          aria-label="Edit QR Code"
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+                          aria-label={`Edit QR code for ${code.title}`}
                         >
-                          <Settings className="w-4 h-4 cursor-pointer" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            QRCode.toDataURL(code.url, {
-                              width: 160,
-                              height: 160,
-                              color: {
-                                dark: primaryColor,
-                                light: "#ffffff",
-                              },
-                              errorCorrectionLevel: "H",
-                            }, (error, url) => {
-                              if (error) {
-                                console.error("QRCode download error:", error);
-                                toast.error("Failed to download QR code.", {
-                                  position: "top-right",
-                                  autoClose: 3000,
-                                });
-                                return;
-                              }
-                              const link = document.createElement("a");
-                              link.href = url;
-                              link.download = `qr_${code.title}.png`;
-                              link.click();
-                            });
-                          }}
-                          className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
-                          aria-label="Download QR Code as PNG"
-                        >
-                          <Download className="w-4 h-4 cursor-pointer" />
+                          <Settings className="h-4 w-4" /> Edit
                         </button>
                         <button
                           onClick={() => shareQR(code.url, code.title)}
-                          className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
-                          aria-label="Share QR Code"
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+                          aria-label={`Share QR code for ${code.title}`}
                         >
-                          <Share2 className="w-4 h-4 cursor-pointer" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(code.url);
-                            toast.success("URL copied to clipboard!", {
-                              position: "top-right",
-                              autoClose: 1600,
-                            });
-                          }}
-                          className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"
-                          aria-label="Copy QR Code URL"
-                        >
-                          <Copy className="w-4 h-4 cursor-pointer" />
+                          <Share2 className="h-4 w-4" /> Share
                         </button>
                       </div>
                     </div>

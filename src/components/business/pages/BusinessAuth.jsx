@@ -75,29 +75,36 @@ const BusinessAuth = () => {
   };
 
   // Handle business login
-  const handleSignIn = async () => {
+   const handleSignIn = async () => {
     if (!email || !password) {
-      setError('Email and password are required.');
+      setError("Email and password are required.");
       setIsLoading(false);
       return;
     }
     setIsLoading(true);
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
     try {
       const response = await axios.post(`${BASE_URL}/api/v1/business/login-business`, {
         email,
         password,
       });
       const token = response.data.data?.accessToken || response.data.accessToken;
-      if (token) {
-        localStorage.setItem('authToken', token);
-        setSuccess('Login successful! Redirecting to dashboard...');
-        setTimeout(() => navigate('/businessDashboard'), 1000);
+      const businessId = response.data.business?.id;
+      if (token && businessId) {
+        localStorage.setItem("authToken", token);
+        localStorage.setItem("authBusinessId", businessId); // Store the business ID
+        setSuccess("Login successful! Redirecting to dashboard...");
+        setTimeout(() => navigate("/businessDashboard"), 1000);
       } else {
-        setError('Login succeeded, but no token received.');
+        setError("Login succeeded, but no token or business ID received.");
       }
     } catch (err) {
+      console.error("Login error:", {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+      });
       setError(err.response?.data?.message || `Login failed: ${err.message}`);
     } finally {
       setIsLoading(false);
@@ -115,7 +122,7 @@ const BusinessAuth = () => {
     setError('');
     setSuccess('');
     try {
-      const response = await axios.post(`${BASE_URL}/api/v1/business/forgot-password`, {
+      const response = await axios.post(`${BASE_URL}/api/v1/business/forgot-password`, {    
         email,
       });
       if (response.data.message) {

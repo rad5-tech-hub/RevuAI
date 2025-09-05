@@ -1,143 +1,201 @@
-
-import { useState, useEffect } from "react";
-import { toast } from "react-toastify";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
-const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter }) => {
+const refreshToken = async () => {
+  try {
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (!refreshToken) throw new Error("No refresh token available");
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/refresh-token`, {
+      refreshToken,
+    });
+    const newToken = response.data.accessToken;
+    localStorage.setItem("authToken", newToken);
+    return newToken;
+  } catch (error) {
+    console.error("Token refresh failed:", error);
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("authBusinessId");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("qrCodeIds");
+    localStorage.removeItem("qrTypeMap");
+    return null;
+  }
+};
+
+const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, retryTrigger }) => {
   const [feedback, setFeedback] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
-  const [meta, setMeta] = useState({ total: 0, totalPages: 1, limit: 10 });
-  const [ratingSummary, setRatingSummary] = useState({
-    Excellent: 0,
-    "Very Good": 0,
-    Average: 0,
-    Poor: 0,
-    "Very Poor": 0,
-  });
-  const [averageRating, setAverageRating] = useState("0.0");
-
-  const getSentiment = (rating) => {
-    if (rating >= 4) return "Positive";
-    if (rating === 3) return "Neutral";
-    return "Negative";
-  };
+  const [meta, setMeta] = useState({ total: 0, totalPages: 1, currentPage: 1 });
+  const [ratingSummary, setRatingSummary] = useState({});
+  const [averageRating, setAverageRating] = useState(0);
+  const navigate = useNavigate();
+  const limit = 10;
+  const sort = "newest";
+  const cancelTokenSource = useRef(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchReviews = async () => {
       setLoading(true);
-      setError("");
+      setError(null);
+
       const token = localStorage.getItem("authToken");
-      if (!token) {
-        toast.error("Please log in to view feedback.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
+      const businessId = localStorage.getItem("authBusinessId");
+
+      if (!token || !businessId) {
+        if (isMounted) {
+          setError("Please log in to view reviews.");
+          toast.error("Please log in to view reviews.", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          navigate("/businessAuth");
+        }
         setLoading(false);
         return;
       }
 
+      if (cancelTokenSource.current) {
+        cancelTokenSource.current.cancel("Operation canceled due to new request.");
+      }
+      cancelTokenSource.current = axios.CancelToken.source();
+
+      const ratingMap = {
+        "All Ratings": null,
+        "5 Stars": 5,
+        "4 Stars": 4,
+        "3 Stars": 3,
+        "2 Stars": 2,
+        "1 Star": 1,
+      };
+
+      const params = {
+        page,
+        limit,
+        sort,
+        businessId, // Ensure reviews are scoped to the authenticated business
+        search: search || undefined,
+        rating: ratingMap[ratingFilter] || undefined,
+        label: "Bar",
+        type: "Service",
+        productOrServiceId: "H001",
+        qrcode_tags: JSON.stringify(["hospitality", "5-star", "city-center"]),
+        description: "QR code for hotel guest feedback",
+        categoryId: "2f0068c2-c600-4c1f-8ffa-f8a953d641c7",
+      };
+
       try {
-        const query = new URLSearchParams();
-        if (search) query.append("search", search);
-        if (ratingFilter && ratingFilter !== "All Ratings") {
-          query.append("rating", parseInt(ratingFilter));
-        }
-       
-        query.append("page", page);
-        query.append("limit", meta.limit);
-
-        const endpoint =
-          query.toString() && (search || ratingFilter !== "All Ratings")
-            ? `${import.meta.env.VITE_API_URL}/api/v1/review/filter?${query.toString()}`
-            : `${import.meta.env.VITE_API_URL}/api/v1/review/all-reviews`;
-
-        const response = await axios.get(endpoint, {
-          headers: { Authorization: `Bearer ${token}` },
+        console.log("Fetching reviews with:", { businessId, params, token: token.slice(0, 10) + "..." });
+        const reviewsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/review/filter`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          params,
+          cancelToken: cancelTokenSource.current.token,
         });
 
-        console.log("API response:", response.data); // Debug log
-
-        const { reviews, totalReviews, ratingSummary, averageRating } = response.data;
-
-        setFeedback(
-          reviews.map((review) => ({
-            id: review.id,
-            name: review.isAnonymous ? "Anonymous" : review.user?.name || "Unknown User",
-            date: new Date(review.createdAt).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            }),
-            rating: review.rating || 0,
-            ratingLabel: review.ratingLabel || "N/A",
-            sentiment: getSentiment(review.rating),
-            text: review.comment || "No comment provided",
-            aspects: Array.isArray(review.qrcode_tags) ? review.qrcode_tags : [],
-            qrCode: review.qrcode?.label || review.qrcodeId || "Unknown QR",
-            qrcode_url:
-              review.qrcode?.qrcode_url ||
-              `${import.meta.env.VITE_SCAN_URL}/qr/${review.businessId}/${review.qrcodeId}`,
-            businessName: review.business?.business_name || "Unknown Business",
-            replies: review.replies || [], // Include replies if provided
-          }))
-        );
-
-        setMeta({
-          total: totalReviews || reviews.length,
-          totalPages: response.data.meta?.totalPages || 1,
-          page: response.data.meta?.page || 1,
-          limit: response.data.meta?.limit || 10,
-        });
-
-        setRatingSummary(
-          ratingSummary || {
-            Excellent: 0,
-            "Very Good": 0,
-            Average: 0,
-            Poor: 0,
-            "Very Poor": 0,
+        console.log("Fetching QR codes for business:", businessId);
+        const qrResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/v1/business/business-qrcode/${businessId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            cancelToken: cancelTokenSource.current.token,
           }
         );
 
-        setAverageRating(averageRating ? parseFloat(averageRating).toFixed(1) : "0.0");
-      } catch (err) {
-        console.error("Fetch reviews error:", err.response?.data || err.message); // Debug log
-        if (err.response?.status === 401) {
-          toast.error("Session expired. Please log in again.", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("qrCodeIds");
-          localStorage.removeItem("qrTypeMap");
-          window.location.href = "/businessAuth";
+        if (isMounted) {
+          console.log("Reviews response:", reviewsResponse.data);
+          console.log("QR codes response:", qrResponse.data);
+          const reviews = (reviewsResponse.data.reviews || []).filter(
+            (review) => review.businessId === businessId // Client-side fallback
+          );
+
+          // Recalculate stats based on filtered reviews
+          const total = reviews.length;
+          const ratingSummary = reviews.reduce((acc, review) => {
+            acc[review.ratingLabel] = (acc[review.ratingLabel] || 0) + 1;
+            return acc;
+          }, {});
+          const averageRating = reviews.length
+            ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(2)
+            : "0.00";
+          const totalPages = Math.max(1, Math.ceil(total / limit));
+
+          const qrCodeMap = new Map(
+            (qrResponse.data.business.qrcodes || []).map((qr) => [qr.id, qr.qrcode_url])
+          );
+          const reviewsWithUrls = reviews.map((review) => ({
+            ...review,
+            qrcode_url: qrCodeMap.get(review.qrcodeId) || null,
+          }));
+
+          setFeedback(reviewsWithUrls);
+          setMeta({ total, totalPages, currentPage: page });
+          setRatingSummary(ratingSummary);
+          setAverageRating(averageRating);
+          setLoading(false);
+        }
+      } catch (error) {
+        if (axios.isCancel(error)) {
+          console.log("Request canceled:", error.message);
+          return;
+        }
+
+        console.error("Fetch reviews error:", {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers,
+          params: error.config?.params,
+          status: error.response?.status,
+          responseData: error.response?.data,
+          message: error.message,
+        });
+
+        if (error.response?.status === 401) {
+          const newToken = await refreshToken();
+          if (newToken && isMounted) {
+            localStorage.setItem("authToken", newToken);
+            fetchReviews();
+            return;
+          } else {
+            setError("Session expired. Please log in again.");
+            toast.error("Session expired. Please log in again.", {
+              position: "top-right",
+              autoClose: 3000,
+            });
+            navigate("/businessAuth");
+          }
         } else {
-          setError("Failed to fetch reviews. Please try again later.");
-          toast.error(err.response?.data?.message || "Failed to fetch reviews.", {
+          setError(error.response?.data?.message || "Failed to fetch feedback.");
+          toast.error(error.response?.data?.message || "Failed to fetch feedback.", {
             position: "top-right",
             autoClose: 3000,
           });
         }
-      } finally {
         setLoading(false);
       }
     };
 
     fetchReviews();
-  }, [search, ratingFilter, sentimentFilter, dateFilter, page]);
 
-  return {
-    feedback,
-    loading,
-    error,
-    page,
-    meta,
-    ratingSummary,
-    averageRating,
-    setPage,
-  };
+    return () => {
+      isMounted = false;
+      if (cancelTokenSource.current) {
+        cancelTokenSource.current.cancel("Component unmounted.");
+      }
+    };
+  }, [search, ratingFilter, sentimentFilter, dateFilter, page, navigate, retryTrigger]);
+
+  return { feedback, loading, error, page, meta, ratingSummary, averageRating, setPage };
 };
 
 export default useFetchReviews;
