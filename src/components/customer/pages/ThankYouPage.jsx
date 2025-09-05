@@ -12,7 +12,7 @@ const ThankYouPage = () => {
   const handleSubmitAnother = () => {
     const { businessId, qrcodeId } = state || {};
     if (businessId && qrcodeId) {
-      console.log('Navigating to QR landing page:', `/qr/${businessId}/${qrcodeId}`);
+      // console.log('Navigating to QR landing page:', `/qr/${businessId}/${qrcodeId}`);
       navigate(`/qr/${businessId}/${qrcodeId}`);
     } else {
       console.warn('No businessId or qrcodeId in state, navigating to home');
@@ -21,11 +21,11 @@ const ThankYouPage = () => {
   };
 
   const handleShareQR = () => {
-    console.log('Share QR Code clicked');
+    // console.log('Share QR Code clicked');
   };
 
   const handleRateGoogle = () => {
-    console.log('Rate on Google clicked');
+    // console.log('Rate on Google clicked');
   };
 
   return (

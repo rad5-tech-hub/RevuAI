@@ -24,8 +24,8 @@ const UserAccount = () => {
   // Debug location.state and token
   useEffect(() => {
     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-    console.log('UserAccount Location State:', location.state);
-    console.log('Auth token:', token || 'No token');
+    // console.log('UserAccount Location State:', location.state);
+    // console.log('Auth token:', token || 'No token');
   }, [location.state]);
 
   // Fetch user dashboard data
@@ -63,7 +63,7 @@ const UserAccount = () => {
         }
 
         const data = await response.json();
-        console.log('Dashboard API Response:', JSON.stringify(data, null, 2));
+        // console.log('Dashboard API Response:', JSON.stringify(data, null, 2));
 
         setUserStats({
           fullName: data.fullname || 'User',
@@ -85,7 +85,7 @@ const UserAccount = () => {
           setRecentFeedback(parsedFeedbacks);
           // Log qrcode_tags for each feedback
           parsedFeedbacks.forEach((feedback, index) => {
-            console.log(`Feedback ${index} qrcode_tags:`, feedback.qrcode_tags, 'Type:', typeof feedback.qrcode_tags);
+            // console.log(`Feedback ${index} qrcode_tags:`, feedback.qrcode_tags, 'Type:', typeof feedback.qrcode_tags);
           });
         } else {
           console.warn('recent_feedbacks is not an array:', data.recent_feedbacks);
@@ -104,7 +104,7 @@ const UserAccount = () => {
   }, [navigate, businessId, qrcodeId]);
 
   const handleBack = () => {
-    console.log('handleBack - location.state:', location.state, 'recentFeedback:', recentFeedback);
+    // console.log('handleBack - location.state:', location.state, 'recentFeedback:', recentFeedback);
     if (location.state?.businessId && location.state?.qrcodeId) {
       navigate(`/qr/${location.state.businessId}/${location.state.qrcodeId}`);
     } else {

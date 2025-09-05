@@ -35,7 +35,7 @@ function LandingPage() {
         });
 
         const qr = response.data.qr || response.data;
-        console.log('QR API Response:', JSON.stringify(qr, null, 2));
+        // console.log('QR API Response:', JSON.stringify(qr, null, 2));
         if (!qr.is_active) {
           throw new Error('This QR code is inactive.');
         }
@@ -58,7 +58,7 @@ function LandingPage() {
             console.warn('Unexpected qrcode_tags format:', qr.qrcode_tags);
           }
         }
-        console.log('Normalized qrcode_tags:', normalizedTags);
+        // console.log('Normalized qrcode_tags:', normalizedTags);
 
         const qrContext = {
           businessId,
@@ -73,7 +73,7 @@ function LandingPage() {
         });
         // Store in localStorage
         localStorage.setItem('qrContext', JSON.stringify(qrContext));
-        console.log('Stored qrContext in localStorage:', qrContext);
+        // console.log('Stored qrContext in localStorage:', qrContext);
       } catch (err) {
         console.error('Error fetching QR details:', err);
         const errorMessage = err.response?.data?.message || err.message || 'Failed to load business details';
@@ -90,7 +90,7 @@ function LandingPage() {
           qrcodeTags: [],
         };
         localStorage.setItem('qrContext', JSON.stringify(qrContext));
-        console.log('Stored fallback qrContext in localStorage:', qrContext);
+        // console.log('Stored fallback qrContext in localStorage:', qrContext);
       } finally {
         setLoading(false);
       }
@@ -123,12 +123,12 @@ function LandingPage() {
   }, [qrData]);
 
   const handleSignIn = () => {
-    console.log('LandingPage handleSignIn - businessId:', businessId, 'qrcodeId:', qrcodeId);
+    // console.log('LandingPage handleSignIn - businessId:', businessId, 'qrcodeId:', qrcodeId);
     navigate('/userAuth', { state: { businessId, qrcodeId } });
   };
 
   const handleContinueAnonymously = () => {
-    console.log('LandingPage handleContinueAnonymously - businessId:', businessId, 'qrcodeId:', qrcodeId);
+    // console.log('LandingPage handleContinueAnonymously - businessId:', businessId, 'qrcodeId:', qrcodeId);
     if (businessId && qrcodeId) {
       navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
     } else {

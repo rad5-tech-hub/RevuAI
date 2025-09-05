@@ -24,7 +24,7 @@ const FeedbackForm = () => {
       try {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
-        console.log('User data loaded:', JSON.stringify(parsedUser, null, 2));
+        // console.log('User data loaded:', JSON.stringify(parsedUser, null, 2));
       } catch (error) {
         console.error('Error parsing user data:', error);
         localStorage.removeItem('userData');
@@ -34,7 +34,7 @@ const FeedbackForm = () => {
 
   // Retrieve QR context from localStorage
   useEffect(() => {
-    console.log('FeedbackForm Mounted - businessId:', businessId, 'qrcodeId:', qrcodeId);
+    // console.log('FeedbackForm Mounted - businessId:', businessId, 'qrcodeId:', qrcodeId);
     const storedQrContext = localStorage.getItem('qrContext');
     if (storedQrContext) {
       try {
@@ -45,7 +45,7 @@ const FeedbackForm = () => {
         ) {
           setQrContext(parsedQrContext);
           setBusinessName(parsedQrContext.businessName || 'Unknown Business');
-          console.log('Loaded qrContext from localStorage:', parsedQrContext);
+          // console.log('Loaded qrContext from localStorage:', parsedQrContext);
           if (parsedQrContext.qrcodeTags.length === 0) {
             console.warn('No tags available in qrContext for qrcodeId:', qrcodeId);
             toast.error('No feedback tags available for this QR code');
@@ -73,7 +73,7 @@ const FeedbackForm = () => {
   };
 
   const handleBack = () => {
-    console.log('FeedbackForm handleBack - businessId:', businessId, 'qrcodeId:', qrcodeId);
+    // console.log('FeedbackForm handleBack - businessId:', businessId, 'qrcodeId:', qrcodeId);
     navigate(qrcodeId && businessId ? `/qr/${businessId}/${qrcodeId}` : '/');
   };
 
@@ -131,7 +131,7 @@ const FeedbackForm = () => {
         isAnonymous: !user,
         qrcode_tags: selectedTags,
       };
-      console.log('Submitting feedback payload:', JSON.stringify(payload, null, 2));
+      // console.log('Submitting feedback payload:', JSON.stringify(payload, null, 2));
       console.log('Auth token:', token || 'No token (anonymous)');
       const response = await fetch(`${BASE_URL}/api/v1/review/reviews`, {
         method: 'POST',
@@ -142,7 +142,7 @@ const FeedbackForm = () => {
         body: JSON.stringify(payload),
       });
       const data = await response.json();
-      console.log('Feedback submission response:', JSON.stringify(data, null, 2));
+      // console.log('Feedback submission response:', JSON.stringify(data, null, 2));
       if (!response.ok) {
         console.error('Backend error response:', data);
         throw new Error(data.message || 'Failed to submit feedback');

@@ -131,7 +131,7 @@ const UserAuth = () => {
         localStorage.setItem('userData', JSON.stringify(userData));
 
         // Navigate to userAccount with businessId and qrcodeId
-        console.log('UserAuth handleSubmit - Location State:', location.state);
+        // console.log('UserAuth handleSubmit - Location State:', location.state);
         navigate('/userAccount', { state: { businessId, qrcodeId } });
       } else {
         setActiveTab('signin');
@@ -146,7 +146,7 @@ const UserAuth = () => {
   };
 
     const handleSkip = () => {
-      console.log('UserAuth handleSkip - Location State:', location.state);
+      // console.log('UserAuth handleSkip - Location State:', location.state);
       if (businessId && qrcodeId) {
         navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
       } else {
@@ -160,7 +160,7 @@ const UserAuth = () => {
     };
 
     const handleBack = () => {
-      console.log('UserAuth handleBack - Location State:', location.state);
+      // console.log('UserAuth handleBack - Location State:', location.state);
       if (businessId && qrcodeId) {
         navigate(`/qr/${businessId}/${qrcodeId}`);
       } else {

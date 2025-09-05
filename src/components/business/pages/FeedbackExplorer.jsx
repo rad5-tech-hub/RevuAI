@@ -31,7 +31,7 @@ const FeedbackExplorer = () => {
 
   const debouncedSetSearch = useCallback(
     debounce((value) => {
-      console.log("Search value updated:", value);
+      // console.log("Search value updated:", value);
       setSearch(value);
     }, 300),
     []
@@ -40,7 +40,7 @@ const FeedbackExplorer = () => {
   const handleSearchChange = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log("Search input change:", e.target.value);
+    // console.log("Search input change:", e.target.value);
     debouncedSetSearch(e.target.value);
   };
 
@@ -48,7 +48,7 @@ const FeedbackExplorer = () => {
     if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
-      console.log("Enter key pressed, prevented default");
+      // console.log("Enter key pressed, prevented default");
     }
   };
 
