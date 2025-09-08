@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Homepage from './Homepage.jsx';
 import LandingPage from './LandingPage.jsx';
 import BusinessAuth from './components/business/pages/BusinessAuth.jsx';
 import BusinessDashboard from './components/business/pages/BusinessDashboard.jsx';
@@ -27,7 +28,7 @@ function App() {
           {/* Dynamic landing page route with businessId and qrcodeId */}
           <Route path="/qr/:businessId/:qrcodeId" element={<LandingPage />} />
           {/* Fallback for root route if no QR code is scanned */}
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<Homepage />} />
           <Route path="/businessAuth" element={<BusinessAuth />} />
           <Route
             path="/businessDashboard"
