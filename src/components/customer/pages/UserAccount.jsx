@@ -19,7 +19,7 @@ const UserAccount = () => {
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   // Extract businessId and qrcodeId from navigation state
-  const { businessId, qrcodeId } = location.state || {};
+  const { businessId, qrcodeId, fromThankYou } = location.state || {};
 
   // Debug location.state and token
   useEffect(() => {
@@ -246,16 +246,16 @@ const UserAccount = () => {
           </div>
           {recentFeedback.length > 0 ? (
             <div className="space-y-4">
-              {recentFeedback.map((feedback) => (
+              {recentFeedback.map((feedback, index) => (
                 <div
-                  key={feedback.id}
-                  className="flex items-center justify-between bg-blue-50 rounded-sm px-4 py-3 border-b border-gray-100 last:border-b-0"
+                  key={`${feedback.id || 'feedback'}-${index}`}
+                  className="flex flex-col md:flex-row items-start md:items-center justify-between bg-blue-50 rounded-sm px-4 py-3 border-b border-gray-100 last:border-b-0"
                 >
-                  <div className="flex-1">
+                  <div className="flex-1 max-w-full">
                     <h3 className="text-black font-medium text-sm mb-1">
                       {feedback.business?.business_name || 'Unknown Business'}
                     </h3>
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex flex-wrap items-center gap-2">
                       <div className="flex">{renderStars(feedback.rating || 0)}</div>
                       <span className="text-gray-500 text-xs">
                         {new Date(feedback.createdAt).toLocaleDateString()}
@@ -270,10 +270,10 @@ const UserAccount = () => {
                       )}
                     </div>
                     {Array.isArray(feedback.qrcode_tags) && feedback.qrcode_tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {feedback.qrcode_tags.map((tag, index) => (
+                      <div className="flex flex-wrap gap-1 mt-1 max-w-full">
+                        {feedback.qrcode_tags.map((tag, tagIndex) => (
                           <span
-                            key={index}
+                            key={`${tag}-${tagIndex}`}
                             className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700"
                           >
                             {tag}
@@ -282,7 +282,9 @@ const UserAccount = () => {
                       </div>
                     )}
                     {feedback.comment && (
-                      <p className="text-gray-600 text-xs mt-1 truncate">"{feedback.comment}"</p>
+                      <p className="text-gray-600 text-xs mt-1 max-w-full truncate">
+                        "{feedback.comment}"
+                      </p>
                     )}
                   </div>
                 </div>
@@ -297,13 +299,15 @@ const UserAccount = () => {
           )}
         </div>
 
-        <button
-          onClick={handleContinueToFeedback}
-          className="w-full bg-blue-600 hover:bg-blue-700 cursor-pointer text-white py-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-        >
-          Continue to Feedback
-          <ArrowRight className="w-4 h-4" />
-        </button>
+        {!fromThankYou && businessId && qrcodeId && (
+          <button
+            onClick={handleContinueToFeedback}
+            className="w-full bg-blue-600 hover:bg-blue-700 cursor-pointer text-white py-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            Continue to Feedback
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </div>
   );

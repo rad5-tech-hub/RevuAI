@@ -1,6 +1,6 @@
 import { User, Mail, Lock } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useState } from "react";
+import { useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -145,33 +145,37 @@ const UserAuth = () => {
     }
   };
 
-    const handleSkip = () => {
-      // console.log('UserAuth handleSkip - Location State:', location.state);
-      if (businessId && qrcodeId) {
-        navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
+  const handleSkip = () => {
+    // console.log('UserAuth handleSkip - Location State:', location.state);
+    // Clear userData to ensure anonymous submission
+    localStorage.removeItem('userData');
+    // Optionally clear authToken (if not needed for anonymous API calls)
+    // localStorage.removeItem('authToken');
+    if (businessId && qrcodeId) {
+      navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
+    } else {
+      const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
+      if (storedQrContext.businessId && storedQrContext.qrcodeId) {
+        navigate(`/feedbackForm/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
       } else {
-        const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
-        if (storedQrContext.businessId && storedQrContext.qrcodeId) {
-          navigate(`/feedbackForm/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
-        } else {
-          navigate('/feedbackForm');
-        }
+        navigate('/feedbackForm');
       }
-    };
+    }
+  };
 
-    const handleBack = () => {
-      // console.log('UserAuth handleBack - Location State:', location.state);
-      if (businessId && qrcodeId) {
-        navigate(`/qr/${businessId}/${qrcodeId}`);
+  const handleBack = () => {
+    // console.log('UserAuth handleBack - Location State:', location.state);
+    if (businessId && qrcodeId) {
+      navigate(`/qr/${businessId}/${qrcodeId}`);
+    } else {
+      const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
+      if (storedQrContext.businessId && storedQrContext.qrcodeId) {
+        navigate(`/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
       } else {
-        const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
-        if (storedQrContext.businessId && storedQrContext.qrcodeId) {
-          navigate(`/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
-        } else {
-          navigate(-1);
-        }
+        navigate(-1);
       }
-    };
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -195,7 +199,7 @@ const UserAuth = () => {
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <User className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-blue-600 text-xl font-medium mb-2">Join ScanReview</h1>
+          <h1 className="text-blue-600 text-xl font-medium mb-2">Join RevuAI</h1>
           <p className="text-gray-600 text-sm">Sign in to track your feedback history</p>
         </div>
 

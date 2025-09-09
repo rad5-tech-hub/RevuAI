@@ -129,6 +129,10 @@ function LandingPage() {
 
   const handleContinueAnonymously = () => {
     // console.log('LandingPage handleContinueAnonymously - businessId:', businessId, 'qrcodeId:', qrcodeId);
+    // Clear userData to ensure anonymous submission
+    localStorage.removeItem('userData');
+    // Optionally clear authToken (if not needed for anonymous API calls)
+    // localStorage.removeItem('authToken');
     if (businessId && qrcodeId) {
       navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
     } else {
@@ -192,7 +196,7 @@ function LandingPage() {
           <h2 className="text-black text-base mb-2 text-center">Welcome to</h2>
           <h3 className="text-2xl font-bold text-blue-500 mb-4 text-center">{qrData.business.business_name}</h3>
           <p className="text-black text-sm leading-relaxed text-center">
-            Provide feedback for our <span className="font-bold text-blue-500">{qrData.label}</span> to help us improve our {qrData.type.toLowerCase()}.
+            Provide feedback for our <span className="font-bold text-blue-500">{qrData.label}</span> to help us improve (our) {qrData.type.toLowerCase()}.
           </p>
           <div className="mt-4 flex justify-center">
             {qrData.qrcode_url ? (
@@ -255,7 +259,7 @@ function LandingPage() {
           onClick={handleSignIn}
           className="w-full cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-semibold py-4 px-6 rounded-xl transition-colors duration-200 mb-4"
         >
-          Sign In
+          Sign in to give Feedback
         </button>
         <button
           onClick={handleContinueAnonymously}
