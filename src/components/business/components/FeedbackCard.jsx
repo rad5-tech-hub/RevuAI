@@ -23,6 +23,13 @@ const FeedbackCard = ({ feedback, onDownloadPNG, onDownloadSVG, onDownloadPDF, o
       });
       return;
     }
+    if (feedback.isAnonymous) {
+      toast.error("Cannot reply to anonymous feedback.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
     const token = localStorage.getItem("authToken");
     if (!token) {
       toast.error("Please log in to reply.", {
@@ -53,6 +60,9 @@ const FeedbackCard = ({ feedback, onDownloadPNG, onDownloadSVG, onDownloadPDF, o
     }
   };
 
+  // Determine sender's name
+  const senderName = feedback.isAnonymous ? "Anonymous" : feedback.user?.name || "Unknown User";
+
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 shadow-sm">
       <div className="flex-1">
@@ -72,6 +82,9 @@ const FeedbackCard = ({ feedback, onDownloadPNG, onDownloadSVG, onDownloadPDF, o
           <div className="text-sm text-slate-500">{feedback.date}</div>
         </div>
         <p className="mt-2 text-slate-700">{feedback.text}</p>
+        <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
+          <span>By: {senderName}</span>
+        </div>
         <div className="mt-2 flex flex-wrap gap-2">
           {Array.isArray(feedback.aspects) && feedback.aspects.length > 0 ? (
             feedback.aspects.map((tag) => (
@@ -102,7 +115,7 @@ const FeedbackCard = ({ feedback, onDownloadPNG, onDownloadSVG, onDownloadPDF, o
             ))}
           </div>
         )}
-        {isReplying ? (
+        {!feedback.isAnonymous && isReplying ? (
           <div className="mt-3 flex gap-2">
             <input
               value={replyInput}
@@ -124,7 +137,7 @@ const FeedbackCard = ({ feedback, onDownloadPNG, onDownloadSVG, onDownloadPDF, o
               Cancel
             </button>
           </div>
-        ) : (
+        ) : !feedback.isAnonymous ? (
           <button
             onClick={() => setIsReplying(true)}
             className="mt-3 text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
@@ -132,7 +145,7 @@ const FeedbackCard = ({ feedback, onDownloadPNG, onDownloadSVG, onDownloadPDF, o
             <MessageCircle size={16} />
             Reply
           </button>
-        )}
+        ) : null}
       </div>
       <div className="flex gap-2 self-end sm:self-start">
         <button

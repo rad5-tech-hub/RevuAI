@@ -12,43 +12,72 @@ import LoadingState from "../components/LoadingState";
 import ErrorState from "../components/ErrorState";
 import { QrCode, Download, Share2, LogOut, MessageSquare, Star, Users, AlertTriangle } from "lucide-react";
 import axios from "axios";
+import BusinessHeader from './../components/headerComponents';
 
 const BusinessDashboard = () => {
   const { dashboardData, isLoading, error, retryCount, handleRetry } = useFetchDashboardData();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
+  const [loading, setLoading] = useState(false);
+
+ const handleLogout = async () => {
+    setLoading(true);
+    
     const token = localStorage.getItem("authToken");
-    if (!token) {
+    const refreshToken = localStorage.getItem("refreshToken");
+    
+    if (!token || !refreshToken) {
       localStorage.removeItem("authToken");
-      navigate("/");
-      setIsLoggingOut(false);
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("authBusinessId");
+      localStorage.removeItem("qrCodeIds");
+      localStorage.removeItem("qrTypeMap");
+      navigate("/businessAuth");
+      setLoading(false);
       return;
     }
+    
     try {
       await axios.post(
         `${import.meta.env.VITE_API_URL}/api/v1/logout/logout`,
-        { refreshToken: token },
+        { refreshToken },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      
       localStorage.removeItem("authToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("authBusinessId");
+      localStorage.removeItem("qrCodeIds");
+      localStorage.removeItem("qrTypeMap");
+      
       toast.success("Logged out successfully!", {
         position: "top-right",
         autoClose: 3000,
       });
-      navigate("/");
+      
+      navigate("/businessAuth");
     } catch (err) {
-      console.error("Logout failed:", err);
+      console.error("Logout failed:", {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+      });
+      
       toast.error("Logout failed. Redirecting to login.", {
         position: "top-right",
         autoClose: 3000,
       });
+      
+      // Clear storage anyway and redirect
       localStorage.removeItem("authToken");
-      navigate("/");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("authBusinessId");
+      localStorage.removeItem("qrCodeIds");
+      localStorage.removeItem("qrTypeMap");
+      navigate("/businessAuth");
     } finally {
-      setIsLoggingOut(false);
+      setLoading(false);
     }
   };
 
@@ -127,57 +156,7 @@ const BusinessDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <ToastContainer />
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center space-x-4 mb-4 lg:mb-0">
-              <Link to="/businessDashboard" className="flex items-center space-x-2" aria-current="page">
-                <div className="w-10 h-10 text-white bg-blue-500 rounded-full flex items-center justify-center">
-                  <QrCode className="w-6 h-6" />
-                </div>
-                <span className="text-xl font-bold text-black">RevuAi</span>
-              </Link>
-              <span className="text-gray-500">Business Portal</span>
-            </div>
-            <nav className="flex flex-wrap gap-2 lg:gap-8 mb-4 lg:mb-0 items-center">
-              <Link
-                to="/businessDashboard"
-                className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
-                aria-current="page"
-              >
-                📊 Dashboard
-              </Link>
-              <Link
-                to="/businessFeedback"
-                className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
-              >
-                💬 Feedback
-              </Link>
-              <Link
-                to="/businessQrpage"
-                className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
-              >
-                📱 QR Codes
-              </Link>
-              <Link
-                to="/businessReports"
-                className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
-              >
-                📈 Reports
-              </Link>
-              <button
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors flex items-center gap-1 disabled:opacity-50"
-                aria-label="Logout"
-              >
-                <LogOut className="w-4 h-4" />
-                {isLoggingOut ? "Logging out..." : "Logout"}
-              </button>
-            </nav>
-          </div>
-        </div>
-      </header>
+   <BusinessHeader onLogout={handleLogout} isLoggingOut={isLoading} />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-8">
           <div>

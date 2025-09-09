@@ -10,7 +10,7 @@ import FilterDropdown from "../components/FilterDropdown";
 import { generatePDF } from "./../../../utils/pdfUtils";
 import { QrCode, Download, Share2, MessageSquare, LogOut, Loader2 } from "lucide-react";
 import debounce from "lodash/debounce";
-
+import BusinessHeader from './../components/headerComponents';
 const FeedbackExplorer = () => {
   const [search, setSearch] = useState("");
   const [ratingFilter, setRatingFilter] = useState("All Ratings");
@@ -268,55 +268,7 @@ const FeedbackExplorer = () => {
   return (
     <div className="min-h-screen bg-slate-50">
       <ToastContainer />
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center space-x-4 mb-4 lg:mb-0">
-              <Link to="/businessDashboard" className="flex items-center space-x-2">
-                <div className="w-10 h-10 text-white bg-blue-600 rounded-full flex items-center justify-center">
-                  <QrCode className="w-6 h-6" />
-                </div>
-                <span className="text-xl font-bold text-slate-900">RevuAi</span>
-              </Link>
-              <span className="text-slate-500">Business Portal</span>
-            </div>
-            <nav className="flex flex-wrap gap-2 lg:gap-8 mb-4 lg:mb-0 items-center">
-              <Link
-                to="/businessDashboard"
-                className="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-md transition-colors"
-              >
-                📊 Dashboard
-              </Link>
-              <Link
-                to="/businessFeedback"
-                className="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-md transition-colors"
-                aria-current="page"
-              >
-                💬 Feedback
-              </Link>
-              <Link
-                to="/businessQrpage"
-                className="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-md transition-colors"
-              >
-                📱 QR Codes
-              </Link>
-              <Link
-                to="/businessReports"
-                className="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-md transition-colors"
-              >
-                📈 Reports
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors flex items-center gap-1"
-              >
-                <LogOut size={16} />
-                Logout
-              </button>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <BusinessHeader onLogout={handleLogout} isLoggingOut={loading} />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <h1 className="text-2xl font-bold text-slate-900">Feedback Explorer</h1>
         <p className="mt-1 text-sm text-slate-500">View and manage customer feedback</p>
