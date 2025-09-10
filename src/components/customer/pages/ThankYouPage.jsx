@@ -155,14 +155,14 @@ const ThankYouPage = () => {
           <div className="space-y-4 mb-6">
             <button
               onClick={handleGoToDashboard}
-              className="w-full bg-blue-600 hover:bg-blue-700 cursor-pointer text-white py-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+              className="max-w-2xl cursor-pointer w-full bg-blue-600 hover:bg-blue-700 mx-auto text-white py-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
             >
               <User className="w-4 h-4" />
               Go to Dashboard
             </button>
             <button
               onClick={handleSubmitAnother}
-              className="w-full bg-green-600 hover:bg-green-700 cursor-pointer text-white py-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+              className="max-w-2xl cursor-pointer w-full bg-green-600 hover:bg-green-700 mx-auto text-white py-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -234,7 +234,7 @@ const ThankYouPage = () => {
           <div className="flex gap-4 justify-center">
             <button
               onClick={handleShareQR}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 cursor-pointer border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
             >
               <QrCode className="w-4 h-4" />
               Share QR Code
@@ -244,7 +244,7 @@ const ThankYouPage = () => {
 
         {/* Footer */}
         <div className="text-center">
-          <p className="text-gray-400 text-xs">Powered by ScanReview</p>
+          <p className="text-gray-400 text-xs">Powered by RevuAI</p>
         </div>
       </div>
     </div>

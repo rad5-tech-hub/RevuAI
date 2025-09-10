@@ -196,9 +196,9 @@ function LandingPage() {
           <h2 className="text-black text-base mb-2 text-center">Welcome to</h2>
           <h3 className="text-2xl font-bold text-blue-500 mb-4 text-center">{qrData.business.business_name}</h3>
           <p className="text-black text-sm leading-relaxed text-center">
-            Provide feedback for our <span className="font-bold text-blue-500">{qrData.label}</span> to help us improve (our) {qrData.type.toLowerCase()}.
+            Provide feedback for (our) <span className="font-bold text-blue-500">{qrData.label}</span> to help us improve our {qrData.type.toLowerCase()}.
           </p>
-          <div className="mt-4 flex justify-center">
+          {/* <div className="mt-4 flex justify-center">
             {qrData.qrcode_url ? (
               <img
                 src={qrData.qrcode_url}
@@ -213,7 +213,7 @@ function LandingPage() {
                 style={{ width: 120, height: 120 }}
               />
             )}
-          </div>
+          </div> */}
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">About {qrData.business.business_name}</h3>
