@@ -161,7 +161,7 @@ const BusinessDashboard = () => {
         <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              {dashboardData?.business_name ?? "Business"} Dashboard
+              Business Dashboard
             </h1>
             <p className="text-gray-600 mt-2">
               Welcome back! Here's what's happening with your customer feedback.

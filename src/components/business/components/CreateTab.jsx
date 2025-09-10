@@ -208,20 +208,20 @@ export const CreateTab = ({
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={handleCreateQR}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-4 my-3 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed"
             disabled={isLoading || !qrName}
             aria-label={editingId ? "Update QR Code" : "Create QR Code"}
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             {isLoading ? "Processing..." : editingId ? "Update QR Code" : "Create QR Code"}
           </button>
-          <button
+          {/* <button
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700 text-sm font-semibold hover:bg-slate-50"
             aria-label="Preview QR Code"
           >
             <Eye className="h-4 w-4" />
             Preview
-          </button>
+          </button> */}
         </div>
       </div>
     </div>

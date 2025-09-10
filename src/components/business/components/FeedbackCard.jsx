@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Star, QrCode, Eye, MessageCircle, Download, Share2, Send } from "lucide-react";
+import { Star, MessageCircle, Download, Share2, Send } from "lucide-react";
 import { toast } from "react-toastify";
 import axios from "axios";
 import "react-toastify/dist/ReactToastify.css";
+import {Eye} from "lucide-react"
 
 const sentimentColors = {
   Positive: "bg-green-100 text-green-700",
@@ -10,7 +11,7 @@ const sentimentColors = {
   Negative: "bg-red-100 text-red-700",
 };
 
-const FeedbackCard = ({ feedback, onDownloadPNG, onDownloadSVG, onDownloadPDF, onShare }) => {
+const FeedbackCard = ({ feedback, onDownloadCSV, onDownloadPDF, onShare }) => {
   const [replyInput, setReplyInput] = useState("");
   const [isReplying, setIsReplying] = useState(false);
   const [replies, setReplies] = useState(feedback.replies || []);
@@ -60,8 +61,7 @@ const FeedbackCard = ({ feedback, onDownloadPNG, onDownloadSVG, onDownloadPDF, o
     }
   };
 
-  // Determine sender's name
-  const senderName = feedback.isAnonymous ? "Anonymous" : feedback.user?.name || "Unknown User";
+  const senderName = feedback.isAnonymous ? "Anonymous" : feedback.reviewer || "Unknown User";
 
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 shadow-sm">
@@ -79,15 +79,15 @@ const FeedbackCard = ({ feedback, onDownloadPNG, onDownloadSVG, onDownloadPDF, o
               {feedback.sentiment}
             </span>
           </div>
-          <div className="text-sm text-slate-500">{feedback.date}</div>
+          <div className="text-sm text-slate-500">{feedback.createdAt}</div>
         </div>
         <p className="mt-2 text-slate-700">{feedback.text}</p>
         <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
           <span>By: {senderName}</span>
         </div>
         <div className="mt-2 flex flex-wrap gap-2">
-          {Array.isArray(feedback.aspects) && feedback.aspects.length > 0 ? (
-            feedback.aspects.map((tag) => (
+          {Array.isArray(feedback.qrcodeTags) && feedback.qrcodeTags.length > 0 ? (
+            feedback.qrcodeTags.map((tag) => (
               <span key={tag} className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full text-xs">
                 {tag}
               </span>
@@ -97,7 +97,7 @@ const FeedbackCard = ({ feedback, onDownloadPNG, onDownloadSVG, onDownloadPDF, o
           )}
         </div>
         <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
-          <QrCode size={16} /> {feedback.qrCode} ({feedback.businessName})
+          <MessageCircle size={16} /> {feedback.qrCode || "No QR Code"}
         </div>
         {replies.length > 0 && (
           <div className="mt-3 space-y-2">
@@ -166,16 +166,10 @@ const FeedbackCard = ({ feedback, onDownloadPNG, onDownloadSVG, onDownloadPDF, o
           </button>
           <div className="absolute hidden group-hover:block bg-white border border-slate-200 rounded-lg shadow-lg z-10">
             <button
-              onClick={onDownloadPNG}
+              onClick={onDownloadCSV}
               className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
             >
-              PNG
-            </button>
-            <button
-              onClick={onDownloadSVG}
-              className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-            >
-              SVG
+              CSV
             </button>
             <button
               onClick={onDownloadPDF}

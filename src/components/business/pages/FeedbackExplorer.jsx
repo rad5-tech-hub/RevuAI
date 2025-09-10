@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
@@ -8,9 +7,10 @@ import useFetchReviews from "../hooks/useFetchReviews";
 import FeedbackCard from "../components/FeedbackCard";
 import FilterDropdown from "../components/FilterDropdown";
 import { generatePDF } from "./../../../utils/pdfUtils";
-import { QrCode, Download, Share2, MessageSquare, LogOut, Loader2 } from "lucide-react";
+import { MessageSquare, LogOut, Loader2 } from "lucide-react";
 import debounce from "lodash/debounce";
-import BusinessHeader from './../components/headerComponents';
+import BusinessHeader from "../components/headerComponents";
+
 const FeedbackExplorer = () => {
   const [search, setSearch] = useState("");
   const [ratingFilter, setRatingFilter] = useState("All Ratings");
@@ -31,7 +31,6 @@ const FeedbackExplorer = () => {
 
   const debouncedSetSearch = useCallback(
     debounce((value) => {
-      // console.log("Search value updated:", value);
       setSearch(value);
     }, 300),
     []
@@ -40,7 +39,6 @@ const FeedbackExplorer = () => {
   const handleSearchChange = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    // console.log("Search input change:", e.target.value);
     debouncedSetSearch(e.target.value);
   };
 
@@ -48,7 +46,6 @@ const FeedbackExplorer = () => {
     if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
-      // console.log("Enter key pressed, prevented default");
     }
   };
 
@@ -99,33 +96,39 @@ const FeedbackExplorer = () => {
     }
   };
 
-  const downloadPNG = (url, filename) => {
-    if (!url) {
-      toast.error("No QR code available to download.", {
+  const downloadFeedbackCSV = (feedback) => {
+    if (!feedback) {
+      toast.error("No feedback data available to download.", {
         position: "top-right",
         autoClose: 3000,
       });
       return;
     }
+    const tags = Array.isArray(feedback.qrcodeTags) ? feedback.qrcodeTags.join(";") : "";
+    const csvContent = [
+      ["ID", "Rating", "Rating Label", "Comment", "Reviewer", "Date", "QR Code", "Tags"],
+      [
+        feedback.id || "",
+        feedback.rating || "",
+        feedback.ratingLabel || "",
+        `"${(feedback.comment || "").replace(/"/g, '""')}"`,
+        feedback.isAnonymous ? "Anonymous" : feedback.reviewer || "Unknown",
+        feedback.createdAt || "",
+        feedback.qrcodeTitle || "",
+        tags,
+      ],
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
+    link.href = URL.createObjectURL(blob);
+    link.download = `feedback_${feedback.id}.csv`;
     link.click();
-  };
-
-  const downloadSVG = (url, filename) => {
-    if (!url) {
-      toast.error("No QR code available to download.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    const svgUrl = url.replace(".png", ".svg");
-    const link = document.createElement("a");
-    link.href = svgUrl;
-    link.download = filename.replace(".png", ".svg");
-    link.click();
+    toast.success("Feedback downloaded as CSV!", {
+      position: "top-right",
+      autoClose: 3000,
+    });
   };
 
   const downloadPDF = (feedback) => {
@@ -136,6 +139,7 @@ const FeedbackExplorer = () => {
         autoClose: 3000,
       });
     } catch (error) {
+      console.error("PDF generation error:", error);
       toast.error("Failed to generate PDF.", {
         position: "top-right",
         autoClose: 3000,
@@ -145,9 +149,9 @@ const FeedbackExplorer = () => {
 
   const shareFeedback = async (feedback) => {
     const shareData = {
-      title: `Feedback for ${feedback.qrcodeId}`,
-      text: `Rating: ${feedback.rating} Stars\nComment: ${feedback.comment}`,
-      url: feedback.qrcode_url || window.location.href,
+      title: `Feedback for ${feedback.qrcodeTitle || "Business"}`,
+      text: `Rating: ${feedback.rating} Stars\nComment: ${feedback.comment || "No comment"}`,
+      url: window.location.href,
     };
     if (navigator.share) {
       try {
@@ -188,30 +192,34 @@ const FeedbackExplorer = () => {
 
   const StatsPlaceholder = () => (
     <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-      {Array(5).fill().map((_, index) => (
-        <div
-          key={index}
-          className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 text-center animate-pulse"
-        >
-          <div className="h-6 bg-slate-200 rounded w-3/4 mx-auto mb-2"></div>
-          <div className="h-4 bg-slate-200 rounded w-1/2 mx-auto"></div>
-        </div>
-      ))}
+      {Array(5)
+        .fill()
+        .map((_, index) => (
+          <div
+            key={index}
+            className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 text-center animate-pulse"
+          >
+            <div className="h-6 bg-slate-200 rounded w-3/4 mx-auto mb-2"></div>
+            <div className="h-4 bg-slate-200 rounded w-1/2 mx-auto"></div>
+          </div>
+        ))}
     </div>
   );
 
   const FeedbackListPlaceholder = () => (
     <div className="mt-6 space-y-4 pb-10">
-      {Array(3).fill().map((_, index) => (
-        <div
-          key={index}
-          className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 animate-pulse"
-        >
-          <div className="h-6 bg-slate-200 rounded w-1/4 mb-2"></div>
-          <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
-          <div className="h-4 bg-slate-200 rounded w-1/2"></div>
-        </div>
-      ))}
+      {Array(3)
+        .fill()
+        .map((_, index) => (
+          <div
+            key={index}
+            className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 animate-pulse"
+          >
+            <div className="h-6 bg-slate-200 rounded w-1/4 mb-2"></div>
+            <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
+            <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+          </div>
+        ))}
     </div>
   );
 
@@ -222,7 +230,6 @@ const FeedbackExplorer = () => {
   const filteredFeedback = feedback.filter((fb) => {
     let matchesSentiment = true;
     let matchesDate = true;
-
     if (sentimentFilter !== "All Sentiments") {
       const sentimentMap = {
         Positive: ["Excellent", "Very Good"],
@@ -231,7 +238,6 @@ const FeedbackExplorer = () => {
       };
       matchesSentiment = sentimentMap[sentimentFilter].includes(fb.ratingLabel);
     }
-
     if (dateFilter !== "All Time") {
       const feedbackDate = new Date(fb.createdAt);
       const today = new Date();
@@ -250,7 +256,6 @@ const FeedbackExplorer = () => {
         matchesDate = feedbackDate >= quarterStart;
       }
     }
-
     return matchesSentiment && matchesDate;
   });
 
@@ -353,7 +358,7 @@ const FeedbackExplorer = () => {
                     className="mt-4 text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
                     aria-label="Share QR codes"
                   >
-                    <QrCode className="w-4 h-4" />
+                    <MessageSquare className="w-4 h-4" />
                     Share your QR codes to get started
                   </Link>
                 </div>
@@ -364,10 +369,9 @@ const FeedbackExplorer = () => {
                     feedback={{
                       ...fb,
                       text: fb.comment,
-                      qrCode: fb.qrcodeId,
+                      qrCode: fb.qrcodeTitle,
                     }}
-                    onDownloadPNG={() => downloadPNG(fb.qrcode_url, `qr_${fb.qrcodeId}.png`)}
-                    onDownloadSVG={() => downloadSVG(fb.qrcode_url, `qr_${fb.qrcodeId}.png`)}
+                    onDownloadCSV={() => downloadFeedbackCSV(fb)}
                     onDownloadPDF={() => downloadPDF(fb)}
                     onShare={() => shareFeedback(fb)}
                   />
