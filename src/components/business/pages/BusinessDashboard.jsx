@@ -170,15 +170,15 @@ const BusinessDashboard = () => {
           <div className="flex flex-row gap-3 items-center">
             <button
               onClick={handleExportReport}
-              className="flex items-center gap-2 bg-gray-100 hover:bg-blue-200 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 cursor-pointer bg-gray-100 hover:bg-blue-200 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               aria-label="Export report"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4 cursor-pointer" />
               Export Report
             </button>
             <button
               onClick={handleShareInsights}
-              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center cursor-pointer gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               aria-label="Share insights"
             >
               <Share2 className="w-4 h-4" />

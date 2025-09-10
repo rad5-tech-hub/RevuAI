@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { QrCode, BarChart3, Users, Star, Mail, Lock, FileText, Building, User, Phone } from 'lucide-react';
+import { QrCode, BarChart3, Users, Star, Mail, Lock, FileText, Building, User, Phone, Loader2, Tag } from 'lucide-react';
 
 const BusinessAuth = () => {
   const [email, setEmail] = useState('');
@@ -32,7 +32,6 @@ const BusinessAuth = () => {
     };
     fetchCategories();
   }, []);
-
 
   // Handle business registration
   const handleSignUp = async () => {
@@ -75,15 +74,15 @@ const BusinessAuth = () => {
   };
 
   // Handle business login
-   const handleSignIn = async () => {
+  const handleSignIn = async () => {
     if (!email || !password) {
-      setError("Email and password are required.");
+      setError('Email and password are required.');
       setIsLoading(false);
       return;
     }
     setIsLoading(true);
-    setError("");
-    setSuccess("");
+    setError('');
+    setSuccess('');
     try {
       const response = await axios.post(`${BASE_URL}/api/v1/business/login-business`, {
         email,
@@ -92,15 +91,15 @@ const BusinessAuth = () => {
       const token = response.data.data?.accessToken || response.data.accessToken;
       const businessId = response.data.business?.id;
       if (token && businessId) {
-        localStorage.setItem("authToken", token);
-        localStorage.setItem("authBusinessId", businessId); // Store the business ID
-        setSuccess("Login successful! Redirecting to dashboard...");
-        setTimeout(() => navigate("/businessDashboard"), 1000);
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('authBusinessId', businessId);
+        setSuccess('Login successful! Redirecting to dashboard...');
+        setTimeout(() => navigate('/businessDashboard'), 1000);
       } else {
-        setError("Login succeeded, but no token or business ID received.");
+        setError('Login succeeded, but no token or business ID received.');
       }
     } catch (err) {
-      console.error("Login error:", {
+      console.error('Login error:', {
         status: err.response?.status,
         data: err.response?.data,
         message: err.message,
@@ -122,7 +121,7 @@ const BusinessAuth = () => {
     setError('');
     setSuccess('');
     try {
-      const response = await axios.post(`${BASE_URL}/api/v1/business/forgot-password`, {    
+      const response = await axios.post(`${BASE_URL}/api/v1/business/forgot-password`, {
         email,
       });
       if (response.data.message) {
@@ -139,18 +138,23 @@ const BusinessAuth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <img src='/Social Media Icon.png' className="w-6 h-6 text-white" />
+                <FileText className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">RevuAi</h1>
+                <h1 className="text-xl font-bold text-gray-900">ScanRevuAi</h1>
                 <p className="text-sm text-gray-600">Business Portal</p>
               </div>
+            </div>
+            <div>
+                <Link to="/userAuth" className="text-blue-600 hover:text-blue-700 font-medium">
+                  Sign In as User
+                </Link>                  
             </div>
           </div>
         </div>
@@ -164,7 +168,7 @@ const BusinessAuth = () => {
               </span>
             </div>
             <div className="space-y-4">
-              <h2 className="text-4xl font-bold text-gray-900 leading-tight">
+              <h2 className="text-4xl font-extrabold text-gray-900 leading-tight tracking-tight">
                 Transform Customer Feedback into Business Growth
               </h2>
               <p className="text-xl text-gray-600 leading-relaxed">
@@ -226,64 +230,80 @@ const BusinessAuth = () => {
           </div>
           <div className="flex justify-center lg:justify-end">
             <div className="w-full max-w-md">
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
-                <div className="flex justify-center mb-6">
-                  <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center">
-                    <FileText className="w-8 h-8 text-white" />
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div className="p-8 bg-gradient-to-r from-blue-50 to-white">
+                  <div className="flex justify-center mb-6">
+                    <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center">
+                      {isForgotPassword ? (
+                        <Mail className="w-8 h-8 text-white" />
+                      ) : (
+                        <FileText className="w-8 h-8 text-white" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-center mb-8">
+                    <h3 className="text-2xl font-extrabold text-gray-900 mb-2 tracking-tight">
+                      {isForgotPassword ? 'Reset Your Password' : isSignUp ? 'Join ScanRevuAi' : 'Access Your Dashboard'}
+                    </h3>
+                    <p className="text-gray-600">
+                      {isForgotPassword
+                        ? 'Enter your email to receive a password reset link'
+                        : isSignUp
+                        ? 'Create your business account to start managing feedback'
+                        : 'Sign in to manage your customer feedback'}
+                    </p>
                   </div>
                 </div>
-                <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                    {isForgotPassword ? 'Reset Your Password' : 'Business Portal Access'}
-                  </h3>
-                  <p className="text-gray-600">
-                    {isForgotPassword ? 'Enter your email to receive a password reset link' : 'Manage your customer feedback and grow your business'}
-                  </p>
-                </div>
-                {error && (
-                  <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-                    {error}
-                  </div>
-                )}
-                {success && (
-                  <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">
-                    {success}
-                  </div>
-                )}
-                {!isForgotPassword && (
-                  <div className="grid grid-cols-2 gap-0 mb-6 bg-gray-100 rounded-lg p-1">
-                    <button
-                      onClick={() => {
-                        setIsSignUp(false);
-                        setError('');
-                        setSuccess('');
-                      }}
-                      className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                        !isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                      disabled={isLoading}
-                    >
-                      Sign In
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsSignUp(true);
-                        setError('');
-                        setSuccess('');
-                      }}
-                      className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                        isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                      disabled={isLoading}
-                    >
-                      Get Started
-                    </button>
-                  </div>
-                )}
-                <div className="space-y-6">
-                  {isForgotPassword ? (
-                    <>
-                      <div>
+                <div className="p-8">
+                  {error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm font-medium">
+                      {error}
+                    </div>
+                  )}
+                  {success && (
+                    <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-xl text-sm font-medium">
+                      {success}
+                    </div>
+                  )}
+                  {!isForgotPassword && (
+                    <div className="grid grid-cols-2 gap-0 mb-6 bg-gray-100 rounded-lg p-1">
+                      <button
+                        onClick={() => {
+                          setIsSignUp(false);
+                          setIsForgotPassword(false);
+                          setError('');
+                          setSuccess('');
+                          setEmail('');
+                          setPassword('');
+                        }}
+                        className={`py-2 px-4 rounded-md text-sm font-semibold transition-colors ${
+                          !isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                        disabled={isLoading}
+                      >
+                        Sign In
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsSignUp(true);
+                          setIsForgotPassword(false);
+                          setError('');
+                          setSuccess('');
+                          setEmail('');
+                          setPassword('');
+                        }}
+                        className={`py-2 px-4 rounded-md text-sm font-semibold transition-colors ${
+                          isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                        disabled={isLoading}
+                      >
+                        Get Started
+                      </button>
+                    </div>
+                  )}
+                  <div className="space-y-6">
+                    {isForgotPassword ? (
+                      <>
                         <div className="relative">
                           <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                           <input
@@ -295,35 +315,40 @@ const BusinessAuth = () => {
                             disabled={isLoading}
                           />
                         </div>
-                      </div>
-                      <button
-                        type="button"
-                        className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors ${
-                          isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                        onClick={handleForgotPassword}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? 'Processing...' : 'Send Reset Link'}
-                      </button>
-                      <p className="text-center text-sm text-gray-500">
                         <button
-                          onClick={() => {
-                            setIsForgotPassword(false);
-                            setError('');
-                            setSuccess('');
-                            setEmail('');
-                          }}
-                          className="text-blue-600 hover:text-blue-700 hover:underline"
+                          type="button"
+                          className={`w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg ${
+                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                          onClick={handleForgotPassword}
                           disabled={isLoading}
                         >
-                          Back to Sign In
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" />
+                              Processing...
+                            </>
+                          ) : (
+                            'Send Reset Link'
+                          )}
                         </button>
-                      </p>
-                    </>
-                  ) : isSignUp ? (
-                    <>
-                      <div>
+                        <p className="text-center text-sm text-gray-500 mt-4">
+                          <button
+                            onClick={() => {
+                              setIsForgotPassword(false);
+                              setError('');
+                              setSuccess('');
+                              setEmail('');
+                            }}
+                            className="text-blue-600 hover:text-blue-700 hover:underline font-semibold"
+                            disabled={isLoading}
+                          >
+                            Back to Sign In
+                          </button>
+                        </p>
+                      </>
+                    ) : isSignUp ? (
+                      <>
                         <div className="relative">
                           <Building className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                           <input
@@ -335,8 +360,6 @@ const BusinessAuth = () => {
                             disabled={isLoading}
                           />
                         </div>
-                      </div>
-                      <div>
                         <div className="relative">
                           <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                           <input
@@ -348,13 +371,12 @@ const BusinessAuth = () => {
                             disabled={isLoading}
                           />
                         </div>
-                      </div>
-                      <div>
                         <div className="relative">
+                          <Tag className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                           <select
                             value={categoryId}
                             onChange={(e) => setCategoryId(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors appearance-none"
                             disabled={isLoading}
                           >
                             <option value="" disabled>
@@ -367,11 +389,6 @@ const BusinessAuth = () => {
                             ))}
                           </select>
                         </div>
-                      </div>
-                      <div>
-                       
-                      </div>
-                      <div>
                         <div className="relative">
                           <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                           <input
@@ -383,8 +400,6 @@ const BusinessAuth = () => {
                             disabled={isLoading}
                           />
                         </div>
-                      </div>
-                      <div>
                         <div className="relative">
                           <Phone className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                           <input
@@ -396,8 +411,6 @@ const BusinessAuth = () => {
                             disabled={isLoading}
                           />
                         </div>
-                      </div>
-                      <div>
                         <div className="relative">
                           <Building className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                           <input
@@ -409,8 +422,6 @@ const BusinessAuth = () => {
                             disabled={isLoading}
                           />
                         </div>
-                      </div>
-                      <div>
                         <div className="relative">
                           <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                           <input
@@ -422,24 +433,29 @@ const BusinessAuth = () => {
                             disabled={isLoading}
                           />
                         </div>
-                      </div>
-                      <button
-                        type="button"
-                        className={`w-full py-3 px-4 bg-orange-400 hover:bg-orange-500 text-white rounded-lg font-medium transition-colors ${
-                          isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                        onClick={handleSignUp}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? 'Processing...' : 'Start Free Trial'}
-                      </button>
-                      <p className="text-center text-sm text-gray-500">
-                        14-day free trial • No credit card required
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <div>
+                        <button
+                          type="button"
+                          className={`w-full py-3 px-4 cursor-pointer bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg ${
+                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                          onClick={handleSignUp}
+                          disabled={isLoading}
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" />
+                              Processing...
+                            </>
+                          ) : (
+                            'Start Free Trial'
+                          )}
+                        </button>
+                        <p className="text-center text-sm text-gray-500 mt-4">
+                          14-day free trial • No credit card required
+                        </p>
+                      </>
+                    ) : (
+                      <>
                         <div className="relative">
                           <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                           <input
@@ -451,8 +467,6 @@ const BusinessAuth = () => {
                             disabled={isLoading}
                           />
                         </div>
-                      </div>
-                      <div>
                         <div className="relative">
                           <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                           <input
@@ -464,35 +478,42 @@ const BusinessAuth = () => {
                             disabled={isLoading}
                           />
                         </div>
-                      </div>
-                      <button
-                        type="button"
-                        className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors ${
-                          isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                        onClick={handleSignIn}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? 'Processing...' : 'Access Dashboard'}
-                      </button>
-                      <div className="text-center text-sm text-gray-500">
-                        <p>Demo: Use any email and password to continue</p>
                         <button
-                          onClick={() => {
-                            setIsForgotPassword(true);
-                            setError('');
-                            setSuccess('');
-                            setEmail('');
-                            setPassword('');
-                          }}
-                          className="text-blue-600 hover:text-blue-700 hover:underline mt-2"
+                          type="button"
+                          className={`w-full py-3 px-4 cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg ${
+                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                          onClick={handleSignIn}
                           disabled={isLoading}
                         >
-                          Forgot Password?
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="w-5 h-5 animate-spin cursor-pointer inline-block mr-2" />
+                              Processing...
+                            </>
+                          ) : (
+                            'Access Dashboard'
+                          )}
                         </button>
-                      </div>
-                    </>
-                  )}
+                        <div className="text-center text-sm text-gray-500 mt-4">
+                          <p>Demo: Use any email and password to continue</p>
+                          <button
+                            onClick={() => {
+                              setIsForgotPassword(true);
+                              setError('');
+                              setSuccess('');
+                              setEmail('');
+                              setPassword('');
+                            }}
+                            className="text-blue-600 cursor-pointer hover:text-blue-700 hover:underline font-semibold mt-2"
+                            disabled={isLoading}
+                          >
+                            Forgot Password?
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

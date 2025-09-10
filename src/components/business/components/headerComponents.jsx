@@ -137,7 +137,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                       />
                     ) : null}
                     <div
-                      className="w-10 h-10 text-white bg-blue-500 rounded-full flex items-center justify-center"
+                      className="w-10 h-10 text-white rounded-full flex items-center justify-center"
                       style={{ display: businessLogo ? 'none' : 'flex' }}
                     >
                       <LogoFallback />

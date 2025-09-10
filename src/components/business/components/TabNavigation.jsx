@@ -5,7 +5,7 @@ const TabNavigation = ({ activeTab, setActiveTab }) => {
   return (
     <div className="mb-6">
       <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+        <nav className="-mb-px flex space-x-8 cursor-pointer" aria-label="Tabs">
           <button
             onClick={() => setActiveTab("create")}
             className={`${
@@ -20,9 +20,9 @@ const TabNavigation = ({ activeTab, setActiveTab }) => {
             onClick={() => setActiveTab("manage")}
             className={`${
               activeTab === "manage"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                ? "border-blue-500 cursor-pointer text-blue-600"
+                : "border-transparent cursor-pointer text-gray-500 hover:border-gray-300 hover:text-gray-700"
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm cursor-pointer`}
           >
             Manage QR Codes
           </button>
