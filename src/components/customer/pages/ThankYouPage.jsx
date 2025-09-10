@@ -244,7 +244,7 @@ const ThankYouPage = () => {
 
         {/* Footer */}
         <div className="text-center">
-          <p className="text-gray-400 text-xs">Powered by RevuAI</p>
+          <p className="text-gray-400 text-xs">Powered by ScanRevuAI</p>
         </div>
       </div>
     </div>

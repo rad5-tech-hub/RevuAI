@@ -190,13 +190,13 @@ function LandingPage() {
         <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white">
           <QrCode />
         </div>
-        <h1 className="text-2xl font-bold text-black mb-2 text-center">RevuAI</h1>
+        <h1 className="text-2xl font-bold text-black mb-2 text-center">ScanRevuAI</h1>
         <p className="text-black text-sm mb-8 text-center">Share your experience</p>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
           <h2 className="text-black text-base mb-2 text-center">Welcome to</h2>
           <h3 className="text-2xl font-bold text-blue-500 mb-4 text-center">{qrData.business.business_name}</h3>
           <p className="text-black text-sm leading-relaxed text-center">
-            Provide feedback for (our) <span className="font-bold text-blue-500">{qrData.label}</span> to help us improve our {qrData.type.toLowerCase()}.
+            Provide feedback for <span className="font-bold text-blue-500">{qrData.label}</span> to help us improve our {qrData.type.toLowerCase()}.
           </p>
           {/* <div className="mt-4 flex justify-center">
             {qrData.qrcode_url ? (
@@ -276,7 +276,7 @@ function LandingPage() {
           </Link>
         </div>
       </div>
-      <p className="text-center text-gray-600 text-sm pb-4">Powered by RevuAI . Privacy Protected</p>
+      <p className="text-center text-gray-600 text-sm pb-4">Powered by ScanRevuAI . Privacy Protected</p>
     </div>
   );
 }
