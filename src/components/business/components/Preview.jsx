@@ -31,7 +31,7 @@ export const PreviewSection = ({
           {!generatedQrData?.scan_url && <QrCode className="h-12 sm:h-16 w-12 sm:w-16" style={{ color: primaryColor }} />}
         </div>
         <div className="mt-2 sm:mt-3 text-[13px] sm:text-sm font-medium text-slate-600">QR Code Preview</div>
-        <div className="mt-1 text-[12px] sm:text-[13px] text-slate-500 text-center max-w-[30%] sm:w-[30%] truncate sm:text-sm overflow-hidden border border-2">
+        <div className="mt-1 text-[12px] sm:text-[13px] text-slate-500 text-center max-w-[40%] sm:w-[40%] truncate sm:text-sm overflow-hidden">
           {generatedUrl ? generatedUrl : "Generate a QR code to see the preview URL"}
         </div>
       </div>

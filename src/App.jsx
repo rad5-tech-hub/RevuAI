@@ -10,7 +10,12 @@ import FeedbackForm from './components/customer/pages/feedbackform.jsx';
 import ThankYou from './components/customer/pages/ThankYouPage.jsx';
 import UserAuth from './components/customer/pages/UserAuth.jsx';
 import UserAcc from './components/customer/pages/UserAccount.jsx';
+<<<<<<< HEAD
 import ForgotPassword from './components/customer/pages/ForgotPassword.jsx';
+=======
+import BusinessProfile from './components/business/pages/BusinessProfile.jsx';
+import EditBusinessProfile from './components/business/pages/EditBusinessProfile.jsx';
+>>>>>>> a60b35c5dc759b59b3bcc4d44e8697378b78b72a
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -82,6 +87,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <BusinessDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/businessProfile"
+            element={
+              <ProtectedRoute>
+                <BusinessProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/businessProfile/edit"
+            element={
+              <ProtectedRoute>
+                <EditBusinessProfile />
               </ProtectedRoute>
             }
           />
