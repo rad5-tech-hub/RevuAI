@@ -1,4 +1,4 @@
-import { Lock, ArrowLeft, Mail } from 'lucide-react';
+import { Lock, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
@@ -6,7 +6,6 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const ForgotPassword = () => {
   const [formData, setFormData] = useState({
-    email: '',
     password: '',
     confirmPassword: '',
   });
@@ -26,14 +25,6 @@ const ForgotPassword = () => {
   };
 
   const validateForm = () => {
-    if (!formData.email.trim()) {
-      setError('Email is required');
-      return false;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      setError('Please enter a valid email address');
-      return false;
-    }
     if (!formData.password.trim()) {
       setError('Password is required');
       return false;
@@ -60,15 +51,14 @@ const ForgotPassword = () => {
     setError('');
 
     try {
-      const response = await fetch(`${BASE_URL}/api/v1/user/user-forgot-password`, {
+      const response = await fetch(`${BASE_URL}/api/v1/user/user-reset-password/${token}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: formData.email,
-          token,
           password: formData.password,
+          confirmPassword: formData.confirmPassword
         }),
       });
 
@@ -113,7 +103,7 @@ const ForgotPassword = () => {
             <Lock className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-blue-600 text-xl font-medium mb-2">Reset Your Password</h1>
-          <p className="text-gray-600 text-sm">Enter your email and a new password for your account</p>
+          <p className="text-gray-600 text-sm">Enter your new password for your account</p>
         </div>
 
         {/* Form Card */}
@@ -127,16 +117,6 @@ const ForgotPassword = () => {
 
           {/* Form Fields */}
           <div className="space-y-4">
-            <div className="relative">
-              <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-              <input
-                type="email"
-                placeholder="Email address"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              />
-            </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input

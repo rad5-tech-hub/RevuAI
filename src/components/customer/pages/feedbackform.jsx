@@ -20,13 +20,11 @@ const FeedbackForm = () => {
 
   // Check if user is logged in
   useEffect(() => {
-    // console.log('Running userData useEffect');
     const userData = localStorage.getItem('userData');
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
-        // console.log('User data loaded:', JSON.stringify(parsedUser, null, 2));
       } catch (error) {
         console.error('Error parsing user data:', error);
         localStorage.removeItem('userData');
@@ -36,7 +34,6 @@ const FeedbackForm = () => {
 
   // Retrieve QR context from location.state or localStorage
   useEffect(() => {
-    // console.log('FeedbackForm Mounted - businessId:', businessId, 'qrcodeId:', qrcodeId, 'location.state:', state);
     let navigated = false;
 
     const storedQrContext = localStorage.getItem('qrContext');
@@ -48,7 +45,6 @@ const FeedbackForm = () => {
       ) {
         setQrContext(parsedQrContext);
         setBusinessName(parsedQrContext.businessName || 'Unknown Business');
-        // console.log('Loaded qrContext from location.state:', parsedQrContext);
         localStorage.setItem('qrContext', JSON.stringify(parsedQrContext));
       } else {
         console.error('QR context mismatch in location.state:', parsedQrContext, { businessId, qrcodeId });
@@ -65,7 +61,6 @@ const FeedbackForm = () => {
         ) {
           setQrContext(parsedQrContext);
           setBusinessName(parsedQrContext.businessName || 'Unknown Business');
-          // console.log('Loaded qrContext from localStorage:', parsedQrContext);
         } else {
           console.error('QR context mismatch in localStorage:', parsedQrContext, { businessId, qrcodeId });
           toast.error('Invalid QR code data');
@@ -86,7 +81,6 @@ const FeedbackForm = () => {
     }
 
     return () => {
-      // Cleanup to prevent memory leaks
       navigated = true;
     };
   }, [businessId, qrcodeId, navigate, state]);
@@ -105,7 +99,6 @@ const FeedbackForm = () => {
   };
 
   const handleBack = () => {
-    // console.log('FeedbackForm handleBack - businessId:', businessId, 'qrcodeId:', qrcodeId);
     navigate(qrcodeId && businessId ? `/qr/${businessId}/${qrcodeId}` : '/');
   };
 
@@ -141,15 +134,17 @@ const FeedbackForm = () => {
       toast.error('No feedback tags available for this QR code');
       return;
     }
-    if (selectedTags.length === 0) {
-      toast.error('Please select at least one tag');
-      return;
-    }
     // Validate selectedTags against qrContext.qrcodeTags
     const invalidTags = selectedTags.filter((tag) => !qrContext.qrcodeTags.includes(tag));
     if (invalidTags.length > 0) {
       console.error('Invalid tags selected:', invalidTags);
       toast.error('Selected tags are not valid for this QR code');
+      return;
+    }
+    // Validate comment is non-empty
+    const commentValue = textFeedback ? textFeedback.trim() : '';
+    if (!commentValue) {
+      toast.error('Please enter a comment to submit feedback');
       return;
     }
     setLoading(true);
@@ -159,12 +154,12 @@ const FeedbackForm = () => {
         businessId,
         qrcodeId,
         rating,
-        comment: textFeedback.trim() || null,
+        comment: commentValue,
         isAnonymous: !user,
         qrcode_tags: selectedTags,
       };
       // console.log('Submitting feedback payload:', JSON.stringify(payload, null, 2));
-      console.log('Auth token:', token || 'No token (anonymous)');
+      // console.log('Comment value:', commentValue);
       const response = await fetch(`${BASE_URL}/api/v1/review/reviews`, {
         method: 'POST',
         headers: {
@@ -307,7 +302,7 @@ const FeedbackForm = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-          <p className="text-gray-800 text-sm font-medium mb-3">Tell us more (Optional)</p>
+          <p className="text-gray-800 text-sm font-medium mb-3">Tell us more</p>
           <textarea
             value={textFeedback}
             onChange={handleTextChange}
