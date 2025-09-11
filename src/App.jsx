@@ -8,6 +8,7 @@ import Feedback from './components/business/pages/FeedbackExplorer.jsx';
 import Report from './components/business/pages/ReportSection.jsx';
 import FeedbackForm from './components/customer/pages/feedbackform.jsx';
 import ThankYou from './components/customer/pages/ThankYouPage.jsx';
+import ForgotPassword from './components/customer/pages/ForgotPassword.jsx';
 import UserAuth from './components/customer/pages/UserAuth.jsx';
 import UserAcc from './components/customer/pages/UserAccount.jsx';
 import BusinessProfile from './components/business/pages/BusinessProfile.jsx';
