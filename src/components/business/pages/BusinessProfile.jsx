@@ -11,15 +11,15 @@ const BusinessProfile = () => {
     email: '',
     phone: '',
     address: '',
-    categoryId: '',
+    category: '',
     business_logo: null,
   });
-  const [categoryName, setCategoryName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const BASE_URL = import.meta.env.VITE_API_URL;
 
-  // Fetch business data and categories
+  // Fetch business profile data
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -28,33 +28,23 @@ const BusinessProfile = () => {
         if (!token) {
           throw new Error('No auth token found');
         }
-        const businessResponse = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/v1/business/business-dashboard`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const { business_name, owner_name, email, phone, address, categoryId, business_logo } =
-          businessResponse.data;
+        const response = await axios.get(`${BASE_URL}/api/v1/business/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const { business_name, owner_name, email, phone, address, category, business_logo } =
+          response.data.profile || {};
         setBusinessData({
           business_name: business_name || 'N/A',
           owner_name: owner_name || 'N/A',
           email: email || 'N/A',
           phone: phone || 'N/A',
           address: address || 'N/A',
-          categoryId: categoryId || '',
+          category: category || 'N/A',
           business_logo: business_logo || null,
         });
-        if (categoryId) {
-          const categoriesResponse = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/v1/category/all-category`
-          );
-          const category = categoriesResponse.data.categories?.find(cat => cat.id === categoryId);
-          setCategoryName(category?.name || 'N/A');
-        } else {
-          setCategoryName('N/A');
-        }
       } catch (err) {
         console.error('Failed to fetch profile data:', err);
-        setError('Failed to load business profile');
+        setError(err.response?.data?.message || 'Failed to load business profile');
       } finally {
         setIsLoading(false);
       }
@@ -68,7 +58,7 @@ const BusinessProfile = () => {
       const refreshToken = localStorage.getItem('refreshToken');
       if (token && refreshToken) {
         await axios.post(
-          `${import.meta.env.VITE_API_URL}/api/v1/logout/logout`,
+          `${BASE_URL}/api/v1/logout/logout`,
           { refreshToken },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -177,7 +167,7 @@ const BusinessProfile = () => {
                 <Tag className="w-6 h-6 text-blue-500 flex-shrink-0" />
                 <div>
                   <p className="text-sm font-semibold text-gray-900">Category</p>
-                  <p className="text-base text-gray-700">{categoryName}</p>
+                  <p className="text-base text-gray-700">{businessData.category}</p>
                 </div>
               </div>
             </div>
