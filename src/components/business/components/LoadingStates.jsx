@@ -1,6 +1,6 @@
 
 import React from "react";
-
+  
 const LoadingState = () => (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 sm:p-6" aria-busy="true" aria-label="Loading QR code generator">
     <div className="space-y-6">

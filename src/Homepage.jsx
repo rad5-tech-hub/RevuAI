@@ -95,7 +95,7 @@ const Homepage = () => {
       {/* Header */}
       <header className="bg-white/60 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
         <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="text-2xl font-bold text-blue-700">RevuAI</div>
+          <div className="text-2xl font-bold text-blue-700">ScanRevuAI</div>
           <div className="hidden md:flex items-center space-x-2">
             <a
               href="#how-it-works"
@@ -173,7 +173,7 @@ const Homepage = () => {
           Smarter Feedback. Better Decisions.
         </h1>
         <p className="max-w-3xl mx-auto text-lg md:text-xl text-white mb-10">
-          RevuAI is a simple AI tool that helps businesses collect and analyze customer feedback, delivering actionable daily and weekly recommendations.
+          ScanRevuAI is a simple AI tool that helps businesses collect and analyze customer feedback, delivering actionable daily and weekly recommendations.
         </p>
         <Link
           // href="https://forms.gle/EE2gVMah3ntVsXRG9"
@@ -193,7 +193,7 @@ const Homepage = () => {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-slate-900">From Scan to Smart Decisions in 3 Simple Steps</h2>
             <p className="max-w-2xl mx-auto mt-4 text-slate-600">
-              With RevuAI, collecting and acting on customer feedback is effortless. Just a quick scan, instant feedback, and actionable insights—all in one seamless flow.
+              With ScanRevuAI, collecting and acting on customer feedback is effortless. Just a quick scan, instant feedback, and actionable insights—all in one seamless flow.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
@@ -215,18 +215,27 @@ const Homepage = () => {
               <div className="bg-blue-600 text-white rounded-full w-16 h-16 flex items-center justify-center text-2xl font-bold mb-4">3</div>
               <h3 className="text-xl font-semibold mb-2">Get Actionable Insights</h3>
               <p className="text-slate-500">
-                RevuAI organizes and analyzes feedback in your private dashboard, highlighting trends, prioritizing recurring issues, and delivering clear, data-driven recommendations.
+                ScanRevuAI organizes and analyzes feedback in your private dashboard, highlighting trends, prioritizing recurring issues, and delivering clear, data-driven recommendations.
               </p>
             </div>
           </div>
+          <Link
+          // href="https://forms.gle/EE2gVMah3ntVsXRG9"
+          to="/businessAuth"
+          // target="_blank"
+          // rel="noopener noreferrer"
+          className="max-w-fit p-4 border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-100 hover:border-white-500 mx-auto hover:text-blue-500 transition-all flex items-center justify-center font-semibold mt-12"
+        >
+          Get Started For Free
+        </Link>
         </section>
 
         {/* Features Section */}
         <section id="features" className="mb-20 md:mb-32">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900">What Powers RevuAI</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900">What Powers ScanRevuAI</h2>
             <p className="max-w-2xl mx-auto mt-4 text-slate-600">
-              Discover the key features that make RevuAI simple, smart, and effective — from QR code feedback collection to loyalty programs that keep customers engaged.
+              Discover the key features that make ScanRevuAI simple, smart, and effective — from QR code feedback collection to loyalty programs that keep customers engaged.
             </p>
           </div>
           <div className="flex flex-col md:flex-row gap-8">
@@ -309,7 +318,7 @@ const Homepage = () => {
           <div className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900">Interactive Dashboard Demo</h2>
             <p className="max-w-3xl mx-auto mt-4 text-slate-600">
-              This is a simulation of the core of the RevuAI business dashboard. Here, you can see how feedback is categorized and quantified. Use the filters to see how insights can change over different time periods, demonstrating the power of identifying recurring trends.
+              This is a simulation of the core of the ScanRevuAI business dashboard. Here, you can see how feedback is categorized and quantified. Use the filters to see how insights can change over different time periods, demonstrating the power of identifying recurring trends.
             </p>
           </div>
           <div className="text-center mb-8">
@@ -344,7 +353,7 @@ const Homepage = () => {
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900">A Win-Win Platform</h2>
             <p className="max-w-2xl mx-auto mt-4 text-slate-600">
-              RevuAI is designed to create value for both sides of the counter — from businesses seeking to improve and for customers who want their voices heard.
+              ScanRevuAI is designed to create value for both sides of the counter — from businesses seeking to improve and for customers who want their voices heard.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
@@ -391,14 +400,23 @@ const Homepage = () => {
               </ul>
             </div>
           </div>
+          <Link
+          // href="https://forms.gle/EE2gVMah3ntVsXRG9"
+          to="/businessAuth"
+          // target="_blank"
+          // rel="noopener noreferrer"
+          className="max-w-fit p-4 border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-100 hover:border-white-500 mx-auto hover:text-blue-500 transition-all flex items-center justify-center font-semibold mt-12"
+        >
+          Get Started For Free
+        </Link>
         </section>
       </main>
 
       {/* Footer */}
       <footer className="bg-slate-800 text-white">
         <div className="container mx-auto px-6 py-8 text-center text-slate-400">
-          <p className="font-bold text-lg text-white mb-2">RevuAI</p>
-          <p>&copy; 2025 RevuAI. All rights reserved.</p>
+          <p className="font-bold text-lg text-white mb-2">ScanRevuAI</p>
+          <p>&copy; 2025 ScanRevuAI. All rights reserved.</p>
         </div>
       </footer>
     </div>

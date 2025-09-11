@@ -19,5 +19,4 @@ const FilterDropdown = ({ value, onChange, options }) => {
     </select>
   );
 };
-
 export default FilterDropdown;

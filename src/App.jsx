@@ -8,6 +8,7 @@ import Feedback from './components/business/pages/FeedbackExplorer.jsx';
 import Report from './components/business/pages/ReportSection.jsx';
 import FeedbackForm from './components/customer/pages/feedbackform.jsx';
 import ThankYou from './components/customer/pages/ThankYouPage.jsx';
+import ForgotPassword from './components/customer/pages/ForgotPassword.jsx';
 import UserAuth from './components/customer/pages/UserAuth.jsx';
 import UserAcc from './components/customer/pages/UserAccount.jsx';
 import BusinessProfile from './components/business/pages/BusinessProfile.jsx';
@@ -21,35 +22,33 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/businessAuth" replace />;
 };
 
-// UserProtectedRoute for user-side routes
+// UserProtectedRoute for user-side routes (unchanged)
 const UserProtectedRoute = ({ children, requireQrContext = false, requireFromFeedback = false }) => {
   const location = useLocation();
   const { businessId, qrcodeId } = useParams();
 
-  // Check for authToken (for /userAccount)
   const isAuthenticated = !!localStorage.getItem('authToken') || !!sessionStorage.getItem('authToken');
 
-  // Check for qrContext (for /feedbackForm)
-  const storedQrContext = localStorage.getItem('qrContext');
   let qrContextValid = false;
-  if (requireQrContext && storedQrContext) {
-    try {
-      const parsedQrContext = JSON.parse(storedQrContext);
+  if (requireQrContext) {
+    const storedQrContext = localStorage.getItem('qrContext');
+    if (storedQrContext) {
+      try {
+        const parsedQrContext = JSON.parse(storedQrContext);
+        qrContextValid =
+          parsedQrContext.businessId === businessId && parsedQrContext.qrcodeId === qrcodeId;
+      } catch (error) {
+        console.error('Error parsing qrContext:', error);
+      }
+    } else if (location.state?.qrContext) {
+      const parsedQrContext = location.state.qrContext;
       qrContextValid =
         parsedQrContext.businessId === businessId && parsedQrContext.qrcodeId === qrcodeId;
-    } catch (error) {
-      console.error('Error parsing qrContext:', error);
     }
-  } else if (requireQrContext && location.state?.qrContext) {
-    const parsedQrContext = location.state.qrContext;
-    qrContextValid =
-      parsedQrContext.businessId === businessId && parsedQrContext.qrcodeId === qrcodeId;
   }
 
-  // Check for fromFeedback (for /thankYou)
   const fromFeedback = location.state?.fromFeedback;
 
-  // Redirect logic
   if (requireQrContext && !qrContextValid) {
     console.warn('UserProtectedRoute: Invalid or missing qrContext', { businessId, qrcodeId });
     return <Navigate to="/" replace />;
@@ -77,6 +76,7 @@ function App() {
           <Route path="/" element={<Homepage />} />
           <Route path="/userAuth" element={<UserAuth />} />
           <Route path="/businessAuth" element={<BusinessAuth />} />
+          <Route path="/changePassword" element={<ForgotPassword />} /> {/* Updated route */}
 
           {/* Business-side protected routes */}
           <Route
