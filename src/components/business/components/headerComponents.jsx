@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { QrCode, Settings, Menu, X } from 'lucide-react';
 import axios from 'axios';
@@ -8,11 +8,15 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isLogoDropdownOpen, setIsLogoDropdownOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoggingOutInternal, setIsLoggingOutInternal] = useState(false);
   const [businessName, setBusinessName] = useState(null);
   const [businessLogo, setBusinessLogo] = useState(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState(null);
+  const fileInputRef = useRef(null);
 
   const navigationItems = [
     { path: '/businessDashboard', label: '📊 Dashboard', icon: '📊' },
@@ -30,15 +34,14 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
         if (!token) {
           throw new Error('No auth token found');
         }
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/v1/business/business-dashboard`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setBusinessName(response.data.business_name);
-        setBusinessLogo(response.data.business_logo || null);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/business/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setBusinessName(response.data.profile?.business_name || 'Business Name');
+        setBusinessLogo(response.data.profile?.business_logo || null);
       } catch (err) {
         console.error('Failed to fetch business data:', err);
-        setError('Failed to load business details');
+        setError(err.response?.data?.message || 'Failed to load business details');
         setBusinessName('Business Name');
       } finally {
         setIsLoadingData(false);
@@ -47,10 +50,49 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
     fetchBusinessData();
   }, []);
 
+  // Handle logo upload
+  const handleLogoUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setError(null);
+    setIsLogoDropdownOpen(false);
+
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No auth token found');
+      }
+
+      const formData = new FormData();
+      formData.append('business_logo', file);
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/v1/business/business-logo`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      setBusinessLogo(response.data.data?.business_logo || null);
+    } catch (err) {
+      console.error('Failed to upload logo:', err);
+      setError(err.response?.data?.message || 'Failed to upload logo');
+    } finally {
+      setIsUploading(false);
+      fileInputRef.current.value = null; // Reset file input
+    }
+  };
+
   const isActive = (path) => location.pathname === path;
 
   const getNavLinkClasses = (path) => {
-    const baseClasses = "px-3 py-2 text-sm font-medium rounded-md transition-colors block w-full text-left";
+    const baseClasses = 'px-3 py-2 text-sm font-medium rounded-md transition-colors block w-full text-left';
     return isActive(path)
       ? `${baseClasses} bg-blue-100 text-blue-700 border-l-4 border-blue-600 lg:border-l-0 lg:border-b-2`
       : `${baseClasses} text-gray-500 hover:text-gray-700 hover:bg-gray-50`;
@@ -60,7 +102,8 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
     setIsLoggingOutInternal(true);
     setIsMobileMenuOpen(false);
     setIsSettingsOpen(false);
-    await new Promise(resolve => setTimeout(resolve, 500));
+    setIsLogoDropdownOpen(false);
+    await new Promise((resolve) => setTimeout(resolve, 500));
     try {
       if (onLogout) {
         await onLogout();
@@ -74,29 +117,37 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
-    setIsSettingsOpen(false); // Close settings dropdown when toggling mobile menu
+    setIsSettingsOpen(false);
+    setIsLogoDropdownOpen(false);
   };
 
   const toggleSettingsMenu = () => {
     setIsSettingsOpen(!isSettingsOpen);
-    setIsMobileMenuOpen(false); // Close mobile menu when opening settings
+    setIsMobileMenuOpen(false);
+    setIsLogoDropdownOpen(false);
+  };
+
+  const toggleLogoDropdown = () => {
+    setIsLogoDropdownOpen(!isLogoDropdownOpen);
+    setIsMobileMenuOpen(false);
+    setIsSettingsOpen(false);
   };
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
     setIsSettingsOpen(false);
+    setIsLogoDropdownOpen(false);
   };
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
     setIsSettingsOpen(false);
+    setIsLogoDropdownOpen(false);
   }, [location.pathname]);
 
   const LoadingSpinner = () => (
     <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-300 border-t-red-600"></div>
   );
-
-  const currentlyLoggingOut = isLoggingOut || isLoggingOutInternal;
 
   const LogoFallback = () => (
     <div className="w-10 h-10 text-white bg-blue-500 rounded-full flex items-center justify-center">
@@ -108,48 +159,114 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
 
   return (
     <>
-      {(isMobileMenuOpen || isSettingsOpen) && (
+      {(isMobileMenuOpen || isSettingsOpen || isLogoDropdownOpen || isModalOpen) && (
         <div
           className="lg:hidden fixed inset-0 z-40 bg-black bg-opacity-25 pointer-events-auto"
-          onClick={closeMobileMenu}
+          onClick={() => {
+            closeMobileMenu();
+            setIsModalOpen(false);
+          }}
         />
+      )}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 pointer-events-auto">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative">
+            <button
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+              onClick={() => setIsModalOpen(false)}
+              aria-label="Close modal"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <div className="flex justify-center">
+              {businessLogo ? (
+                <img
+                  src={businessLogo}
+                  alt={`${businessName || 'Business'} Logo`}
+                  className="w-64 h-64 object-contain rounded-lg"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+              ) : (
+                <div className="w-64 h-64 bg-blue-600 rounded-lg flex items-center justify-center text-white text-6xl font-bold">
+                  {businessName ? businessName.charAt(0).toUpperCase() : 'B'}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
-              <Link to="/businessDashboard" className="flex items-center space-x-2">
-                {isLoadingData ? (
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-200">
-                    <LoadingSpinner />
-                  </div>
-                ) : (
-                  <>
-                    {businessLogo ? (
-                      <img
-                        src={businessLogo}
-                        alt={`${businessName || 'Business'} Logo`}
-                        className="w-10 h-10 rounded-full object-cover"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                    ) : null}
-                    <div
-                      className="w-10 h-10 text-white rounded-full flex items-center justify-center"
-                      style={{ display: businessLogo ? 'none' : 'flex' }}
-                    >
-                      <LogoFallback />
+              <div className="relative">
+                <button
+                  onClick={toggleLogoDropdown}
+                  className="flex items-center space-x-2 focus:outline-none"
+                  aria-label="Logo options"
+                  disabled={isLoadingData || isUploading}
+                >
+                  {isLoadingData || isUploading ? (
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-200">
+                      <LoadingSpinner />
                     </div>
-                  </>
+                  ) : (
+                    <>
+                      {businessLogo ? (
+                        <img
+                          src={businessLogo}
+                          alt={`${businessName || 'Business'} Logo`}
+                          className="w-10 h-10 rounded-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className="w-10 h-10 text-white rounded-full flex items-center justify-center"
+                        style={{ display: businessLogo ? 'none' : 'flex' }}
+                      >
+                        <LogoFallback />
+                      </div>
+                    </>
+                  )}
+                </button>
+                {isLogoDropdownOpen && (
+                  <div className="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                    <button
+                      onClick={() => {
+                        setIsModalOpen(true);
+                        setIsLogoDropdownOpen(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      View Profile Image
+                    </button>
+                    <button
+                      onClick={() => fileInputRef.current.click()}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      Update Profile Picture
+                    </button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                    />
+                  </div>
                 )}
-                <div className="flex flex-col">
-                  <span className="text-xl font-bold text-black">
-                    {isLoadingData ? 'Loading...' : (businessName || 'Business Name')}
-                  </span>
-                  <span className="text-sm text-gray-500">Business Portal</span>
-                </div>
+              </div>
+              <Link to="/businessDashboard" className="flex flex-col">
+                <span className="text-xl font-bold text-black">
+                  {isLoadingData ? 'Loading...' : (businessName || 'Business Name')}
+                </span>
+                <span className="text-sm text-gray-500">Business Portal</span>
               </Link>
             </div>
             <nav className="hidden lg:flex items-center space-x-8">
@@ -183,11 +300,11 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                     </Link>
                     <button
                       onClick={handleLogout}
-                      disabled={currentlyLoggingOut}
+                      disabled={isLoggingOut || isLoggingOutInternal}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {currentlyLoggingOut ? <LoadingSpinner /> : null}
-                      {currentlyLoggingOut ? "Logging out..." : "Logout"}
+                      {isLoggingOut || isLoggingOutInternal ? <LoadingSpinner /> : null}
+                      {isLoggingOut || isLoggingOutInternal ? 'Logging out...' : 'Logout'}
                     </button>
                   </div>
                 )}
@@ -216,11 +333,11 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                     </Link>
                     <button
                       onClick={handleLogout}
-                      disabled={currentlyLoggingOut}
+                      disabled={isLoggingOut || isLoggingOutInternal}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {currentlyLoggingOut ? <LoadingSpinner /> : null}
-                      {currentlyLoggingOut ? "Logging out..." : "Logout"}
+                      {isLoggingOut || isLoggingOutInternal ? <LoadingSpinner /> : null}
+                      {isLoggingOut || isLoggingOutInternal ? 'Logging out...' : 'Logout'}
                     </button>
                   </div>
                 )}
@@ -267,16 +384,21 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
               </Link>
               <button
                 onClick={handleLogout}
-                disabled={currentlyLoggingOut}
+                disabled={isLoggingOut || isLoggingOutInternal}
                 className="w-full px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {currentlyLoggingOut ? <LoadingSpinner /> : null}
-                {currentlyLoggingOut ? "Logging out..." : "Logout"}
+                {isLoggingOut || isLoggingOutInternal ? <LoadingSpinner /> : null}
+                {isLoggingOut || isLoggingOutInternal ? 'Logging out...' : 'Logout'}
               </button>
             </div>
           </div>
         </div>
       </header>
+      {error && (
+        <div className="fixed bottom-4 right-4 bg-red-50 border border-red-200 text-red-800 rounded-xl p-4 text-sm font-medium z-50">
+          {error}
+        </div>
+      )}
     </>
   );
 };
