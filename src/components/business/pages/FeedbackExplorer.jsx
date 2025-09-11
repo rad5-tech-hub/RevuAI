@@ -7,9 +7,11 @@ import useFetchReviews from "../hooks/useFetchReviews";
 import FeedbackCard from "../components/FeedbackCard";
 import FilterDropdown from "../components/FilterDropdown";
 import { generatePDF } from "./../../../utils/pdfUtils";
-import { MessageSquare, LogOut, Loader2 } from "lucide-react";
+import { MessageSquare, Loader2 } from "lucide-react";
 import debounce from "lodash/debounce";
 import BusinessHeader from "../components/headerComponents";
+// Import skeleton loaders
+import { FeedbackCardSkeleton, StatsCardSkeleton, FullPageSkeleton } from "../components/SkeletonLoaders";
 
 const FeedbackExplorer = () => {
   const [search, setSearch] = useState("");
@@ -18,6 +20,8 @@ const FeedbackExplorer = () => {
   const [dateFilter, setDateFilter] = useState("All Time");
   const [retryTrigger, setRetryTrigger] = useState(0);
   const navigate = useNavigate();
+  
+  // Add the useAllReviewsEndpoint parameter for consistency
   const {
     feedback,
     loading,
@@ -27,7 +31,14 @@ const FeedbackExplorer = () => {
     ratingSummary,
     averageRating,
     setPage,
-  } = useFetchReviews({ search, ratingFilter, sentimentFilter, dateFilter, retryTrigger });
+  } = useFetchReviews({ 
+    search, 
+    ratingFilter, 
+    sentimentFilter, 
+    dateFilter, 
+    retryTrigger,
+    useAllReviewsEndpoint: true // Use consistent data source
+  });
 
   const debouncedSetSearch = useCallback(
     debounce((value) => {
@@ -190,39 +201,6 @@ const FeedbackExplorer = () => {
     }
   };
 
-  const StatsPlaceholder = () => (
-    <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-      {Array(5)
-        .fill()
-        .map((_, index) => (
-          <div
-            key={index}
-            className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 text-center animate-pulse"
-          >
-            <div className="h-6 bg-slate-200 rounded w-3/4 mx-auto mb-2"></div>
-            <div className="h-4 bg-slate-200 rounded w-1/2 mx-auto"></div>
-          </div>
-        ))}
-    </div>
-  );
-
-  const FeedbackListPlaceholder = () => (
-    <div className="mt-6 space-y-4 pb-10">
-      {Array(3)
-        .fill()
-        .map((_, index) => (
-          <div
-            key={index}
-            className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 animate-pulse"
-          >
-            <div className="h-6 bg-slate-200 rounded w-1/4 mb-2"></div>
-            <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
-            <div className="h-4 bg-slate-200 rounded w-1/2"></div>
-          </div>
-        ))}
-    </div>
-  );
-
   const handleRetry = () => {
     setRetryTrigger((prev) => prev + 1);
   };
@@ -259,15 +237,9 @@ const FeedbackExplorer = () => {
     return matchesSentiment && matchesDate;
   });
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-slate-600 text-lg">Loading feedback data...</p>
-        </div>
-      </div>
-    );
+  // Show full page skeleton loader when initially loading
+  if (loading && !error && feedback.length === 0) {
+    return <FullPageSkeleton />;
   }
 
   return (
@@ -277,6 +249,7 @@ const FeedbackExplorer = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <h1 className="text-2xl font-bold text-slate-900">Feedback Explorer</h1>
         <p className="mt-1 text-sm text-slate-500">View and manage customer feedback</p>
+        
         {error ? (
           <>
             <div className="mt-6 text-center">
@@ -289,34 +262,52 @@ const FeedbackExplorer = () => {
                 <span>Retry</span>
               </button>
             </div>
-            <StatsPlaceholder />
-            <FeedbackListPlaceholder />
+            {/* Show skeleton loaders when there's an error */}
+            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              {Array(5).fill().map((_, index) => (
+                <StatsCardSkeleton key={index} />
+              ))}
+            </div>
+            <div className="mt-6 space-y-4 pb-10">
+              {Array(3).fill().map((_, index) => (
+                <FeedbackCardSkeleton key={index} />
+              ))}
+            </div>
           </>
         ) : (
           <>
+            {/* Stats section with skeleton loaders for loading state */}
             <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              {[
-                { label: "Total", value: meta.total.toString() },
-                {
-                  label: "Positive",
-                  value: (ratingSummary["Excellent"] || 0) + (ratingSummary["Very Good"] || 0),
-                },
-                { label: "Neutral", value: ratingSummary["Good"] || 0 },
-                {
-                  label: "Negative",
-                  value: (ratingSummary["Poor"] || 0) + (ratingSummary["Very Poor"] || 0),
-                },
-                { label: "Average Rating", value: averageRating },
-              ].map((stat) => (
-                <div
-                  key={stat.label}
-                  className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 text-center"
-                >
-                  <div className="text-xl font-bold text-slate-800">{stat.value}</div>
-                  <div className="text-sm text-slate-500">{stat.label}</div>
-                </div>
-              ))}
+              {loading ? (
+                Array(5).fill().map((_, index) => (
+                  <StatsCardSkeleton key={index} />
+                ))
+              ) : (
+                [
+                  { label: "Total", value: meta.total.toString() },
+                  {
+                    label: "Positive",
+                    value: (ratingSummary["Excellent"] || 0) + (ratingSummary["Very Good"] || 0),
+                  },
+                  { label: "Neutral", value: ratingSummary["Good"] || 0 },
+                  {
+                    label: "Negative",
+                    value: (ratingSummary["Poor"] || 0) + (ratingSummary["Very Poor"] || 0),
+                  },
+                  { label: "Average Rating", value: averageRating },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 text-center"
+                  >
+                    <div className="text-xl font-bold text-slate-800">{stat.value}</div>
+                    <div className="text-sm text-slate-500">{stat.label}</div>
+                  </div>
+                ))
+              )}
             </div>
+            
+            {/* Filters section */}
             <div className="mt-6 flex flex-wrap gap-4 items-center">
               <input
                 type="text"
@@ -343,8 +334,15 @@ const FeedbackExplorer = () => {
                 options={["All Time", "Today", "This Week", "This Month", "This Quarter"]}
               />
             </div>
+            
+            {/* Feedback list section */}
             <div className="mt-6 space-y-4 pb-10">
-              {filteredFeedback.length === 0 ? (
+              {loading && feedback.length === 0 ? (
+                // Show skeleton loaders when loading
+                Array(3).fill().map((_, index) => (
+                  <FeedbackCardSkeleton key={index} />
+                ))
+              ) : filteredFeedback.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                     <MessageSquare className="w-6 h-6 text-gray-400" />
@@ -378,7 +376,9 @@ const FeedbackExplorer = () => {
                 ))
               )}
             </div>
-            {meta.totalPages > 1 && (
+            
+            {/* Pagination */}
+            {meta.totalPages > 1 && !loading && (
               <div className="flex justify-center gap-2 mt-6">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}

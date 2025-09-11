@@ -22,7 +22,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
     { path: '/businessDashboard', label: '📊 Dashboard', icon: '📊' },
     { path: '/businessFeedback', label: '💬 Feedback', icon: '💬' },
     { path: '/businessQrpage', label: '📱 QR Codes', icon: '📱' },
-    { path: '/businessReports', label: '📈 Reports', icon: '📈' },
+    { path: '/businessReports', label: '📈 Ai Reports', icon: '📈' },
   ];
 
   // Fetch business data
