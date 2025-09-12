@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Building, User, Mail, Phone, MapPin, Tag, Image, Loader2 } from 'lucide-react';
-import BusinessHeader from '../components/headerComponents';
+import BusinessHeader from '../components/headerComponents'; // Adjusted import path
 
 const EditBusinessProfile = () => {
   const [formData, setFormData] = useState({
@@ -31,13 +31,26 @@ const EditBusinessProfile = () => {
         if (!token) {
           throw new Error('No auth token found');
         }
-        // Fetch business data
+
+        // Fetch business profile
         const businessResponse = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/v1/business/business-dashboard`,
+          `${import.meta.env.VITE_API_URL}/api/v1/business/profile`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        const { business_name, owner_name, email, phone, address, categoryId, business_logo } =
-          businessResponse.data;
+        const { business_name, owner_name, email, phone, address, category, business_logo } =
+          businessResponse.data.profile;
+
+        // Fetch categories to map category name to categoryId
+        const categoriesResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/v1/category/all-category`
+        );
+        const fetchedCategories = categoriesResponse.data.categories || [];
+        setCategories(fetchedCategories);
+
+        // Find categoryId based on category name
+        const matchedCategory = fetchedCategories.find((cat) => cat.name === category);
+        const categoryId = matchedCategory ? matchedCategory.id : '';
+
         setFormData({
           business_name: business_name || '',
           owner_name: owner_name || '',
@@ -48,15 +61,9 @@ const EditBusinessProfile = () => {
           business_logo: business_logo || null,
         });
         setLogoPreview(business_logo || null);
-
-        // Fetch categories
-        const categoriesResponse = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/v1/category/all-category`
-        );
-        setCategories(categoriesResponse.data.categories || []);
       } catch (err) {
         console.error('Failed to fetch profile data:', err);
-        setError('Failed to load profile data');
+        setError(err.response?.data?.message || 'Failed to load profile data');
       } finally {
         setIsLoading(false);
       }
@@ -112,9 +119,11 @@ const EditBusinessProfile = () => {
       setError(validationError);
       return;
     }
+
     setIsSubmitting(true);
     setError('');
     setSuccess('');
+
     try {
       const token = localStorage.getItem('authToken');
       let logoUrl = formData.business_logo;
@@ -131,9 +140,9 @@ const EditBusinessProfile = () => {
         logoUrl = logoResponse.data.data.business_logo;
       }
 
-      // Update profile with logo URL
-      await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/v1/business/profile`,
+      // Update profile (excluding business_logo as per PUT endpoint spec)
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/v1/business/edit-business`,
         {
           business_name: formData.business_name,
           owner_name: formData.owner_name,
@@ -141,10 +150,10 @@ const EditBusinessProfile = () => {
           phone: formData.phone,
           address: formData.address,
           categoryId: formData.categoryId,
-          business_logo: logoUrl,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       setSuccess('Profile updated successfully!');
       setTimeout(() => navigate('/businessProfile'), 1000);
     } catch (err) {
@@ -155,6 +164,7 @@ const EditBusinessProfile = () => {
     }
   };
 
+  // Handle logout
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem('authToken');
@@ -329,7 +339,7 @@ const EditBusinessProfile = () => {
                 <button
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="inline-flex items-center px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex cursor-pointer items-center px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <>
@@ -342,7 +352,7 @@ const EditBusinessProfile = () => {
                 </button>
                 <Link
                   to="/businessProfile"
-                  className="inline-flex items-center px-6 py-3 text-blue-600 hover:text-blue-700 font-semibold text-sm transition-colors duration-200"
+                  className="inline-flex items-center cursor-pointer px-6 py-3 text-blue-600 hover:text-blue-700 font-semibold text-sm transition-colors duration-200"
                 >
                   Cancel
                 </Link>

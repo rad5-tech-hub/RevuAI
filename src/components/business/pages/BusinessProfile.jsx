@@ -174,7 +174,7 @@ const BusinessProfile = () => {
             <div className="p-8 border-t border-gray-100">
               <Link
                 to="/businessProfile/edit"
-                className="inline-flex items-center px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg"
+                className="inline-flex items-center cursor-pointer px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg"
               >
                 Edit Profile
               </Link>
