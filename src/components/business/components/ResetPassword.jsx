@@ -13,6 +13,7 @@ const ResetPassword = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token'); // Extract token from query parameter
   const BASE_URL = import.meta.env.SCAN_API_URL || 'https://revu-ai-sage.vercel.app';
+  const API_URL = import.meta.env.VITE_API_URL;
 
   // Handle form submission
   const handleResetPassword = async () => {
@@ -39,10 +40,10 @@ const ResetPassword = () => {
     setSuccess('');
 
     try {
-      console.log('Sending request to:', `${BASE_URL}/api/v1/business/reset-password/${token}`);
+      console.log('Sending request to:', `${API_URL}/api/v1/business/reset-password/${token}`);
       console.log('Request body:', { password, confirmPassword });
 
-      await axios.post(`${BASE_URL}/api/v1/business/reset-password/${token}`, {
+      await axios.post(`${API_URL}/api/v1/business/reset-password/${token}`, {
         password,
         confirmPassword,
       });
