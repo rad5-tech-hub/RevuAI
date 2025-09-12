@@ -13,6 +13,7 @@ import UserAuth from './components/customer/pages/UserAuth.jsx';
 import UserAcc from './components/customer/pages/UserAccount.jsx';
 import BusinessProfile from './components/business/pages/BusinessProfile.jsx';
 import EditBusinessProfile from './components/business/pages/EditBusinessProfile.jsx';
+import ResetPassword from './components/business/components/ResetPassword.jsx';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -84,6 +85,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <BusinessDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reset-password"
+            element={
+              <ProtectedRoute>
+                <ResetPassword />
               </ProtectedRoute>
             }
           />
