@@ -496,7 +496,6 @@ const BusinessAuth = () => {
                           )}
                         </button>
                         <div className="text-center text-sm text-gray-500 mt-4">
-                          <p>Demo: Use any email and password to continue</p>
                           <button
                             onClick={() => {
                               setIsForgotPassword(true);
