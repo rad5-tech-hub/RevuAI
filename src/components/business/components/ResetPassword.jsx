@@ -12,7 +12,7 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token'); // Extract token from query parameter
-  const BASE_URL = import.meta.env.VITE_SCAN_URL  || 'https://revu-ai-sage.vercel.app';
+  const BASE_URL = import.meta.env.SCAN_API_URL || 'https://revu-ai-sage.vercel.app';
 
   // Handle form submission
   const handleResetPassword = async () => {
@@ -39,6 +39,9 @@ const ResetPassword = () => {
     setSuccess('');
 
     try {
+      console.log('Sending request to:', `${BASE_URL}/api/v1/business/reset-password/${token}`);
+      console.log('Request body:', { password, confirmPassword });
+
       await axios.post(`${BASE_URL}/api/v1/business/reset-password/${token}`, {
         password,
         confirmPassword,
@@ -48,7 +51,13 @@ const ResetPassword = () => {
       setSuccess('Password reset successfully! Redirecting to sign-in...');
       setTimeout(() => navigate('/businessAuth'), 2000);
     } catch (err) {
-      setError(err.response?.data?.message || `Password reset failed: ${err.message}`);
+      console.error('Password reset error:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: err.message,
+      });
+      setError(err.response?.data?.message || `Password reset failed: ${err.response?.statusText || err.message}`);
     } finally {
       setIsLoading(false);
     }
