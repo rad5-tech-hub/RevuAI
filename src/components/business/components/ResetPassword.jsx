@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Lock, Loader2, FileText } from 'lucide-react';
 
@@ -10,8 +10,9 @@ const ResetPassword = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
-  const { token } = useParams(); // Extract token from URL path
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token'); // Extract token from query parameter
+  const BASE_URL = import.meta.env.VITE_SCAN_URL  || 'https://revu-ai-sage.vercel.app';
 
   // Handle form submission
   const handleResetPassword = async () => {
@@ -43,7 +44,7 @@ const ResetPassword = () => {
         confirmPassword,
       });
 
-      // Since the API returns no response body, assume success on 200 OK
+      // API returns no response body on success
       setSuccess('Password reset successfully! Redirecting to sign-in...');
       setTimeout(() => navigate('/businessAuth'), 2000);
     } catch (err) {
