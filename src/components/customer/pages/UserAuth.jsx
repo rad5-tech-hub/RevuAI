@@ -1,8 +1,9 @@
 import { User, Mail, Lock, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import logo from '/Social Media Icon.png'; // Adjust path if logo is elsewhere
 
 const UserAuth = () => {
   const [activeTab, setActiveTab] = useState('signin');
@@ -23,6 +24,44 @@ const UserAuth = () => {
 
   // Extract businessId and qrcodeId from navigation state
   const { businessId, qrcodeId } = location.state || {};
+
+  // Auto-login check
+  useEffect(() => {
+    const authToken = localStorage.getItem('authToken');
+    if (authToken) {
+      const validateToken = async () => {
+        try {
+          const response = await fetch(`${BASE_URL}/api/v1/user/validate-token`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${authToken}`,
+            },
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.valid) {
+            // Ensure userData exists
+            let userData = localStorage.getItem('userData');
+            if (!userData) {
+              userData = JSON.stringify({ fullname: data.user?.fullname || 'User', email: data.user?.email || '' });
+              localStorage.setItem('userData', userData);
+            }
+            // Navigate to userAccount with QR context
+            navigate('/userAccount', { state: { businessId, qrcodeId } });
+          } else {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userData');
+          }
+        } catch (error) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+        }
+      };
+      validateToken();
+    }
+  }, [navigate, businessId, qrcodeId]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -132,11 +171,9 @@ const UserAuth = () => {
         };
         localStorage.setItem('userData', JSON.stringify(userData));
 
-        // console.log('UserAuth handleSubmit - Location State:', location.state);
         navigate('/userAccount', { state: { businessId, qrcodeId } });
       } else {
         setActiveTab('signin');
-        // toast.info('Account created successfully! Please sign in.');
       }
     } catch (error) {
       setError(error.message || 'An unexpected error occurred');
@@ -147,12 +184,10 @@ const UserAuth = () => {
   };
 
   const handleSkip = () => {
-    // Check if coming from QR code scan
     const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
     const hasQrContext = (businessId && qrcodeId) || (storedQrContext.businessId && storedQrContext.qrcodeId);
 
     if (hasQrContext) {
-      // Navigate to feedback form for QR code flow
       localStorage.removeItem('userData');
       if (businessId && qrcodeId) {
         navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
@@ -160,22 +195,22 @@ const UserAuth = () => {
         navigate(`/feedbackForm/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
       }
     } else {
-      // Navigate to business authentication
       navigate('/businessAuth');
     }
   };
 
   const handleBack = () => {
-    // console.log('UserAuth handleBack - Location State:', location.state);
-    if (businessId && qrcodeId) {
-      navigate(`/qr/${businessId}/${qrcodeId}`);
-    } else {
-      const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
-      if (storedQrContext.businessId && storedQrContext.qrcodeId) {
-        navigate(`/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
+    const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
+    const hasQrContext = (businessId && qrcodeId) || (storedQrContext.businessId && storedQrContext.qrcodeId);
+
+    if (hasQrContext) {
+      if (businessId && qrcodeId) {
+        navigate(`/qr/${businessId}/${qrcodeId}`);
       } else {
-        navigate(-1);
+        navigate(`/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
       }
+    } else {
+      navigate('/');
     }
   };
 
@@ -240,7 +275,7 @@ const UserAuth = () => {
         </button>
       </div>
 
-      <div className="w-full max-w-md mx-auto px-4 py-8">
+      <div className="w-full max-w-md mx-auto px-4 py-12">
         {/* Header Section */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -259,7 +294,7 @@ const UserAuth = () => {
               className={`flex-1 py-2 px-4 text-sm font-medium cursor-pointer rounded-l-lg transition-colors ${
                 activeTab === 'signin'
                   ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                  : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                  : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-blue-100'
               }`}
             >
               Sign In
@@ -269,7 +304,7 @@ const UserAuth = () => {
               className={`flex-1 py-2 px-4 text-sm font-medium cursor-pointer rounded-r-lg transition-colors ${
                 activeTab === 'signup'
                   ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                  : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                  : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-blue-100'
               }`}
             >
               Sign Up
@@ -376,7 +411,7 @@ const UserAuth = () => {
         <div className="text-center">
           <button
             onClick={handleSkip}
-            className="text-black text-sm underline hover:text-blue-800 rounded-sm hover:bg-blue-100 px-2 py-3 cursor-pointer transition-colors"
+            className="text-black text-sm hover:text-blue-800 rounded-sm hover:bg-blue-100 px-2 py-3 cursor-pointer transition-colors"
           >
             Continue as Business
           </button>
@@ -419,7 +454,7 @@ const UserAuth = () => {
               <button
                 onClick={handleForgotPassword}
                 disabled={forgotLoading}
-                className={`w-full py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center ${
+                className={`w-full py-3 rounded-lg text-sm font-medium cursor-pointer transition-colors flex items-center justify-center ${
                   forgotLoading ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
                 }`}
               >
