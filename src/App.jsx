@@ -92,7 +92,7 @@ function App() {
             path="/editPassword"
             element={
               <ProtectedRoute>
-                <ResetPassword />
+                <ResetPassword/>
               </ProtectedRoute>
             }
           />

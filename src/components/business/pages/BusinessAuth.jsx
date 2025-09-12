@@ -317,7 +317,7 @@ const BusinessAuth = () => {
                         </div>
                         <button
                           type="button"
-                          className={`w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg ${
+                          className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg ${
                             isLoading ? 'opacity-50 cursor-not-allowed' : ''
                           }`}
                           onClick={handleForgotPassword}
