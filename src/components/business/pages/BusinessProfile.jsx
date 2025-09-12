@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Building, User, Mail, Phone, MapPin, Tag } from 'lucide-react';
+import { Building, User, Mail, Phone, MapPin, Tag, Bell } from 'lucide-react';
 import BusinessHeader from '../components/headerComponents';
 
 const BusinessProfile = () => {
@@ -14,12 +14,19 @@ const BusinessProfile = () => {
     category: '',
     business_logo: null,
   });
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    receiveNotifications: false,
+    emailNotifications: false,
+    whatsAppNotifications: false,
+  });
   const [isLoading, setIsLoading] = useState(true);
+  const [isSavingPrefs, setIsSavingPrefs] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
   const BASE_URL = import.meta.env.VITE_API_URL;
 
-  // Fetch business profile data
+  // Fetch business profile and notification preferences
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -28,11 +35,13 @@ const BusinessProfile = () => {
         if (!token) {
           throw new Error('No auth token found');
         }
-        const response = await axios.get(`${BASE_URL}/api/v1/business/profile`, {
+
+        // Fetch business profile
+        const profileResponse = await axios.get(`${BASE_URL}/api/v1/business/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const { business_name, owner_name, email, phone, address, category, business_logo } =
-          response.data.profile || {};
+          profileResponse.data.profile || {};
         setBusinessData({
           business_name: business_name || 'N/A',
           owner_name: owner_name || 'N/A',
@@ -42,9 +51,19 @@ const BusinessProfile = () => {
           category: category || 'N/A',
           business_logo: business_logo || null,
         });
+
+        // Fetch notification preferences
+        const prefsResponse = await axios.get(`${BASE_URL}/api/v1/business/notification-preferences`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setNotificationPrefs({
+          receiveNotifications: prefsResponse.data.receiveNotifications || false,
+          emailNotifications: prefsResponse.data.emailNotifications || false,
+          whatsAppNotifications: prefsResponse.data.whatsAppNotifications || false,
+        });
       } catch (err) {
-        console.error('Failed to fetch profile data:', err);
-        setError(err.response?.data?.message || 'Failed to load business profile');
+        console.error('Failed to fetch data:', err);
+        setError(err.response?.data?.message || 'Failed to load business profile or preferences');
       } finally {
         setIsLoading(false);
       }
@@ -52,6 +71,47 @@ const BusinessProfile = () => {
     fetchData();
   }, []);
 
+  // Handle notification preferences change
+  const handlePrefsChange = (e) => {
+    const { name, checked } = e.target;
+    setNotificationPrefs((prev) => ({
+      ...prev,
+      [name]: checked,
+      // If receiveNotifications is unchecked, disable both email and WhatsApp
+      ...(name === 'receiveNotifications' && !checked
+        ? { emailNotifications: false, whatsAppNotifications: false }
+        : {}),
+    }));
+    setError('');
+    setSuccess('');
+  };
+
+  // Save notification preferences
+  const handleSavePrefs = async () => {
+    if (!notificationPrefs.receiveNotifications && (notificationPrefs.emailNotifications || notificationPrefs.whatsAppNotifications)) {
+      setError('Please enable notifications to select email or WhatsApp preferences.');
+      return;
+    }
+    setIsSavingPrefs(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = localStorage.getItem('authToken');
+      await axios.post(
+        `${BASE_URL}/api/v1/business/notification-preferences`,
+        notificationPrefs,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setSuccess('Notification preferences saved successfully!');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to save notification preferences');
+    } finally {
+      setIsSavingPrefs(false);
+    }
+  };
+
+  // Handle logout
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem('authToken');
@@ -100,86 +160,179 @@ const BusinessProfile = () => {
             {error}
           </div>
         )}
+        {success && (
+          <div className="mb-8 p-4 bg-green-50 border border-green-200 text-green-800 rounded-xl text-sm font-medium">
+            {success}
+          </div>
+        )}
         {isLoading ? (
           <div className="flex justify-center items-center py-16">
             <LoadingSpinner />
           </div>
         ) : (
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-            <div className="p-8 bg-gradient-to-r from-blue-50 to-white">
-              <div className="flex items-center space-x-6">
-                <div className="relative group">
-                  {businessData.business_logo ? (
-                    <img
-                      src={businessData.business_logo}
-                      alt={`${businessData.business_name} Logo`}
-                      className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 group-hover:border-blue-300 transition-colors duration-200"
-                    />
-                  ) : (
+          <>
+            {/* Business Profile Card */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
+              <div className="p-8 bg-gradient-to-r from-blue-50 to-white">
+                <div className="flex items-center space-x-6">
+                  <div className="relative group">
+                    {businessData.business_logo ? (
+                      <img
+                        src={businessData.business_logo}
+                        alt={`${businessData.business_name} Logo`}
+                        className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 group-hover:border-blue-300 transition-colors duration-200"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold border-2 border-gray-200 group-hover:border-blue-300 transition-colors duration-200">
+                        {businessData.business_name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">{businessData.business_name}</h2>
+                    <p className="text-sm text-gray-500 mt-1">Manage your business details</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-8 grid gap-6 sm:grid-cols-2">
+                <div className="flex items-start space-x-4">
+                  <Building className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Business Name</p>
+                    <p className="text-base text-gray-700">{businessData.business_name}</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-4">
+                  <User className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Owner Name</p>
+                    <p className="text-base text-gray-700">{businessData.owner_name}</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-4">
+                  <Mail className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Email</p>
+                    <p className="text-base text-gray-700">{businessData.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-4">
+                  <Phone className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Phone Number</p>
+                    <p className="text-base text-gray-700">{businessData.phone}</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-4">
+                  <MapPin className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Address</p>
+                    <p className="text-base text-gray-700">{businessData.address}</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-4">
+                  <Tag className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Category</p>
+                    <p className="text-base text-gray-700">{businessData.category}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-8 border-t border-gray-100">
+                <Link
+                  to="/businessProfile/edit"
+                  className="inline-flex items-center cursor-pointer px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  Edit Profile
+                </Link>
+              </div>
+            </div>
+
+            {/* Notification Preferences Card */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+              <div className="p-8 bg-gradient-to-r from-blue-50 to-white">
+                <div className="flex items-center space-x-6">
+                  <div className="relative group">
                     <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold border-2 border-gray-200 group-hover:border-blue-300 transition-colors duration-200">
-                      {businessData.business_name.charAt(0).toUpperCase()}
+                      <Bell className="w-10 h-10" />
+                    </div>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Notification Preferences</h2>
+                    <p className="text-sm text-gray-500 mt-1">Manage how you receive updates</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-8">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <Bell className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">Receive Notifications</p>
+                        <p className="text-sm text-gray-600">Enable to get updates about your business</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="receiveNotifications"
+                        checked={notificationPrefs.receiveNotifications}
+                        onChange={handlePrefsChange}
+                        className="sr-only peer"
+                        disabled={isSavingPrefs}
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                  </div>
+                  {notificationPrefs.receiveNotifications && (
+                    <div className="ml-10 space-y-4">
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          name="emailNotifications"
+                          checked={notificationPrefs.emailNotifications}
+                          onChange={handlePrefsChange}
+                          className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300 rounded"
+                          disabled={isSavingPrefs}
+                        />
+                        <label className="text-sm text-gray-700">Email Notifications</label>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          name="whatsAppNotifications"
+                          checked={notificationPrefs.whatsAppNotifications}
+                          onChange={handlePrefsChange}
+                          className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300 rounded"
+                          disabled={isSavingPrefs}
+                        />
+                        <label className="text-sm text-gray-700">WhatsApp Notifications</label>
+                      </div>
                     </div>
                   )}
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{businessData.business_name}</h2>
-                  <p className="text-sm text-gray-500 mt-1">Manage your business details</p>
+                <div className="mt-8 border-t border-gray-100 pt-6">
+                  <button
+                    onClick={handleSavePrefs}
+                    disabled={isSavingPrefs}
+                    className={`inline-flex items-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg ${
+                      isSavingPrefs ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {isSavingPrefs ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Preferences'
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
-            <div className="p-8 grid gap-6 sm:grid-cols-2">
-              <div className="flex items-start space-x-4">
-                <Building className="w-6 h-6 text-blue-500 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">Business Name</p>
-                  <p className="text-base text-gray-700">{businessData.business_name}</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-4">
-                <User className="w-6 h-6 text-blue-500 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">Owner Name</p>
-                  <p className="text-base text-gray-700">{businessData.owner_name}</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-4">
-                <Mail className="w-6 h-6 text-blue-500 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">Email</p>
-                  <p className="text-base text-gray-700">{businessData.email}</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-4">
-                <Phone className="w-6 h-6 text-blue-500 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">Phone Number</p>
-                  <p className="text-base text-gray-700">{businessData.phone}</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-4">
-                <MapPin className="w-6 h-6 text-blue-500 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">Address</p>
-                  <p className="text-base text-gray-700">{businessData.address}</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-4">
-                <Tag className="w-6 h-6 text-blue-500 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">Category</p>
-                  <p className="text-base text-gray-700">{businessData.category}</p>
-                </div>
-              </div>
-            </div>
-            <div className="p-8 border-t border-gray-100">
-              <Link
-                to="/businessProfile/edit"
-                className="inline-flex items-center cursor-pointer px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                Edit Profile
-              </Link>
-            </div>
-          </div>
+          </>
         )}
       </main>
     </div>
