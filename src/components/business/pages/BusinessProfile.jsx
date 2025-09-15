@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Building, User, Mail, Phone, MapPin, Tag, Bell } from 'lucide-react';
+import { Building, User, Mail, Phone, MapPin, Tag, Bell, Loader2 } from 'lucide-react';
 import BusinessHeader from '../components/headerComponents';
 
 const BusinessProfile = () => {
@@ -21,10 +21,50 @@ const BusinessProfile = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingPrefs, setIsSavingPrefs] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = import.meta.env.VITE_API_URL || '';
+
+  // Set up axios interceptor for token refresh
+  useEffect(() => {
+    const responseInterceptor = axios.interceptors.response.use(
+      (response) => response,
+      async (err) => {
+        const originalConfig = err.config;
+        if (err.response?.status === 401 && !originalConfig._retry) {
+          originalConfig._retry = true;
+          try {
+            const refreshToken = localStorage.getItem('refreshToken');
+            if (!refreshToken) {
+              throw new Error('No refresh token available');
+            }
+            const refreshResponse = await axios.post(`${BASE_URL}/api/v1/business/refresh`, { refreshToken });
+            const newAccessToken = refreshResponse.data?.data?.accessToken || refreshResponse.data?.accessToken;
+            if (!newAccessToken) {
+              throw new Error('No new access token received');
+            }
+            localStorage.setItem('authToken', newAccessToken);
+            originalConfig.headers.Authorization = `Bearer ${newAccessToken}`;
+            return axios(originalConfig);
+          } catch (refreshError) {
+            console.error('Token refresh failed:', refreshError);
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('authBusinessId');
+            navigate('/businessAuth');
+            return Promise.reject(refreshError);
+          }
+        }
+        return Promise.reject(err);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(responseInterceptor);
+    };
+  }, [navigate]);
 
   // Fetch business profile and notification preferences
   useEffect(() => {
@@ -33,43 +73,43 @@ const BusinessProfile = () => {
       try {
         const token = localStorage.getItem('authToken');
         if (!token) {
-          throw new Error('No auth token found');
+          navigate('/businessAuth');
+          return;
         }
 
         // Fetch business profile
         const profileResponse = await axios.get(`${BASE_URL}/api/v1/business/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const { business_name, owner_name, email, phone, address, category, business_logo } =
-          profileResponse.data.profile || {};
+        const profile = profileResponse.data?.profile || {};
         setBusinessData({
-          business_name: business_name || 'N/A',
-          owner_name: owner_name || 'N/A',
-          email: email || 'N/A',
-          phone: phone || 'N/A',
-          address: address || 'N/A',
-          category: category || 'N/A',
-          business_logo: business_logo || null,
+          business_name: profile.business_name || 'N/A',
+          owner_name: profile.owner_name || 'N/A',
+          email: profile.email || 'N/A',
+          phone: profile.phone || 'N/A',
+          address: profile.address || 'N/A',
+          category: profile.category || 'N/A',
+          business_logo: profile.business_logo || null,
         });
 
         // Fetch notification preferences
-        const prefsResponse = await axios.get(`${BASE_URL}/api/v1/business/notification-preferences`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setNotificationPrefs({
-          receiveNotifications: prefsResponse.data.receiveNotifications || false,
-          emailNotifications: prefsResponse.data.emailNotifications || false,
-          whatsAppNotifications: prefsResponse.data.whatsAppNotifications || false,
-        });
       } catch (err) {
         console.error('Failed to fetch data:', err);
-        setError(err.response?.data?.message || 'Failed to load business profile or preferences');
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          setError('Session expired. Please log in again.');
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('authBusinessId');
+          navigate('/businessAuth');
+        } else {
+          setError(err.response?.data?.message || 'Failed to load business profile or preferences. Please try again.');
+        }
       } finally {
         setIsLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [navigate]);
 
   // Handle notification preferences change
   const handlePrefsChange = (e) => {
@@ -95,17 +135,32 @@ const BusinessProfile = () => {
     setIsSavingPrefs(true);
     setError('');
     setSuccess('');
-
     try {
       const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No auth token found');
+      }
       await axios.post(
         `${BASE_URL}/api/v1/business/notification-preferences`,
-        notificationPrefs,
+        {
+          receiveNotifications: notificationPrefs.receiveNotifications,
+          emailNotifications: notificationPrefs.emailNotifications,
+          whatsAppNotifications: notificationPrefs.whatsAppNotifications,
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setSuccess('Notification preferences saved successfully!');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save notification preferences');
+      console.error('Failed to save preferences:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setError('Session expired. Please log in again.');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('authBusinessId');
+        navigate('/businessAuth');
+      } else {
+        setError(err.response?.data?.message || 'Failed to save notification preferences. Please try again.');
+      }
     } finally {
       setIsSavingPrefs(false);
     }
@@ -113,6 +168,7 @@ const BusinessProfile = () => {
 
   // Handle logout
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     try {
       const token = localStorage.getItem('authToken');
       const refreshToken = localStorage.getItem('refreshToken');
@@ -123,15 +179,16 @@ const BusinessProfile = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
       }
+    } catch (err) {
+      console.error('Logout failed:', err);
+    } finally {
       localStorage.removeItem('authToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('authBusinessId');
       localStorage.removeItem('qrCodeIds');
       localStorage.removeItem('qrTypeMap');
       navigate('/businessAuth');
-    } catch (err) {
-      console.error('Logout failed:', err);
-      navigate('/businessAuth');
+      setIsLoggingOut(false);
     }
   };
 
@@ -141,7 +198,7 @@ const BusinessProfile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      <BusinessHeader onLogout={handleLogout} />
+      <BusinessHeader onLogout={handleLogout} isLoggingOut={isLoggingOut} />
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Business Profile</h1>
@@ -181,15 +238,19 @@ const BusinessProfile = () => {
                         src={businessData.business_logo}
                         alt={`${businessData.business_name} Logo`}
                         className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 group-hover:border-blue-300 transition-colors duration-200"
+                        onError={(e) => {
+                          e.target.src = ''; // Fallback if image fails to load
+                          setBusinessData((prev) => ({ ...prev, business_logo: null }));
+                        }}
                       />
                     ) : (
                       <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold border-2 border-gray-200 group-hover:border-blue-300 transition-colors duration-200">
-                        {businessData.business_name.charAt(0).toUpperCase()}
+                        {businessData.business_name?.charAt(0)?.toUpperCase() || 'B'}
                       </div>
                     )}
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">{businessData.business_name}</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">{businessData.business_name || 'Business'}</h2>
                     <p className="text-sm text-gray-500 mt-1">Manage your business details</p>
                   </div>
                 </div>
@@ -199,55 +260,54 @@ const BusinessProfile = () => {
                   <Building className="w-6 h-6 text-blue-500 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-gray-900">Business Name</p>
-                    <p className="text-base text-gray-700">{businessData.business_name}</p>
+                    <p className="text-base text-gray-700">{businessData.business_name || 'N/A'}</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-4">
                   <User className="w-6 h-6 text-blue-500 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-gray-900">Owner Name</p>
-                    <p className="text-base text-gray-700">{businessData.owner_name}</p>
+                    <p className="text-base text-gray-700">{businessData.owner_name || 'N/A'}</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-4">
                   <Mail className="w-6 h-6 text-blue-500 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-gray-900">Email</p>
-                    <p className="text-base text-gray-700">{businessData.email}</p>
+                    <p className="text-base text-gray-700">{businessData.email || 'N/A'}</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-4">
                   <Phone className="w-6 h-6 text-blue-500 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-gray-900">Phone Number</p>
-                    <p className="text-base text-gray-700">{businessData.phone}</p>
+                    <p className="text-base text-gray-700">{businessData.phone || 'N/A'}</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-4">
                   <MapPin className="w-6 h-6 text-blue-500 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-gray-900">Address</p>
-                    <p className="text-base text-gray-700">{businessData.address}</p>
+                    <p className="text-base text-gray-700">{businessData.address || 'N/A'}</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-4">
                   <Tag className="w-6 h-6 text-blue-500 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-gray-900">Category</p>
-                    <p className="text-base text-gray-700">{businessData.category}</p>
+                    <p className="text-base text-gray-700">{businessData.category || 'N/A'}</p>
                   </div>
                 </div>
               </div>
               <div className="p-8 border-t border-gray-100">
                 <Link
                   to="/businessProfile/edit"
-                  className="inline-flex items-center cursor-pointer px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="inline-flex items-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   Edit Profile
                 </Link>
               </div>
             </div>
-
             {/* Notification Preferences Card */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
               <div className="p-8 bg-gradient-to-r from-blue-50 to-white">

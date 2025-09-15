@@ -8,6 +8,7 @@ const BusinessAuth = () => {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isVerificationPending, setIsVerificationPending] = useState(false);
   const [businessName, setBusinessName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -15,29 +16,113 @@ const BusinessAuth = () => {
   const [categoryId, setCategoryId] = useState('');
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = import.meta.env.VITE_API_URL || '';
+
+  // Set up axios interceptor for token refresh
+  useEffect(() => {
+    const responseInterceptor = axios.interceptors.response.use(
+      (response) => response,
+      async (err) => {
+        const originalConfig = err.config;
+        if (err.response?.status === 401 && !originalConfig._retry) {
+          originalConfig._retry = true;
+          try {
+            const refreshToken = localStorage.getItem('refreshToken');
+            if (!refreshToken) {
+              throw new Error('No refresh token available');
+            }
+            const refreshResponse = await axios.post(`${BASE_URL}/api/v1/business/refresh`, { refreshToken });
+            const newAccessToken = refreshResponse.data?.data?.accessToken || refreshResponse.data?.accessToken;
+            if (!newAccessToken) {
+              throw new Error('No new access token received');
+            }
+            localStorage.setItem('authToken', newAccessToken);
+            originalConfig.headers.Authorization = `Bearer ${newAccessToken}`;
+            return axios(originalConfig);
+          } catch (refreshError) {
+            console.error('Token refresh failed:', refreshError);
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('authBusinessId');
+            navigate('/businessAuth');
+            return Promise.reject(refreshError);
+          }
+        }
+        return Promise.reject(err);
+      }
+    );
+    return () => {
+      axios.interceptors.response.eject(responseInterceptor);
+    };
+  }, [navigate]);
+
+  // Check if already authenticated on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('authToken');
+      const businessId = localStorage.getItem('authBusinessId');
+      if (token && businessId) {
+        try {
+          await axios.get(`${BASE_URL}/api/v1/business/profile`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          navigate('/businessDashboard');
+        } catch (err) {
+          // Interceptor handles 401 and refreshes if possible
+        }
+      }
+    };
+    checkAuth();
+  }, [navigate]);
 
   // Fetch categories on component mount
   useEffect(() => {
     const fetchCategories = async () => {
+      setIsCategoriesLoading(true);
       try {
         const response = await axios.get(`${BASE_URL}/api/v1/category/all-category`);
-        setCategories(response.data.categories || []);
+        setCategories(Array.isArray(response.data?.categories) ? response.data.categories : []);
       } catch (err) {
-        setError(`Failed to fetch categories: ${err.message}`);
+        console.error('Failed to fetch categories:', err);
+        setError('Failed to load categories. Please try again later.');
+        setCategories([]);
+      } finally {
+        setIsCategoriesLoading(false);
       }
     };
     fetchCategories();
   }, []);
 
+  // Validate email format
+  const isValidEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  // Validate phone number (basic check)
+  const isValidPhone = (phone) => {
+    return /^\+?[\d\s-]{8,15}$/.test(phone);
+  };
+
   // Handle business registration
   const handleSignUp = async () => {
-    if (!businessName || !ownerName || !email || !phoneNumber || !address || !categoryId || !password) {
+    if (!businessName.trim() || !ownerName.trim() || !email || !phoneNumber || !address.trim() || !categoryId || !password) {
       setError('All fields are required.');
-      setIsLoading(false);
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setError('Invalid email format.');
+      return;
+    }
+    if (!isValidPhone(phoneNumber)) {
+      setError('Invalid phone number format.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
       return;
     }
     setIsLoading(true);
@@ -45,17 +130,17 @@ const BusinessAuth = () => {
     setSuccess('');
     try {
       const response = await axios.post(`${BASE_URL}/api/v1/business/register-business`, {
-        business_name: businessName,
-        owner_name: ownerName,
-        email,
-        phone: phoneNumber,
-        address,
+        business_name: businessName.trim(),
+        owner_name: ownerName.trim(),
+        email: email.trim(),
+        phone: phoneNumber.trim(),
+        address: address.trim(),
         categoryId,
         password,
       });
-      if (response.data.message) {
-        setSuccess('Registration successful! Please sign in to continue.');
-        setIsSignUp(false);
+      if (response.data?.message) {
+        setSuccess('Registration successful! Please verify your email before signing in.');
+        setIsVerificationPending(true);
         setBusinessName('');
         setOwnerName('');
         setPhoneNumber('');
@@ -67,7 +152,8 @@ const BusinessAuth = () => {
         setError('Registration succeeded, but unexpected response format.');
       }
     } catch (err) {
-      setError(err.response?.data?.message || `Registration failed: ${err.message}`);
+      console.error('Registration error:', err);
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +163,10 @@ const BusinessAuth = () => {
   const handleSignIn = async () => {
     if (!email || !password) {
       setError('Email and password are required.');
-      setIsLoading(false);
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setError('Invalid email format.');
       return;
     }
     setIsLoading(true);
@@ -85,13 +174,17 @@ const BusinessAuth = () => {
     setSuccess('');
     try {
       const response = await axios.post(`${BASE_URL}/api/v1/business/login-business`, {
-        email,
+        email: email.trim(),
         password,
       });
-      const token = response.data.data?.accessToken || response.data.accessToken;
-      const businessId = response.data.business?.id;
+      const token = response.data?.data?.accessToken || response.data?.accessToken;
+      const refreshToken = response.data?.data?.refreshToken || response.data?.refreshToken;
+      const businessId = response.data?.business?.id || response.data?.data?.businessId;
       if (token && businessId) {
         localStorage.setItem('authToken', token);
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken);
+        }
         localStorage.setItem('authBusinessId', businessId);
         setSuccess('Login successful! Redirecting to dashboard...');
         setTimeout(() => navigate('/businessDashboard'), 1000);
@@ -104,7 +197,7 @@ const BusinessAuth = () => {
         data: err.response?.data,
         message: err.message,
       });
-      setError(err.response?.data?.message || `Login failed: ${err.message}`);
+      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +207,10 @@ const BusinessAuth = () => {
   const handleForgotPassword = async () => {
     if (!email) {
       setError('Email is required.');
-      setIsLoading(false);
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setError('Invalid email format.');
       return;
     }
     setIsLoading(true);
@@ -122,19 +218,28 @@ const BusinessAuth = () => {
     setSuccess('');
     try {
       const response = await axios.post(`${BASE_URL}/api/v1/business/forgot-password`, {
-        email,
+        email: email.trim(),
       });
-      if (response.data.message) {
+      if (response.data?.message) {
         setSuccess('Password reset link sent to your email.');
         setEmail('');
       } else {
         setError('Request succeeded, but unexpected response format.');
       }
     } catch (err) {
-      setError(err.response?.data?.message || `Password reset request failed: ${err.message}`);
+      console.error('Forgot password error:', err);
+      setError(err.response?.data?.message || 'Password reset request failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle verification acknowledgment
+  const handleVerificationAcknowledged = () => {
+    setIsVerificationPending(false);
+    setIsSignUp(false);
+    setError('');
+    setSuccess('');
   };
 
   return (
@@ -152,9 +257,9 @@ const BusinessAuth = () => {
               </div>
             </div>
             <div>
-                <Link to="/userAuth" className="text-blue-600 hover:text-blue-700 font-medium">
-                  Sign In as User
-                </Link>                  
+              <Link to="/userAuth" className="text-blue-600 hover:text-blue-700 font-medium">
+                Sign In as User
+              </Link>
             </div>
           </div>
         </div>
@@ -243,10 +348,12 @@ const BusinessAuth = () => {
                   </div>
                   <div className="text-center mb-8">
                     <h3 className="text-2xl font-extrabold text-gray-900 mb-2 tracking-tight">
-                      {isForgotPassword ? 'Reset Your Password' : isSignUp ? 'Join ScanRevuAi' : 'Access Your Dashboard'}
+                      {isVerificationPending ? 'Verify Your Email' : isForgotPassword ? 'Reset Your Password' : isSignUp ? 'Join ScanRevuAi' : 'Access Your Dashboard'}
                     </h3>
                     <p className="text-gray-600">
-                      {isForgotPassword
+                      {isVerificationPending
+                        ? 'A verification link has been sent to your email. Please verify your email to continue.'
+                        : isForgotPassword
                         ? 'Enter your email to receive a password reset link'
                         : isSignUp
                         ? 'Create your business account to start managing feedback'
@@ -265,254 +372,282 @@ const BusinessAuth = () => {
                       {success}
                     </div>
                   )}
-                  {!isForgotPassword && (
-                    <div className="grid grid-cols-2 gap-0 mb-6 bg-gray-100 rounded-lg p-1">
+                  {isVerificationPending ? (
+                    <div className="space-y-6">
                       <button
-                        onClick={() => {
-                          setIsSignUp(false);
-                          setIsForgotPassword(false);
-                          setError('');
-                          setSuccess('');
-                          setEmail('');
-                          setPassword('');
-                        }}
-                        className={`py-2 px-4 rounded-md text-sm font-semibold transition-colors ${
-                          !isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                        }`}
-                        disabled={isLoading}
+                        type="button"
+                        className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg`}
+                        onClick={handleVerificationAcknowledged}
                       >
-                        Sign In
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsSignUp(true);
-                          setIsForgotPassword(false);
-                          setError('');
-                          setSuccess('');
-                          setEmail('');
-                          setPassword('');
-                        }}
-                        className={`py-2 px-4 rounded-md text-sm font-semibold transition-colors ${
-                          isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                        }`}
-                        disabled={isLoading}
-                      >
-                        Get Started
+                        I Have Verified My Email
                       </button>
                     </div>
-                  )}
-                  <div className="space-y-6">
-                    {isForgotPassword ? (
-                      <>
-                        <div className="relative">
-                          <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                          <input
-                            type="email"
-                            placeholder="Business email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
-                            disabled={isLoading}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg ${
-                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                          onClick={handleForgotPassword}
-                          disabled={isLoading}
-                        >
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" />
-                              Processing...
-                            </>
-                          ) : (
-                            'Send Reset Link'
-                          )}
-                        </button>
-                        <p className="text-center text-sm text-gray-500 mt-4">
+                  ) : (
+                    <>
+                      {!isForgotPassword && (
+                        <div className="grid grid-cols-2 gap-0 mb-6 bg-gray-100 rounded-lg p-1">
                           <button
                             onClick={() => {
+                              setIsSignUp(false);
                               setIsForgotPassword(false);
-                              setError('');
-                              setSuccess('');
-                              setEmail('');
-                            }}
-                            className="text-blue-600 hover:text-blue-700 hover:underline font-semibold"
-                            disabled={isLoading}
-                          >
-                            Back to Sign In
-                          </button>
-                        </p>
-                      </>
-                    ) : isSignUp ? (
-                      <>
-                        <div className="relative">
-                          <Building className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                          <input
-                            type="text"
-                            placeholder="Business name"
-                            value={businessName}
-                            onChange={(e) => setBusinessName(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
-                            disabled={isLoading}
-                          />
-                        </div>
-                        <div className="relative">
-                          <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                          <input
-                            type="text"
-                            placeholder="Owner name"
-                            value={ownerName}
-                            onChange={(e) => setOwnerName(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
-                            disabled={isLoading}
-                          />
-                        </div>
-                        <div className="relative">
-                          <Tag className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                          <select
-                            value={categoryId}
-                            onChange={(e) => setCategoryId(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors appearance-none"
-                            disabled={isLoading}
-                          >
-                            <option value="" disabled>
-                              Select category
-                            </option>
-                            {categories.map((cat) => (
-                              <option key={cat.id} value={cat.id}>
-                                {cat.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="relative">
-                          <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                          <input
-                            type="email"
-                            placeholder="Business email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
-                            disabled={isLoading}
-                          />
-                        </div>
-                        <div className="relative">
-                          <Phone className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                          <input
-                            type="tel"
-                            placeholder="Phone number"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
-                            disabled={isLoading}
-                          />
-                        </div>
-                        <div className="relative">
-                          <Building className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                          <input
-                            type="text"
-                            placeholder="Business address"
-                            value={address}
-                            onChange={(e) => setAddress(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
-                            disabled={isLoading}
-                          />
-                        </div>
-                        <div className="relative">
-                          <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                          <input
-                            type="password"
-                            placeholder="Create password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
-                            disabled={isLoading}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          className={`w-full py-3 px-4 cursor-pointer bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg ${
-                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                          onClick={handleSignUp}
-                          disabled={isLoading}
-                        >
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" />
-                              Processing...
-                            </>
-                          ) : (
-                            'Start Free Trial'
-                          )}
-                        </button>
-                        <p className="text-center text-sm text-gray-500 mt-4">
-                          14-day free trial • No credit card required
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="relative">
-                          <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                          <input
-                            type="email"
-                            placeholder="Business email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
-                            disabled={isLoading}
-                          />
-                        </div>
-                        <div className="relative">
-                          <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                          <input
-                            type="password"
-                            placeholder="Password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
-                            disabled={isLoading}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          className={`w-full py-3 px-4 cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg ${
-                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                          onClick={handleSignIn}
-                          disabled={isLoading}
-                        >
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="w-5 h-5 animate-spin cursor-pointer inline-block mr-2" />
-                              Processing...
-                            </>
-                          ) : (
-                            'Access Dashboard'
-                          )}
-                        </button>
-                        <div className="text-center text-sm text-gray-500 mt-4">
-                          <button
-                            onClick={() => {
-                              setIsForgotPassword(true);
+                              setIsVerificationPending(false);
                               setError('');
                               setSuccess('');
                               setEmail('');
                               setPassword('');
                             }}
-                            className="text-blue-600 cursor-pointer hover:text-blue-700 hover:underline font-semibold mt-2"
+                            className={`py-2 px-4 rounded-md text-sm font-semibold transition-colors ${
+                              !isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                            }`}
                             disabled={isLoading}
                           >
-                            Forgot Password?
+                            Sign In
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsSignUp(true);
+                              setIsForgotPassword(false);
+                              setIsVerificationPending(false);
+                              setError('');
+                              setSuccess('');
+                              setEmail('');
+                              setPassword('');
+                            }}
+                            className={`py-2 px-4 rounded-md text-sm font-semibold transition-colors ${
+                              isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                            disabled={isLoading}
+                          >
+                            Get Started
                           </button>
                         </div>
-                      </>
-                    )}
-                  </div>
+                      )}
+                      <div className="space-y-6">
+                        {isForgotPassword ? (
+                          <>
+                            <div className="relative">
+                              <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <input
+                                type="email"
+                                placeholder="Business email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                disabled={isLoading}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg ${
+                                isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                              onClick={handleForgotPassword}
+                              disabled={isLoading}
+                            >
+                              {isLoading ? (
+                                <>
+                                  <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" />
+                                  Processing...
+                                </>
+                              ) : (
+                                'Send Reset Link'
+                              )}
+                            </button>
+                            <p className="text-center text-sm text-gray-500 mt-4">
+                              <button
+                                onClick={() => {
+                                  setIsForgotPassword(false);
+                                  setIsVerificationPending(false);
+                                  setError('');
+                                  setSuccess('');
+                                  setEmail('');
+                                }}
+                                className="text-blue-600 hover:text-blue-700 hover:underline font-semibold"
+                                disabled={isLoading}
+                              >
+                                Back to Sign In
+                              </button>
+                            </p>
+                          </>
+                        ) : isSignUp ? (
+                          <>
+                            {isCategoriesLoading ? (
+                              <div className="text-center py-4">
+                                <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600" />
+                                <p className="text-sm text-gray-600 mt-2">Loading categories...</p>
+                              </div>
+                            ) : categories.length === 0 ? (
+                              <div className="text-center py-4 text-red-600 text-sm">
+                                No categories available. Please try again later.
+                              </div>
+                            ) : null}
+                            <div className="relative">
+                              <Building className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <input
+                                type="text"
+                                placeholder="Business name"
+                                value={businessName}
+                                onChange={(e) => setBusinessName(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                disabled={isLoading}
+                              />
+                            </div>
+                            <div className="relative">
+                              <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <input
+                                type="text"
+                                placeholder="Owner name"
+                                value={ownerName}
+                                onChange={(e) => setOwnerName(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                disabled={isLoading}
+                              />
+                            </div>
+                            <div className="relative">
+                              <Tag className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <select
+                                value={categoryId}
+                                onChange={(e) => setCategoryId(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors appearance-none"
+                                disabled={isLoading || categories.length === 0}
+                              >
+                                <option value="" disabled>
+                                  Select category
+                                </option>
+                                {categories.map((cat) => (
+                                  <option key={cat.id || cat.name} value={cat.id}>
+                                    {cat.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="relative">
+                              <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <input
+                                type="email"
+                                placeholder="Business email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                disabled={isLoading}
+                              />
+                            </div>
+                            <div className="relative">
+                              <Phone className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <input
+                                type="tel"
+                                placeholder="Phone number"
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                disabled={isLoading}
+                              />
+                            </div>
+                            <div className="relative">
+                              <Building className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <input
+                                type="text"
+                                placeholder="Business address"
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                disabled={isLoading}
+                              />
+                            </div>
+                            <div className="relative">
+                              <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <input
+                                type="password"
+                                placeholder="Create password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                disabled={isLoading}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              className={`w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg ${
+                                isLoading || categories.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                              onClick={handleSignUp}
+                              disabled={isLoading || categories.length === 0}
+                            >
+                              {isLoading ? (
+                                <>
+                                  <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" />
+                                  Processing...
+                                </>
+                              ) : (
+                                'Start Free Trial'
+                              )}
+                            </button>
+                            <p className="text-center text-sm text-gray-500 mt-4">
+                              14-day free trial • No credit card required
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <div className="relative">
+                              <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <input
+                                type="email"
+                                placeholder="Business email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                disabled={isLoading}
+                              />
+                            </div>
+                            <div className="relative">
+                              <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <input
+                                type="password"
+                                placeholder="Password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                disabled={isLoading}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg ${
+                                isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                              onClick={handleSignIn}
+                              disabled={isLoading}
+                            >
+                              {isLoading ? (
+                                <>
+                                  <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" />
+                                  Processing...
+                                </>
+                              ) : (
+                                'Access Dashboard'
+                              )}
+                            </button>
+                            <div className="text-center text-sm text-gray-500 mt-4">
+                              <button
+                                onClick={() => {
+                                  setIsForgotPassword(true);
+                                  setIsVerificationPending(false);
+                                  setError('');
+                                  setSuccess('');
+                                  setEmail('');
+                                  setPassword('');
+                                }}
+                                className="text-blue-600 hover:text-blue-700 hover:underline font-semibold mt-2"
+                                disabled={isLoading}
+                              >
+                                Forgot Password?
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

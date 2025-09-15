@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Building, User, Mail, Phone, MapPin, Tag, Image, Loader2 } from 'lucide-react';
 import BusinessHeader from '../components/headerComponents'; // Adjusted import path
-
 const EditBusinessProfile = () => {
   const [formData, setFormData] = useState({
     business_name: '',
@@ -18,59 +17,62 @@ const EditBusinessProfile = () => {
   const [logoPreview, setLogoPreview] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
-
   // Fetch profile data and categories
   useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      navigate('/businessAuth');
+      return;
+    }
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          throw new Error('No auth token found');
-        }
-
         // Fetch business profile
         const businessResponse = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/v1/business/profile`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        const { business_name, owner_name, email, phone, address, category, business_logo } =
-          businessResponse.data.profile;
-
+        const profile = businessResponse.data?.profile || {};
         // Fetch categories to map category name to categoryId
         const categoriesResponse = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/v1/category/all-category`
         );
-        const fetchedCategories = categoriesResponse.data.categories || [];
+        const fetchedCategories = categoriesResponse.data?.categories || [];
         setCategories(fetchedCategories);
-
         // Find categoryId based on category name
-        const matchedCategory = fetchedCategories.find((cat) => cat.name === category);
+        const matchedCategory = fetchedCategories.find((cat) => cat.name === (profile.category || ''));
         const categoryId = matchedCategory ? matchedCategory.id : '';
-
         setFormData({
-          business_name: business_name || '',
-          owner_name: owner_name || '',
-          email: email || '',
-          phone: phone || '',
-          address: address || '',
+          business_name: profile.business_name || '',
+          owner_name: profile.owner_name || '',
+          email: profile.email || '',
+          phone: profile.phone || '',
+          address: profile.address || '',
           categoryId: categoryId || '',
-          business_logo: business_logo || null,
+          business_logo: profile.business_logo || null,
         });
-        setLogoPreview(business_logo || null);
+        setLogoPreview(profile.business_logo || null);
       } catch (err) {
         console.error('Failed to fetch profile data:', err);
-        setError(err.response?.data?.message || 'Failed to load profile data');
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          setError('Session expired. Please log in again.');
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('authBusinessId');
+          navigate('/businessAuth');
+        } else {
+          setError(err.response?.data?.message || 'Failed to load profile data. Please try again.');
+        }
       } finally {
         setIsLoading(false);
       }
     };
     fetchData();
-  }, []);
-
+  }, [navigate]);
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -78,7 +80,6 @@ const EditBusinessProfile = () => {
     setError('');
     setSuccess('');
   };
-
   // Handle logo file upload
   const handleLogoChange = (e) => {
     const file = e.target.files[0];
@@ -98,19 +99,17 @@ const EditBusinessProfile = () => {
       setError('');
     }
   };
-
   // Validate form
   const validateForm = () => {
-    if (!formData.business_name) return 'Business name is required';
-    if (!formData.owner_name) return 'Owner name is required';
+    if (!formData.business_name.trim()) return 'Business name is required';
+    if (!formData.owner_name.trim()) return 'Owner name is required';
     if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
       return 'Valid email is required';
-    if (!formData.phone) return 'Phone number is required';
-    if (!formData.address) return 'Address is required';
+    if (!formData.phone.trim()) return 'Phone number is required';
+    if (!formData.address.trim()) return 'Address is required';
     if (!formData.categoryId) return 'Category is required';
     return '';
   };
-
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -119,15 +118,15 @@ const EditBusinessProfile = () => {
       setError(validationError);
       return;
     }
-
     setIsSubmitting(true);
     setError('');
     setSuccess('');
-
     try {
       const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No auth token found');
+      }
       let logoUrl = formData.business_logo;
-
       // Upload logo if a new file is selected
       if (formData.business_logo instanceof File) {
         const formDataToSend = new FormData();
@@ -137,35 +136,41 @@ const EditBusinessProfile = () => {
           formDataToSend,
           { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
         );
-        logoUrl = logoResponse.data.data.business_logo;
+        logoUrl = logoResponse.data?.data?.business_logo || logoUrl;
       }
-
       // Update profile (excluding business_logo as per PUT endpoint spec)
       await axios.put(
         `${import.meta.env.VITE_API_URL}/api/v1/business/edit-business`,
         {
-          business_name: formData.business_name,
-          owner_name: formData.owner_name,
+          business_name: formData.business_name.trim(),
+          owner_name: formData.owner_name.trim(),
           email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
+          phone: formData.phone.trim(),
+          address: formData.address.trim(),
           categoryId: formData.categoryId,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setSuccess('Profile updated successfully!');
       setTimeout(() => navigate('/businessProfile'), 1000);
     } catch (err) {
       console.error('Failed to update profile:', err);
-      setError(err.response?.data?.message || 'Failed to update profile');
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setError('Session expired. Please log in again.');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('authBusinessId');
+        navigate('/businessAuth');
+      } else {
+        setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
-
   // Handle logout
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     try {
       const token = localStorage.getItem('authToken');
       const refreshToken = localStorage.getItem('refreshToken');
@@ -176,25 +181,24 @@ const EditBusinessProfile = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
       }
+    } catch (err) {
+      console.error('Logout failed:', err);
+    } finally {
       localStorage.removeItem('authToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('authBusinessId');
       localStorage.removeItem('qrCodeIds');
       localStorage.removeItem('qrTypeMap');
       navigate('/businessAuth');
-    } catch (err) {
-      console.error('Logout failed:', err);
-      navigate('/businessAuth');
+      setIsLoggingOut(false);
     }
   };
-
   const LoadingSpinner = () => (
     <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-200 border-t-blue-600"></div>
   );
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      <BusinessHeader onLogout={handleLogout} />
+      <BusinessHeader onLogout={handleLogout} isLoggingOut={isLoggingOut} />
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Edit Business Profile</h1>
@@ -232,6 +236,10 @@ const EditBusinessProfile = () => {
                       src={logoPreview}
                       alt="Business Logo Preview"
                       className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 group-hover:border-blue-300 transition-colors duration-200"
+                      onError={(e) => {
+                        e.target.src = ''; // Fallback if image fails to load
+                        setLogoPreview(null);
+                      }}
                     />
                   ) : (
                     <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold border-2 border-gray-200 group-hover:border-blue-300 transition-colors duration-200">
@@ -246,6 +254,11 @@ const EditBusinessProfile = () => {
               </div>
             </div>
             <div className="p-8">
+              {categories.length === 0 && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg text-sm">
+                  Categories could not be loaded. Please try refreshing or contact support.
+                </div>
+              )}
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="relative">
                   <Building className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -314,11 +327,11 @@ const EditBusinessProfile = () => {
                     value={formData.categoryId}
                     onChange={handleInputChange}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors appearance-none"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || categories.length === 0}
                   >
                     <option value="" disabled>Select Category</option>
                     {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
+                      <option key={cat.id || cat.name} value={cat.id}>
                         {cat.name}
                       </option>
                     ))}
@@ -364,5 +377,4 @@ const EditBusinessProfile = () => {
     </div>
   );
 };
-
 export default EditBusinessProfile;
