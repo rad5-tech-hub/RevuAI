@@ -14,6 +14,14 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
   const cancelTokenSource = useRef(null);
   const businessId = localStorage.getItem("authBusinessId");
 
+  // Fallback function to calculate average rating from reviews
+  const calculateAverageRating = (reviews) => {
+    if (!reviews || reviews.length === 0) return "0.00";
+    const totalRating = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
+    const average = totalRating / reviews.length;
+    return average.toFixed(2); // Format to two decimal places
+  };
+
   useEffect(() => {
     let isMounted = true;
     const fetchReviews = async () => {
@@ -71,7 +79,7 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
           const total = reviewsResponse.data.totalReviews || reviews.length;
           const totalPages = Math.ceil(total / 10) || 1; // Assuming 10 reviews per page
           const ratingSummary = reviewsResponse.data.ratingSummary || {};
-          const averageRating = reviewsResponse.data.averageRating || "0.00";
+          const averageRating = reviewsResponse.data.averageRating || calculateAverageRating(reviews);
           const reviewsWithUrls = reviews.map((review) => {
             const mappedReview = {
               ...review,
@@ -113,6 +121,10 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
             position: "top-right",
             autoClose: 3000,
           });
+          setAverageRating("0.00"); // Fallback to 0.00 on API failure
+          setFeedback([]);
+          setMeta({ total: 0, totalPages: 1, currentPage: 1 });
+          setRatingSummary({});
         }
         setLoading(false);
       }
