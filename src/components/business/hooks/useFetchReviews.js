@@ -52,9 +52,7 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
         sort,
       };
       try {
-        console.log("Fetching reviews with:", { businessId, params, token: token.slice(0, 10) + "..." });
-        console.log("Applied filters:", { rating: ratingMap[ratingFilter], page });
-        const reviewsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/review/filter`, {
+           const reviewsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/review/filter`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -63,9 +61,9 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
           cancelToken: cancelTokenSource.current.token,
         });
         if (isMounted) {
-          console.log("Raw reviews response:", reviewsResponse.data);
+          // console.log("Raw reviews response:", reviewsResponse.data);
           const reviews = reviewsResponse.data.reviews || [];
-          console.log("Reviews count:", reviews.length, "Total reviews:", reviewsResponse.data.meta.total);
+          // console.log("Reviews count:", reviews.length, "Total reviews:", reviewsResponse.data.meta.total);
           const total = reviewsResponse.data.meta.total || reviews.length;
           const totalPages = reviewsResponse.data.meta.totalPages || 1;
           const ratingSummary = reviewsResponse.data.ratingSummary || {};
@@ -76,13 +74,14 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
               qrcode_url: review.qrcodeId || "Unknown QR Code",
               reviewerName: review.isAnonymous || !review.user?.fullname ? "Anonymous" : review.user.fullname,
             };
-            console.log("Mapped review:", {
-              id: review.id,
-              reviewerName: mappedReview.reviewerName,
-              qrcode_url: mappedReview.qrcode_url,
-              user: review.user,
-              qrcodeId: review.qrcodeId,
-            });
+           // console.log("Mapped review:", {
+           //   id: review.id,
+           //   reviewerName: mappedReview.reviewerName,
+           //   qrcode_url: mappedReview.qrcode_url,
+           //   user: review.user,
+           //   qrcodeId: review.qrcodeId,
+           // }); 
+            // });
             return mappedReview;
           });
           setFeedback(reviewsWithUrls);
@@ -93,18 +92,18 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
         }
       } catch (error) {
         if (axios.isCancel(error)) {
-          console.log("Request canceled:", error.message);
+          // console.log("Request canceled:", error.message);
           return;
         }
-        console.error("Fetch reviews error:", {
-          url: error.config?.url,
-          method: error.config?.method,
-          headers: error.config?.headers,
-          params: error.config?.params,
-          status: error.response?.status,
-          responseData: error.response?.data,
-          message: error.message,
-        });
+        // console.error("Fetch reviews error:", {
+        //   url: error.config?.url,
+        //   method: error.config?.method,
+        //   headers: error.config?.headers,
+        //   params: error.config?.params,
+        //   status: error.response?.status,
+        //   responseData: error.response?.data,
+        //   message: error.message,
+        // });
         if (error.response?.status === 401) {
           if (isMounted) {
             setError("Session expired. Please log in again.");
