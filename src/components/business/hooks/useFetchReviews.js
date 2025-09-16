@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, retryTrigger }) => {
@@ -11,9 +10,9 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
   const [ratingSummary, setRatingSummary] = useState({});
   const [averageRating, setAverageRating] = useState(0);
   const [page, setPage] = useState(1);
-  const navigate = useNavigate();
   const sort = "newest";
   const cancelTokenSource = useRef(null);
+  const businessId = localStorage.getItem("authBusinessId");
 
   useEffect(() => {
     let isMounted = true;
@@ -21,7 +20,6 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
       setLoading(true);
       setError(null);
       const token = localStorage.getItem("authToken");
-      const businessId = localStorage.getItem("authBusinessId");
       if (!token || !businessId) {
         if (isMounted) {
           setError("Please log in to view reviews.");
@@ -29,7 +27,6 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
             position: "top-right",
             autoClose: 3000,
           });
-          navigate("/businessAuth");
         }
         setLoading(false);
         return;
@@ -48,73 +45,70 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
       };
       const params = {
         rating: ratingMap[ratingFilter] || undefined,
+        search: search || undefined,
+        sentiment: sentimentFilter || undefined,
+        date: dateFilter || undefined,
         page,
         sort,
       };
       try {
-           const reviewsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/review/filter`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          params,
-          cancelToken: cancelTokenSource.current.token,
-        });
+        console.log("Fetching reviews with:", { businessId, params, token: token.slice(0, 10) + "..." });
+        const reviewsResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/v1/review/reviews/${businessId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            params,
+            cancelToken: cancelTokenSource.current.token,
+          }
+        );
         if (isMounted) {
-          // console.log("Raw reviews response:", reviewsResponse.data);
+          console.log("Raw reviews response:", reviewsResponse.data);
           const reviews = reviewsResponse.data.reviews || [];
-          // console.log("Reviews count:", reviews.length, "Total reviews:", reviewsResponse.data.meta.total);
-          const total = reviewsResponse.data.meta.total || reviews.length;
-          const totalPages = reviewsResponse.data.meta.totalPages || 1;
+          console.log("Reviews count:", reviews.length, "Total reviews:", reviewsResponse.data.totalReviews);
+          const total = reviewsResponse.data.totalReviews || reviews.length;
+          const totalPages = Math.ceil(total / 10) || 1; // Assuming 10 reviews per page
           const ratingSummary = reviewsResponse.data.ratingSummary || {};
           const averageRating = reviewsResponse.data.averageRating || "0.00";
           const reviewsWithUrls = reviews.map((review) => {
             const mappedReview = {
               ...review,
-              qrcode_url: review.qrcodeId || "Unknown QR Code",
+              qrcode_url: review.qrcode?.id || "Unknown QR Code",
               reviewerName: review.isAnonymous || !review.user?.fullname ? "Anonymous" : review.user.fullname,
             };
-           // console.log("Mapped review:", {
-           //   id: review.id,
-           //   reviewerName: mappedReview.reviewerName,
-           //   qrcode_url: mappedReview.qrcode_url,
-           //   user: review.user,
-           //   qrcodeId: review.qrcodeId,
-           // }); 
-            // });
+            console.log("Mapped review:", {
+              id: review.id,
+              reviewerName: mappedReview.reviewerName,
+              qrcode_url: mappedReview.qrcode_url,
+              user: review.user,
+              qrcodeId: review.qrcode?.id,
+            });
             return mappedReview;
           });
           setFeedback(reviewsWithUrls);
-          setMeta({ total, totalPages, currentPage: reviewsResponse.data.meta.page || page });
+          setMeta({ total, totalPages, currentPage: page });
           setRatingSummary(ratingSummary);
           setAverageRating(averageRating);
           setLoading(false);
         }
       } catch (error) {
         if (axios.isCancel(error)) {
-          // console.log("Request canceled:", error.message);
+          console.log("Request canceled:", error.message);
           return;
         }
-        // console.error("Fetch reviews error:", {
-        //   url: error.config?.url,
-        //   method: error.config?.method,
-        //   headers: error.config?.headers,
-        //   params: error.config?.params,
-        //   status: error.response?.status,
-        //   responseData: error.response?.data,
-        //   message: error.message,
-        // });
-        if (error.response?.status === 401) {
-          if (isMounted) {
-            setError("Session expired. Please log in again.");
-            toast.error("Session expired. Please log in again.", {
-              position: "top-right",
-              autoClose: 3000,
-            });
-            navigate("/businessAuth");
-          }
-        } else {
-          setError(error.response?.data?.message || "Failed to fetch feedback.");
+        console.error("Fetch reviews error:", {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers,
+          params: error.config?.params,
+          status: error.response?.status,
+          responseData: error.response?.data,
+          message: error.message,
+        });
+        if (isMounted) {
+          setError(error.response?.data?.message || "Failed to fetch feedback. Please try again.");
           toast.error(error.response?.data?.message || "Failed to fetch feedback.", {
             position: "top-right",
             autoClose: 3000,
@@ -130,7 +124,7 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
         cancelTokenSource.current.cancel("Component unmounted.");
       }
     };
-  }, [ratingFilter, retryTrigger, page, navigate]);
+  }, [ratingFilter, search, sentimentFilter, dateFilter, retryTrigger, page, businessId]);
 
   return { feedback, loading, error, meta, ratingSummary, averageRating, page, setPage };
 };
