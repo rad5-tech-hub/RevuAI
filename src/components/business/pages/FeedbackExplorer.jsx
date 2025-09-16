@@ -10,7 +10,6 @@ import { generatePDF } from "./../../../utils/pdfUtils";
 import { MessageSquare, Loader2 } from "lucide-react";
 import debounce from "lodash/debounce";
 import BusinessHeader from "../components/headerComponents";
-// Import skeleton loaders
 import { FeedbackCardSkeleton, StatsCardSkeleton, FullPageSkeleton } from "../components/SkeletonLoaders";
 
 const FeedbackExplorer = () => {
@@ -20,24 +19,13 @@ const FeedbackExplorer = () => {
   const [dateFilter, setDateFilter] = useState("All Time");
   const [retryTrigger, setRetryTrigger] = useState(0);
   const navigate = useNavigate();
-  
-  // Add the useAllReviewsEndpoint parameter for consistency
-  const {
-    feedback,
-    loading,
-    error,
-    page,
-    meta,
-    ratingSummary,
-    averageRating,
-    setPage,
-  } = useFetchReviews({ 
-    search, 
-    ratingFilter, 
-    sentimentFilter, 
-    dateFilter, 
+
+  const { feedback, loading, error, page, meta, ratingSummary, averageRating, setPage } = useFetchReviews({
+    search,
+    ratingFilter,
+    sentimentFilter,
+    dateFilter,
     retryTrigger,
-    useAllReviewsEndpoint: true // Use consistent data source
   });
 
   const debouncedSetSearch = useCallback(
@@ -62,10 +50,8 @@ const FeedbackExplorer = () => {
 
   const handleLogout = async () => {
     const token = localStorage.getItem("authToken");
-    const refreshToken = localStorage.getItem("refreshToken");
-    if (!token || !refreshToken) {
+    if (!token) {
       localStorage.removeItem("authToken");
-      localStorage.removeItem("refreshToken");
       localStorage.removeItem("authBusinessId");
       localStorage.removeItem("qrCodeIds");
       localStorage.removeItem("qrTypeMap");
@@ -75,11 +61,10 @@ const FeedbackExplorer = () => {
     try {
       await axios.post(
         `${import.meta.env.VITE_API_URL}/api/v1/logout/logout`,
-        { refreshToken },
+        {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
       localStorage.removeItem("authToken");
-      localStorage.removeItem("refreshToken");
       localStorage.removeItem("authBusinessId");
       localStorage.removeItem("qrCodeIds");
       localStorage.removeItem("qrTypeMap");
@@ -99,7 +84,6 @@ const FeedbackExplorer = () => {
         autoClose: 3000,
       });
       localStorage.removeItem("authToken");
-      localStorage.removeItem("refreshToken");
       localStorage.removeItem("authBusinessId");
       localStorage.removeItem("qrCodeIds");
       localStorage.removeItem("qrTypeMap");
@@ -115,7 +99,7 @@ const FeedbackExplorer = () => {
       });
       return;
     }
-    const tags = Array.isArray(feedback.qrcodeTags) ? feedback.qrcodeTags.join(";") : "";
+    const tags = Array.isArray(feedback.qrcode_tags) ? feedback.qrcode_tags.join(";") : "";
     const csvContent = [
       ["ID", "Rating", "Rating Label", "Comment", "Reviewer", "Date", "QR Code", "Tags"],
       [
@@ -123,9 +107,9 @@ const FeedbackExplorer = () => {
         feedback.rating || "",
         feedback.ratingLabel || "",
         `"${(feedback.comment || "").replace(/"/g, '""')}"`,
-        feedback.isAnonymous ? "Anonymous" : feedback.reviewer || "Unknown",
+        feedback.reviewerName || "Anonymous",
         feedback.createdAt || "",
-        feedback.qrcodeTitle || "",
+        feedback.qrcode_url || "",
         tags,
       ],
     ]
@@ -160,7 +144,7 @@ const FeedbackExplorer = () => {
 
   const shareFeedback = async (feedback) => {
     const shareData = {
-      title: `Feedback for ${feedback.qrcodeTitle || "Business"}`,
+      title: `Feedback for ${feedback.qrcode_url || "Business"}`,
       text: `Rating: ${feedback.rating} Stars\nComment: ${feedback.comment || "No comment"}`,
       url: window.location.href,
     };
@@ -205,16 +189,21 @@ const FeedbackExplorer = () => {
     setRetryTrigger((prev) => prev + 1);
   };
 
+  // Apply client-side filtering for search, sentiment, and date
   const filteredFeedback = feedback.filter((fb) => {
+    let matchesSearch = true;
     let matchesSentiment = true;
     let matchesDate = true;
+    if (search) {
+      matchesSearch = fb.comment?.toLowerCase().includes(search.toLowerCase());
+    }
     if (sentimentFilter !== "All Sentiments") {
       const sentimentMap = {
         Positive: ["Excellent", "Very Good"],
         Neutral: ["Good"],
         Negative: ["Poor", "Very Poor"],
       };
-      matchesSentiment = sentimentMap[sentimentFilter].includes(fb.ratingLabel);
+      matchesSentiment = sentimentMap[sentimentFilter]?.includes(fb.ratingLabel) || false;
     }
     if (dateFilter !== "All Time") {
       const feedbackDate = new Date(fb.createdAt);
@@ -234,10 +223,9 @@ const FeedbackExplorer = () => {
         matchesDate = feedbackDate >= quarterStart;
       }
     }
-    return matchesSentiment && matchesDate;
+    return matchesSearch && matchesSentiment && matchesDate;
   });
 
-  // Show full page skeleton loader when initially loading
   if (loading && !error && feedback.length === 0) {
     return <FullPageSkeleton />;
   }
@@ -249,7 +237,7 @@ const FeedbackExplorer = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <h1 className="text-2xl font-bold text-slate-900">Feedback Explorer</h1>
         <p className="mt-1 text-sm text-slate-500">View and manage customer feedback</p>
-        
+
         {error ? (
           <>
             <div className="mt-6 text-center">
@@ -262,7 +250,6 @@ const FeedbackExplorer = () => {
                 <span>Retry</span>
               </button>
             </div>
-            {/* Show skeleton loaders when there's an error */}
             <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               {Array(5).fill().map((_, index) => (
                 <StatsCardSkeleton key={index} />
@@ -276,7 +263,6 @@ const FeedbackExplorer = () => {
           </>
         ) : (
           <>
-            {/* Stats section with skeleton loaders for loading state */}
             <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               {loading ? (
                 Array(5).fill().map((_, index) => (
@@ -306,8 +292,7 @@ const FeedbackExplorer = () => {
                 ))
               )}
             </div>
-            
-            {/* Filters section */}
+
             <div className="mt-6 flex flex-wrap gap-4 items-center">
               <input
                 type="text"
@@ -334,11 +319,9 @@ const FeedbackExplorer = () => {
                 options={["All Time", "Today", "This Week", "This Month", "This Quarter"]}
               />
             </div>
-            
-            {/* Feedback list section */}
+
             <div className="mt-6 space-y-4 pb-10">
-              {loading && feedback.length === 0 ? (
-                // Show skeleton loaders when loading
+              {loading && filteredFeedback.length === 0 ? (
                 Array(3).fill().map((_, index) => (
                   <FeedbackCardSkeleton key={index} />
                 ))
@@ -367,7 +350,8 @@ const FeedbackExplorer = () => {
                     feedback={{
                       ...fb,
                       text: fb.comment,
-                      qrCode: fb.qrcodeTitle,
+                      qrCode: fb.qrcode_url,
+                      reviewer: fb.reviewerName,
                     }}
                     onDownloadCSV={() => downloadFeedbackCSV(fb)}
                     onDownloadPDF={() => downloadPDF(fb)}
@@ -376,8 +360,7 @@ const FeedbackExplorer = () => {
                 ))
               )}
             </div>
-            
-            {/* Pagination */}
+
             {meta.totalPages > 1 && !loading && (
               <div className="flex justify-center gap-2 mt-6">
                 <button

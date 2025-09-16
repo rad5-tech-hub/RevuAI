@@ -22,44 +22,6 @@ const BusinessAuth = () => {
   const navigate = useNavigate();
   const BASE_URL = import.meta.env.VITE_API_URL || '';
 
-  // Set up axios interceptor for token refresh
-  useEffect(() => {
-    const responseInterceptor = axios.interceptors.response.use(
-      (response) => response,
-      async (err) => {
-        const originalConfig = err.config;
-        if (err.response?.status === 401 && !originalConfig._retry) {
-          originalConfig._retry = true;
-          try {
-            const refreshToken = localStorage.getItem('refreshToken');
-            if (!refreshToken) {
-              throw new Error('No refresh token available');
-            }
-            const refreshResponse = await axios.post(`${BASE_URL}/api/v1/business/refresh`, { refreshToken });
-            const newAccessToken = refreshResponse.data?.data?.accessToken || refreshResponse.data?.accessToken;
-            if (!newAccessToken) {
-              throw new Error('No new access token received');
-            }
-            localStorage.setItem('authToken', newAccessToken);
-            originalConfig.headers.Authorization = `Bearer ${newAccessToken}`;
-            return axios(originalConfig);
-          } catch (refreshError) {
-            console.error('Token refresh failed:', refreshError);
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('authBusinessId');
-            navigate('/businessAuth');
-            return Promise.reject(refreshError);
-          }
-        }
-        return Promise.reject(err);
-      }
-    );
-    return () => {
-      axios.interceptors.response.eject(responseInterceptor);
-    };
-  }, [navigate]);
-
   // Check if already authenticated on mount
   useEffect(() => {
     const checkAuth = async () => {
@@ -72,7 +34,14 @@ const BusinessAuth = () => {
           });
           navigate('/businessDashboard');
         } catch (err) {
-          // Interceptor handles 401 and refreshes if possible
+          console.error('Auth check failed:', {
+            status: err.response?.status,
+            data: err.response?.data,
+            message: err.message,
+          });
+          // Do not clear authToken or authBusinessId; user remains logged in
+          navigate('/businessAuth');
+          setError('Unable to verify session. Please try again or log out.');
         }
       }
     };
@@ -178,13 +147,9 @@ const BusinessAuth = () => {
         password,
       });
       const token = response.data?.data?.accessToken || response.data?.accessToken;
-      const refreshToken = response.data?.data?.refreshToken || response.data?.refreshToken;
       const businessId = response.data?.business?.id || response.data?.data?.businessId;
       if (token && businessId) {
         localStorage.setItem('authToken', token);
-        if (refreshToken) {
-          localStorage.setItem('refreshToken', refreshToken);
-        }
         localStorage.setItem('authBusinessId', businessId);
         setSuccess('Login successful! Redirecting to dashboard...');
         setTimeout(() => navigate('/businessDashboard'), 1000);

@@ -24,12 +24,9 @@ const BusinessDashboard = () => {
     setIsLoggingOut(true);
     try {
       const token = localStorage.getItem("authToken");
-      const refreshToken = localStorage.getItem("refreshToken");
-
-      // Clear storage and redirect if no tokens
-      if (!token || !refreshToken) {
+      // Clear storage and redirect if no token
+      if (!token) {
         localStorage.removeItem("authToken");
-        localStorage.removeItem("refreshToken");
         localStorage.removeItem("authBusinessId");
         localStorage.removeItem("qrCodeIds");
         localStorage.removeItem("qrTypeMap");
@@ -40,14 +37,12 @@ const BusinessDashboard = () => {
         navigate("/businessAuth");
         return;
       }
-
       // Attempt logout API call
       await axios.post(
         `${import.meta.env.VITE_API_URL}/api/v1/logout/logout`,
-        { refreshToken },
+        {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       toast.success("Logged out successfully!", {
         position: "top-right",
         autoClose: 3000,
@@ -65,7 +60,6 @@ const BusinessDashboard = () => {
     } finally {
       // Always clear storage and redirect
       localStorage.removeItem("authToken");
-      localStorage.removeItem("refreshToken");
       localStorage.removeItem("authBusinessId");
       localStorage.removeItem("qrCodeIds");
       localStorage.removeItem("qrTypeMap");
@@ -82,7 +76,6 @@ const BusinessDashboard = () => {
       });
       return;
     }
-
     try {
       const csvContent = [
         ["ID", "Rating", "Rating Label", "Comment", "Reviewer", "Date", "QR Code", "Tags"],
@@ -99,7 +92,6 @@ const BusinessDashboard = () => {
       ]
         .map((row) => row.join(","))
         .join("\n");
-
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
@@ -125,7 +117,6 @@ const BusinessDashboard = () => {
       text: `Total Feedback: ${dashboardData?.total_feedbacks || 0}\nAverage Rating: ${dashboardData?.average_rating?.toFixed(1) || "N/A"}\nRecent Feedback: ${dashboardData?.recentFeedback?.length ? dashboardData.recentFeedback[0].text || "No text" : "No recent feedback"}`,
       url: window.location.href,
     };
-
     if (navigator.share) {
       try {
         await navigator.share(shareData);

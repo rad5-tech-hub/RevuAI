@@ -3,35 +3,14 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
-const refreshToken = async () => {
-  try {
-    const refreshToken = localStorage.getItem("refreshToken");
-    if (!refreshToken) throw new Error("No refresh token available");
-    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/refresh-token`, {
-      refreshToken,
-    });
-    const newToken = response.data.accessToken;
-    localStorage.setItem("authToken", newToken);
-    return newToken;
-  } catch (error) {
-    console.error("Token refresh failed:", error);
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("authBusinessId");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("qrCodeIds");
-    localStorage.removeItem("qrTypeMap");
-    return null;
-  }
-};
-
 const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, retryTrigger }) => {
   const [feedback, setFeedback] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({ total: 0, totalPages: 1, currentPage: 1 });
   const [ratingSummary, setRatingSummary] = useState({});
   const [averageRating, setAverageRating] = useState(0);
+  const [page, setPage] = useState(1);
   const navigate = useNavigate();
   const sort = "newest";
   const cancelTokenSource = useRef(null);
@@ -68,20 +47,13 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
         "1 Star": 1,
       };
       const params = {
+        rating: ratingMap[ratingFilter] || undefined,
         page,
         sort,
-        businessId,
-        search: search || undefined,
-        rating: ratingMap[ratingFilter] || undefined,
-        label: "Bar",
-        type: "Service",
-        productOrServiceId: "H001",
-        qrcode_tags: JSON.stringify(["hospitality", "5-star", "city-center"]),
-        description: "QR code for hotel guest feedback",
-        categoryId: "2f0068c2-c600-4c1f-8ffa-f8a953d641c7",
       };
       try {
         console.log("Fetching reviews with:", { businessId, params, token: token.slice(0, 10) + "..." });
+        console.log("Applied filters:", { rating: ratingMap[ratingFilter], page });
         const reviewsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/review/filter`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -90,41 +62,31 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
           params,
           cancelToken: cancelTokenSource.current.token,
         });
-        console.log("Fetching QR codes for business:", businessId);
-        const qrResponse = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/v1/business/business-qrcode/${businessId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            cancelToken: cancelTokenSource.current.token,
-          }
-        );
         if (isMounted) {
-          console.log("Reviews response:", reviewsResponse.data);
-          console.log("QR codes response:", qrResponse.data);
-          const reviews = (reviewsResponse.data.reviews || []).filter(
-            (review) => review.businessId === businessId
-          );
-          const total = reviews.length;
-          const ratingSummary = reviews.reduce((acc, review) => {
-            acc[review.ratingLabel] = (acc[review.ratingLabel] || 0) + 1;
-            return acc;
-          }, {});
-          const averageRating = reviews.length
-            ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(2)
-            : "0.00";
-          const totalPages = 1; // No pagination, all reviews fetched
-          const qrCodeMap = new Map(
-            (qrResponse.data.business.qrcodes || []).map((qr) => [qr.id, qr.qrcode_url])
-          );
-          const reviewsWithUrls = reviews.map((review) => ({
-            ...review,
-            qrcode_url: qrCodeMap.get(review.qrcodeId) || null,
-          }));
+          console.log("Raw reviews response:", reviewsResponse.data);
+          const reviews = reviewsResponse.data.reviews || [];
+          console.log("Reviews count:", reviews.length, "Total reviews:", reviewsResponse.data.meta.total);
+          const total = reviewsResponse.data.meta.total || reviews.length;
+          const totalPages = reviewsResponse.data.meta.totalPages || 1;
+          const ratingSummary = reviewsResponse.data.ratingSummary || {};
+          const averageRating = reviewsResponse.data.averageRating || "0.00";
+          const reviewsWithUrls = reviews.map((review) => {
+            const mappedReview = {
+              ...review,
+              qrcode_url: review.qrcodeId || "Unknown QR Code",
+              reviewerName: review.isAnonymous || !review.user?.fullname ? "Anonymous" : review.user.fullname,
+            };
+            console.log("Mapped review:", {
+              id: review.id,
+              reviewerName: mappedReview.reviewerName,
+              qrcode_url: mappedReview.qrcode_url,
+              user: review.user,
+              qrcodeId: review.qrcodeId,
+            });
+            return mappedReview;
+          });
           setFeedback(reviewsWithUrls);
-          setMeta({ total, totalPages, currentPage: page });
+          setMeta({ total, totalPages, currentPage: reviewsResponse.data.meta.page || page });
           setRatingSummary(ratingSummary);
           setAverageRating(averageRating);
           setLoading(false);
@@ -144,12 +106,7 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
           message: error.message,
         });
         if (error.response?.status === 401) {
-          const newToken = await refreshToken();
-          if (newToken && isMounted) {
-            localStorage.setItem("authToken", newToken);
-            fetchReviews();
-            return;
-          } else {
+          if (isMounted) {
             setError("Session expired. Please log in again.");
             toast.error("Session expired. Please log in again.", {
               position: "top-right",
@@ -174,9 +131,9 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
         cancelTokenSource.current.cancel("Component unmounted.");
       }
     };
-  }, [search, ratingFilter, sentimentFilter, dateFilter, page, navigate, retryTrigger]);
+  }, [ratingFilter, retryTrigger, page, navigate]);
 
-  return { feedback, loading, error, page, meta, ratingSummary, averageRating, setPage };
+  return { feedback, loading, error, meta, ratingSummary, averageRating, page, setPage };
 };
 
 export default useFetchReviews;
