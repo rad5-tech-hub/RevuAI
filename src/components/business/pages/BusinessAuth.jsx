@@ -17,6 +17,7 @@ const BusinessAuth = () => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
+  const [isAuthChecking, setIsAuthChecking] = useState(true); // New state for auth check
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
@@ -39,11 +40,10 @@ const BusinessAuth = () => {
             data: err.response?.data,
             message: err.message,
           });
-          // Do not clear authToken or authBusinessId; user remains logged in
-          navigate('/businessAuth');
           setError('Unable to verify session. Please try again or log out.');
         }
       }
+      setIsAuthChecking(false); // End auth check
     };
     checkAuth();
   }, [navigate]);
@@ -67,14 +67,10 @@ const BusinessAuth = () => {
   }, []);
 
   // Validate email format
-  const isValidEmail = (email) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   // Validate phone number (basic check)
-  const isValidPhone = (phone) => {
-    return /^\+?[\d\s-]{8,15}$/.test(phone);
-  };
+  const isValidPhone = (phone) => /^\+?[\d\s-]{8,15}$/.test(phone);
 
   // Handle business registration
   const handleSignUp = async () => {
@@ -208,21 +204,35 @@ const BusinessAuth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 relative">
+      {/* Glassmorphic Loader */}
+      {isAuthChecking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+          <div className="bg-white bg-opacity-80 rounded-xl shadow-lg p-8 flex flex-col items-center space-y-4">
+            <div className="relative">
+              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center animate-pulse">
+                <FileText className="w-8 h-8 text-white" />
+              </div>
+              <Loader2 className="w-20 h-20 text-blue-500 animate-spin absolute -top-2 -left-2" />
+            </div>
+            <p className="text-lg font-medium text-gray-900">Verifying your session...</p>
+          </div>
+        </div>
+      )}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <FileText className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                <FileText className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">ScanRevuAi</h1>
-                <p className="text-sm text-gray-600">Business Portal</p>
+                <h1 className="text-2xl font-bold text-gray-900">ScanRevuAi</h1>
+                <p className="text-base text-gray-600">Business Portal</p>
               </div>
             </div>
             <div>
-              <Link to="/userAuth" className="text-blue-600 hover:text-blue-700 font-medium">
+              <Link to="/userAuth" className="text-blue-600 hover:text-blue-700 font-medium text-base">
                 Sign In as User
               </Link>
             </div>
@@ -233,68 +243,68 @@ const BusinessAuth = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           <div className="space-y-8">
             <div className="inline-block">
-              <span className="bg-orange-100 text-orange-800 text-sm font-medium px-3 py-1 rounded-full">
+              <span className="bg-orange-100 text-orange-800 text-base font-medium px-3 py-1 rounded-full">
                 For Businesses
               </span>
             </div>
             <div className="space-y-4">
-              <h2 className="text-4xl font-extrabold text-gray-900 leading-tight tracking-tight">
+              <h2 className="text-5xl font-extrabold text-gray-900 leading-tight tracking-tight">
                 Transform Customer Feedback into Business Growth
               </h2>
-              <p className="text-xl text-gray-600 leading-relaxed">
+              <p className="text-2xl text-gray-600 leading-relaxed">
                 Get actionable insights from your customers with our comprehensive feedback management platform.
               </p>
             </div>
             <div className="space-y-6">
               <div className="flex items-start space-x-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <QrCode className="w-5 h-5 text-blue-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <QrCode className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">QR Code Generation</h3>
-                  <p className="text-gray-600">Create custom QR codes for your business and products</p>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-1">QR Code Generation</h3>
+                  <p className="text-base text-gray-600">Create custom QR codes for your business and products</p>
                 </div>
               </div>
               <div className="flex items-start space-x-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <BarChart3 className="w-5 h-5 text-blue-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <BarChart3 className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Advanced Analytics</h3>
-                  <p className="text-gray-600">Real-time insights and feedback trends</p>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-1">Advanced Analytics</h3>
+                  <p className="text-base text-gray-600">Real-time insights and feedback trends</p>
                 </div>
               </div>
               <div className="flex items-start space-x-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Users className="w-5 h-5 text-blue-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Users className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Customer Insights</h3>
-                  <p className="text-gray-600">Understand your customers better with detailed feedback</p>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-1">Customer Insights</h3>
+                  <p className="text-base text-gray-600">Understand your customers better with detailed feedback</p>
                 </div>
               </div>
               <div className="flex items-start space-x-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Star className="w-5 h-5 text-blue-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Star className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Reputation Management</h3>
-                  <p className="text-gray-600">Monitor and improve your business reputation</p>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-1">Reputation Management</h3>
+                  <p className="text-base text-gray-600">Monitor and improve your business reputation</p>
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-8 pt-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pt-8">
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600 mb-1">10K+</div>
-                <div className="text-sm text-gray-600">Businesses</div>
+                <div className="text-4xl font-bold text-blue-600 mb-1">10K+</div>
+                <div className="text-base text-gray-600">Businesses</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-orange-500 mb-1">500K+</div>
-                <div className="text-sm text-gray-600">Reviews</div>
+                <div className="text-4xl font-bold text-orange-500 mb-1">500K+</div>
+                <div className="text-base text-gray-600">Reviews</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-600 mb-1">98%</div>
-                <div className="text-sm text-gray-600">Satisfaction</div>
+                <div className="text-4xl font-bold text-green-600 mb-1">98%</div>
+                <div className="text-base text-gray-600">Satisfaction</div>
               </div>
             </div>
           </div>
@@ -312,10 +322,16 @@ const BusinessAuth = () => {
                     </div>
                   </div>
                   <div className="text-center mb-8">
-                    <h3 className="text-2xl font-extrabold text-gray-900 mb-2 tracking-tight">
-                      {isVerificationPending ? 'Verify Your Email' : isForgotPassword ? 'Reset Your Password' : isSignUp ? 'Join ScanRevuAi' : 'Access Your Dashboard'}
+                    <h3 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">
+                      {isVerificationPending
+                        ? 'Verify Your Email'
+                        : isForgotPassword
+                        ? 'Reset Your Password'
+                        : isSignUp
+                        ? 'Join ScanRevuAi'
+                        : 'Access Your Dashboard'}
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-base text-gray-600">
                       {isVerificationPending
                         ? 'A verification link has been sent to your email. Please verify your email to continue.'
                         : isForgotPassword
@@ -328,12 +344,12 @@ const BusinessAuth = () => {
                 </div>
                 <div className="p-8">
                   {error && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm font-medium">
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-base font-medium">
                       {error}
                     </div>
                   )}
                   {success && (
-                    <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-xl text-sm font-medium">
+                    <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-xl text-base font-medium">
                       {success}
                     </div>
                   )}
@@ -341,7 +357,7 @@ const BusinessAuth = () => {
                     <div className="space-y-6">
                       <button
                         type="button"
-                        className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg`}
+                        className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-colors duration-300 shadow-md hover:shadow-lg`}
                         onClick={handleVerificationAcknowledged}
                       >
                         I Have Verified My Email
@@ -361,7 +377,7 @@ const BusinessAuth = () => {
                               setEmail('');
                               setPassword('');
                             }}
-                            className={`py-2 px-4 rounded-md text-sm font-semibold transition-colors ${
+                            className={`py-2 px-4 rounded-md text-base font-semibold transition-colors duration-300 ${
                               !isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
                             }`}
                             disabled={isLoading}
@@ -378,7 +394,7 @@ const BusinessAuth = () => {
                               setEmail('');
                               setPassword('');
                             }}
-                            className={`py-2 px-4 rounded-md text-sm font-semibold transition-colors ${
+                            className={`py-2 px-4 rounded-md text-base font-semibold transition-colors duration-300 ${
                               isSignUp ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
                             }`}
                             disabled={isLoading}
@@ -391,19 +407,19 @@ const BusinessAuth = () => {
                         {isForgotPassword ? (
                           <>
                             <div className="relative">
-                              <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <Mail className="w-6 h-6 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                               <input
                                 type="email"
                                 placeholder="Business email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors duration-300 text-base"
                                 disabled={isLoading}
                               />
                             </div>
                             <button
                               type="button"
-                              className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg ${
+                              className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-colors duration-300 shadow-md hover:shadow-lg ${
                                 isLoading ? 'opacity-50 cursor-not-allowed' : ''
                               }`}
                               onClick={handleForgotPassword}
@@ -411,14 +427,14 @@ const BusinessAuth = () => {
                             >
                               {isLoading ? (
                                 <>
-                                  <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" />
+                                  <Loader2 className="w-6 h-6 animate-spin inline-block mr-2" />
                                   Processing...
                                 </>
                               ) : (
                                 'Send Reset Link'
                               )}
                             </button>
-                            <p className="text-center text-sm text-gray-500 mt-4">
+                            <p className="text-center text-base text-gray-500 mt-4">
                               <button
                                 onClick={() => {
                                   setIsForgotPassword(false);
@@ -439,41 +455,41 @@ const BusinessAuth = () => {
                             {isCategoriesLoading ? (
                               <div className="text-center py-4">
                                 <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600" />
-                                <p className="text-sm text-gray-600 mt-2">Loading categories...</p>
+                                <p className="text-base text-gray-600 mt-2">Loading categories...</p>
                               </div>
                             ) : categories.length === 0 ? (
-                              <div className="text-center py-4 text-red-600 text-sm">
+                              <div className="text-center py-4 text-red-600 text-base">
                                 No categories available. Please try again later.
                               </div>
                             ) : null}
                             <div className="relative">
-                              <Building className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <Building className="w-6 h-6 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                               <input
                                 type="text"
                                 placeholder="Business name"
                                 value={businessName}
                                 onChange={(e) => setBusinessName(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors duration-300 text-base"
                                 disabled={isLoading}
                               />
                             </div>
                             <div className="relative">
-                              <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <User className="w-6 h-6 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                               <input
                                 type="text"
                                 placeholder="Owner name"
                                 value={ownerName}
                                 onChange={(e) => setOwnerName(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors duration-300 text-base"
                                 disabled={isLoading}
                               />
                             </div>
                             <div className="relative">
-                              <Tag className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <Tag className="w-6 h-6 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                               <select
                                 value={categoryId}
                                 onChange={(e) => setCategoryId(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors appearance-none"
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors duration-300 appearance-none text-base"
                                 disabled={isLoading || categories.length === 0}
                               >
                                 <option value="" disabled>
@@ -487,52 +503,52 @@ const BusinessAuth = () => {
                               </select>
                             </div>
                             <div className="relative">
-                              <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <Mail className="w-6 h-6 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                               <input
                                 type="email"
                                 placeholder="Business email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors duration-300 text-base"
                                 disabled={isLoading}
                               />
                             </div>
                             <div className="relative">
-                              <Phone className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <Phone className="w-6 h-6 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                               <input
                                 type="tel"
                                 placeholder="Phone number"
                                 value={phoneNumber}
                                 onChange={(e) => setPhoneNumber(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors duration-300 text-base"
                                 disabled={isLoading}
                               />
                             </div>
                             <div className="relative">
-                              <Building className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <Building className="w-6 h-6 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                               <input
                                 type="text"
                                 placeholder="Business address"
                                 value={address}
                                 onChange={(e) => setAddress(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors duration-300 text-base"
                                 disabled={isLoading}
                               />
                             </div>
                             <div className="relative">
-                              <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <Lock className="w-6 h-6 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                               <input
                                 type="password"
                                 placeholder="Create password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors duration-300 text-base"
                                 disabled={isLoading}
                               />
                             </div>
                             <button
                               type="button"
-                              className={`w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg ${
+                              className={`w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold transition-colors duration-300 shadow-md hover:shadow-lg ${
                                 isLoading || categories.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
                               }`}
                               onClick={handleSignUp}
@@ -540,44 +556,44 @@ const BusinessAuth = () => {
                             >
                               {isLoading ? (
                                 <>
-                                  <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" />
+                                  <Loader2 className="w-6 h-6 animate-spin inline-block mr-2" />
                                   Processing...
                                 </>
                               ) : (
                                 'Start Free Trial'
                               )}
                             </button>
-                            <p className="text-center text-sm text-gray-500 mt-4">
+                            <p className="text-center text-base text-gray-500 mt-4">
                               14-day free trial • No credit card required
                             </p>
                           </>
                         ) : (
                           <>
                             <div className="relative">
-                              <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <Mail className="w-6 h-6 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                               <input
                                 type="email"
                                 placeholder="Business email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors duration-300 text-base"
                                 disabled={isLoading}
                               />
                             </div>
                             <div className="relative">
-                              <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                              <Lock className="w-6 h-6 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                               <input
                                 type="password"
                                 placeholder="Password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors duration-300 text-base"
                                 disabled={isLoading}
                               />
                             </div>
                             <button
                               type="button"
-                              className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-colors shadow-md hover:shadow-lg ${
+                              className={`w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-colors duration-300 shadow-md hover:shadow-lg ${
                                 isLoading ? 'opacity-50 cursor-not-allowed' : ''
                               }`}
                               onClick={handleSignIn}
@@ -585,14 +601,14 @@ const BusinessAuth = () => {
                             >
                               {isLoading ? (
                                 <>
-                                  <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" />
+                                  <Loader2 className="w-6 h-6 animate-spin inline-block mr-2" />
                                   Processing...
                                 </>
                               ) : (
                                 'Access Dashboard'
                               )}
                             </button>
-                            <div className="text-center text-sm text-gray-500 mt-4">
+                            <div className="text-center text-base text-gray-500 mt-4">
                               <button
                                 onClick={() => {
                                   setIsForgotPassword(true);
@@ -602,7 +618,7 @@ const BusinessAuth = () => {
                                   setEmail('');
                                   setPassword('');
                                 }}
-                                className="text-blue-600 hover:text-blue-700 hover:underline font-semibold mt-2"
+                                className="text-blue-600 hover:text-blue-700 hover:underline font-semibold"
                                 disabled={isLoading}
                               >
                                 Forgot Password?
