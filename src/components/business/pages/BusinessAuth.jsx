@@ -207,7 +207,7 @@ const BusinessAuth = () => {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 relative">
       {/* Glassmorphic Loader */}
       {isAuthChecking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
           <div className="bg-white bg-opacity-80 rounded-xl shadow-lg p-8 flex flex-col items-center space-y-4">
             <div className="relative">
               <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center animate-pulse">

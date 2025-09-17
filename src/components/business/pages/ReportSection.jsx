@@ -412,7 +412,7 @@ const ReportSection = () => {
 
       {/* Modal for View All Insights */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
           <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-medium text-gray-900">All AI-Powered Insights</h2>
