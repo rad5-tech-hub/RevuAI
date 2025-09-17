@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import logo from '/Social Media Icon.png'; // Adjust path if logo is elsewhere
 
 const UserAccount = () => {
   const [userStats, setUserStats] = useState({
@@ -12,21 +13,24 @@ const UserAccount = () => {
     businessesReviewed: [],
   });
   const [recentFeedback, setRecentFeedback] = useState([]);
+  const [feedbackResponses, setFeedbackResponses] = useState([]);
+  const [showAllFeedback, setShowAllFeedback] = useState(false);
+  const [showAllBusinesses, setShowAllBusinesses] = useState(false); // New state for businesses toggle
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const location = useLocation();
+  const { state } = useLocation();
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   // Extract businessId and qrcodeId from navigation state
-  const { businessId, qrcodeId, fromThankYou } = location.state || {};
+  const { businessId, qrcodeId, fromThankYou } = state || {};
 
   // Debug location.state and token
   useEffect(() => {
     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-    // console.log('UserAccount Location State:', location.state);
+    // console.log('UserAccount Location State:', state);
     // console.log('Auth token:', token || 'No token');
-  }, [location.state]);
+  }, [state]);
 
   // Fetch user dashboard data
   useEffect(() => {
@@ -73,7 +77,6 @@ const UserAccount = () => {
         });
 
         if (Array.isArray(data.recent_feedbacks)) {
-          // Parse qrcode_tags if it's a string
           const parsedFeedbacks = data.recent_feedbacks.map((feedback) => ({
             ...feedback,
             qrcode_tags: typeof feedback.qrcode_tags === 'string'
@@ -83,7 +86,6 @@ const UserAccount = () => {
                 : [],
           }));
           setRecentFeedback(parsedFeedbacks);
-          // Log qrcode_tags for each feedback
           parsedFeedbacks.forEach((feedback, index) => {
             // console.log(`Feedback ${index} qrcode_tags:`, feedback.qrcode_tags, 'Type:', typeof feedback.qrcode_tags);
           });
@@ -103,25 +105,88 @@ const UserAccount = () => {
     fetchUserDashboard();
   }, [navigate, businessId, qrcodeId]);
 
-  const handleBack = () => {
-    // console.log('handleBack - location.state:', location.state, 'recentFeedback:', recentFeedback);
-    if (location.state?.businessId && location.state?.qrcodeId) {
-      navigate(`/qr/${location.state.businessId}/${location.state.qrcodeId}`);
-    } else {
-      const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
-      if (storedQrContext.businessId && storedQrContext.qrcodeId) {
-        navigate(`/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
-      } else if (recentFeedback.length > 0 && recentFeedback[0].businessId && recentFeedback[0].qrcodeId) {
-        navigate(`/qr/${recentFeedback[0].businessId}/${recentFeedback[0].qrcodeId}`);
-      } else {
-        navigate(-1);
-      }
-    }
+  // Fetch feedback responses
+  // useEffect(() => {
+  //   const fetchFeedbackResponses = async () => {
+  //     try {
+  //       const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+  //       if (!token) {
+  //         console.warn('No token found for fetching feedback responses');
+  //         return;
+  //       }
+
+  //       const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+  //       const userId = userData.id;
+  //       if (!userId) {
+  //         console.warn('No userId found in userData');
+  //         return;
+  //       }
+
+  //       const response = await fetch(`${BASE_URL}/api/v1/review/review-response`, {
+  //         method: 'GET',
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //           'Content-Type': 'application/json',
+  //         },
+  //       });
+
+  //       if (!response.ok) {
+  //         const errorData = await response.json();
+  //         throw new Error(errorData.message || `Failed to fetch feedback responses: ${response.status}`);
+  //       }
+
+  //       const data = await response.json();
+  //       // console.log('Feedback Responses API Response:', JSON.stringify(data, null, 2));
+
+  //       const responseArray = Array.isArray(data.data) ? data.data : [];
+  //       const userResponses = responseArray
+  //         .filter((feedback) => feedback.userId === userId && feedback.responses?.length > 0)
+  //         .map((feedback) => ({
+  //           feedbackId: feedback.id,
+  //           businessId: feedback.businessId,
+  //           response: feedback.responses[0]?.response || null,
+  //           responseCreatedAt: feedback.responses[0]?.createdAt || null,
+  //         }));
+
+  //       const sortedResponses = userResponses.sort((a, b) =>
+  //         b.responseCreatedAt ? new Date(b.responseCreatedAt) - new Date(a.responseCreatedAt) : 0
+  //       );
+  //       setFeedbackResponses(sortedResponses);
+  //     } catch (err) {
+  //       console.error('Error fetching feedback responses:', err);
+  //       toast.error('Failed to load feedback responses');
+  //     }
+  //   };
+
+  //   fetchFeedbackResponses();
+  // }, []);
+
+  // Merge feedback with responses
+  // const mergedFeedback = recentFeedback
+  //   .map((feedback) => {
+  //     const response = feedbackResponses.find(
+  //       (res) => res.feedbackId === feedback.id && res.businessId === feedback.businessId
+  //     );
+  //     return {
+  //       ...feedback,
+  //       businessResponse: response ? response.response : null,
+  //     };
+  //   })
+  //   .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  // Toggle between showing 4 or all feedback/businesses
+  const displayedFeedback = showAllFeedback ? mergedFeedback : mergedFeedback.slice(0, 4);
+  const displayedBusinesses = showAllBusinesses
+    ? userStats.businessesReviewed
+    : userStats.businessesReviewed.slice(0, 4);
+
+  const handleLogoClick = () => {
+    navigate('/');
   };
 
   const handleContinueToFeedback = () => {
-    if (location.state?.businessId && location.state?.qrcodeId) {
-      navigate(`/feedbackForm/${location.state.businessId}/${location.state.qrcodeId}`);
+    if (state?.businessId && state?.qrcodeId) {
+      navigate(`/feedbackForm/${state.businessId}/${state.qrcodeId}`);
     } else {
       const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
       if (storedQrContext.businessId && storedQrContext.qrcodeId) {
@@ -183,15 +248,9 @@ const UserAccount = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <ToastContainer />
-      <div className="bg-white flex items-center px-4 py-4 shadow-sm">
-        <button
-          onClick={handleBack}
-          className="text-black hover:text-blue-700 cursor-pointer hover:bg-blue-100 px-2 py-1 rounded flex items-center text-sm"
-        >
-          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back
+      <div className="bg-white flex items-center px-4 py-2 shadow-sm">
+        <button onClick={handleLogoClick} className="cursor-pointer rounded-full p-2 border border-blue-600">
+          <img src={logo} alt="ScanRevuAI Logo" className="h-8 w-auto rounded-full" />
         </button>
       </div>
 
@@ -215,13 +274,23 @@ const UserAccount = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Tag className="w-5 h-5 text-blue-600" />
-            <h2 className="text-gray-800 font-medium">Reviewed Businesses</h2>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Tag className="w-5 h-5 text-blue-600" />
+              <h2 className="text-gray-800 font-medium">Reviewed Businesses</h2>
+            </div>
+            {userStats.businessesReviewed.length > 4 && (
+              <button
+                onClick={() => setShowAllBusinesses(!showAllBusinesses)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-sm cursor-pointer text-xs font-medium transition-colors"
+              >
+                {showAllBusinesses ? 'See Less' : 'See All'}
+              </button>
+            )}
           </div>
-          {userStats.businessesReviewed.length > 0 ? (
+          {displayedBusinesses.length > 0 ? (
             <div className="space-y-2">
-              {userStats.businessesReviewed.map((business, index) => (
+              {displayedBusinesses.map((business, index) => (
                 <div
                   key={business.id || index}
                   className="flex items-center justify-between bg-gray-50 rounded-sm px-4 py-3 border-b border-gray-100 last:border-b-0"
@@ -240,13 +309,23 @@ const UserAccount = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-5 h-5 text-blue-600" />
-            <h2 className="text-gray-800 font-medium">Recent Feedback</h2>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-blue-600" />
+              <h2 className="text-gray-800 font-medium">Recent Feedback</h2>
+            </div>
+            {mergedFeedback.length > 4 && (
+              <button
+                onClick={() => setShowAllFeedback(!showAllFeedback)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 cursor-pointer rounded-sm text-xs font-medium transition-colors"
+              >
+                {showAllFeedback ? 'Recent Feedback' : 'All Feedback'}
+              </button>
+            )}
           </div>
-          {recentFeedback.length > 0 ? (
+          {displayedFeedback.length > 0 ? (
             <div className="space-y-4">
-              {recentFeedback.map((feedback, index) => (
+              {displayedFeedback.map((feedback, index) => (
                 <div
                   key={`${feedback.id || 'feedback'}-${index}`}
                   className="flex flex-col md:flex-row items-start md:items-center justify-between bg-blue-50 rounded-sm px-4 py-3 border-b border-gray-100 last:border-b-0"
@@ -282,8 +361,13 @@ const UserAccount = () => {
                       </div>
                     )}
                     {feedback.comment && (
-                      <p className="text-gray-600 text-xs mt-1 max-w-full truncate">
-                        "{feedback.comment}"
+                      <p className="text-gray-600 text-xs mt-1 max-w-full">
+                        <span className="font-medium">Your Feedback:</span> "{feedback.comment}"
+                      </p>
+                    )}
+                    {feedback.businessResponse && (
+                      <p className="text-gray-600 text-xs mt-1 max-w-full">
+                        <span className="font-medium">Business Response:</span> "{feedback.businessResponse}"
                       </p>
                     )}
                   </div>

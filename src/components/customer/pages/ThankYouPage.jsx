@@ -15,25 +15,42 @@ const ThankYouPage = () => {
   const { businessId, qrcodeId, qrContext: stateQrContext } = state || {};
   const BASE_SCAN_URL = import.meta.env.VITE_SCAN_URL?.replace(/\/+$/, '') || 'https://your-app.vercel.app';
 
-  // Check authentication and construct QR code URL
+  // Timeout for clearing qrContext (30 minutes = 1800000 ms)
+  const QR_CONTEXT_TIMEOUT = 30 * 60 * 1000;
+
+  // Check authentication, construct QR code URL, and manage qrContext
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const userData = localStorage.getItem('userData');
     setIsAuthenticated(!!token && !!userData);
 
-    // Set qrContext from state or localStorage
+    // Check and clear expired qrContext
+    const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
+    const qrContextTimestamp = localStorage.getItem('qrContextTimestamp');
+    const currentTime = Date.now();
+
+    if (qrContextTimestamp && storedQrContext.businessId && storedQrContext.qrcodeId) {
+      const timeElapsed = currentTime - parseInt(qrContextTimestamp, 10);
+      if (timeElapsed > QR_CONTEXT_TIMEOUT) {
+        localStorage.removeItem('qrContext');
+        localStorage.removeItem('qrContextTimestamp');
+        // console.log('ThankYouPage - Cleared expired qrContext');
+      } else {
+        setQrContext(storedQrContext);
+        // console.log('ThankYouPage - Loaded qrContext from localStorage:', storedQrContext);
+      }
+    }
+
+    // Set qrContext from state if provided
     if (stateQrContext) {
       setQrContext(stateQrContext);
       // console.log('ThankYouPage - Loaded qrContext from location.state:', stateQrContext);
       localStorage.setItem('qrContext', JSON.stringify(stateQrContext));
+      localStorage.setItem('qrContextTimestamp', currentTime.toString());
+    } else if (storedQrContext.businessId && storedQrContext.qrcodeId) {
+      setQrContext(storedQrContext);
     } else {
-      const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
-      if (storedQrContext.businessId && storedQrContext.qrcodeId) {
-        setQrContext(storedQrContext);
-        // console.log('ThankYouPage - Loaded qrContext from localStorage:', storedQrContext);
-      } else {
-        console.warn('ThankYouPage - No qrContext found');
-      }
+      console.warn('ThankYouPage - No qrContext found');
     }
 
     // Construct QR code URL
@@ -41,16 +58,28 @@ const ThankYouPage = () => {
       const constructedUrl = `${BASE_SCAN_URL}/qr/${businessId}/${qrcodeId}`;
       setQrCodeUrl(constructedUrl);
       // console.log('ThankYouPage - QR Code URL:', constructedUrl);
+    } else if (storedQrContext.businessId && storedQrContext.qrcodeId) {
+      const constructedUrl = `${BASE_SCAN_URL}/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`;
+      setQrCodeUrl(constructedUrl);
+      // console.log('ThankYouPage - QR Code URL from qrContext:', constructedUrl);
     } else {
-      const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
-      if (storedQrContext.businessId && storedQrContext.qrcodeId) {
-        const constructedUrl = `${BASE_SCAN_URL}/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`;
-        setQrCodeUrl(constructedUrl);
-        // console.log('ThankYouPage - QR Code URL from qrContext:', constructedUrl);
-      } else {
-        console.warn('ThankYouPage - No businessId or qrcodeId found');
-      }
+      console.warn('ThankYouPage - No businessId or qrcodeId found');
     }
+
+    // Set up interval to check and clear expired qrContext
+    const interval = setInterval(() => {
+      const storedTimestamp = localStorage.getItem('qrContextTimestamp');
+      if (storedTimestamp) {
+        const timeElapsed = Date.now() - parseInt(storedTimestamp, 10);
+        if (timeElapsed > QR_CONTEXT_TIMEOUT) {
+          localStorage.removeItem('qrContext');
+          localStorage.removeItem('qrContextTimestamp');
+          // console.log('ThankYouPage - Cleared expired qrContext via interval');
+        }
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval); // Cleanup interval on unmount
   }, [businessId, qrcodeId, stateQrContext]);
 
   // Handle navigation to create account
@@ -60,6 +89,10 @@ const ThankYouPage = () => {
 
   // Handle navigation to dashboard (signed-in users)
   const handleGoToDashboard = () => {
+    // Clear only qrContext and qrContextTimestamp to preserve authToken and userData
+    localStorage.removeItem('qrContext');
+    localStorage.removeItem('qrContextTimestamp');
+    // console.log('ThankYouPage - Cleared qrContext and qrContextTimestamp on dashboard navigation');
     navigate('/userAccount', { state: { businessId, qrcodeId, qrContext, fromThankYou: true } });
   };
 

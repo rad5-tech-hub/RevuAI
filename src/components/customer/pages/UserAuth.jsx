@@ -1,80 +1,102 @@
-import { User, Mail, Lock, X } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import logo from '/Social Media Icon.png'; // Adjust path if logo is elsewhere
+import { User, Mail, Lock, X, CheckCircle, AlertCircle } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 const UserAuth = () => {
-  const [activeTab, setActiveTab] = useState('signin');
+  const [activeTab, setActiveTab] = useState("signin");
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotError, setForgotError] = useState('');
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState("");
+  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
   const [formData, setFormData] = useState({
-    fullname: '',
-    email: '',
-    password: '',
+    fullname: "",
+    email: "",
+    password: "",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   // Extract businessId and qrcodeId from navigation state
   const { businessId, qrcodeId } = location.state || {};
 
+  // Check if user is coming from QR code landing page
+  const storedQrContext = JSON.parse(localStorage.getItem("qrContext") || "{}");
+  const hasQrContext =
+    (businessId && qrcodeId) ||
+    (storedQrContext.businessId && storedQrContext.qrcodeId);
+
   // Auto-login check
   useEffect(() => {
-    const authToken = localStorage.getItem('authToken');
+    const authToken = localStorage.getItem("authToken");
     if (authToken) {
       const validateToken = async () => {
         try {
-          const response = await fetch(`${BASE_URL}/api/v1/user/validate-token`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${authToken}`,
-            },
-          });
+          const response = await fetch(
+            `${BASE_URL}/api/v1/user/validate-token`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${authToken}`,
+              },
+            }
+          );
 
           const data = await response.json();
 
           if (response.ok && data.valid) {
-            // Ensure userData exists
-            let userData = localStorage.getItem('userData');
+            let userData = localStorage.getItem("userData");
             if (!userData) {
-              userData = JSON.stringify({ fullname: data.user?.fullname || 'User', email: data.user?.email || '' });
-              localStorage.setItem('userData', userData);
+              userData = JSON.stringify({
+                fullname: data.user?.fullname || "User",
+                email: data.user?.email || "",
+              });
+              localStorage.setItem("userData", userData);
             }
-            // Navigate to userAccount with QR context
-            navigate('/userAccount', { state: { businessId, qrcodeId } });
+            // Navigate based on QR context
+            if (hasQrContext) {
+              if (businessId && qrcodeId) {
+                navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
+              } else {
+                navigate(
+                  `/feedbackForm/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`
+                );
+              }
+            } else {
+              navigate("/userAccount");
+            }
           } else {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('userData');
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("userData");
           }
         } catch (error) {
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('userData');
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("userData");
         }
       };
       validateToken();
     }
-  }, [navigate, businessId, qrcodeId]);
+  }, [navigate, businessId, qrcodeId, hasQrContext]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    setError('');
+    setError("");
+    setSuccess("");
     setFormData({
-      fullname: '',
-      email: '',
-      password: '',
+      fullname: "",
+      email: "",
+      password: "",
     });
   };
 
   const handleInputChange = (field, value) => {
-    setError('');
+    setError("");
+    setSuccess("");
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -83,23 +105,23 @@ const UserAuth = () => {
 
   const validateForm = () => {
     if (!formData.email.trim()) {
-      setError('Email is required');
+      setError("Email is required");
       return false;
     }
     if (!formData.password.trim()) {
-      setError('Password is required');
+      setError("Password is required");
       return false;
     }
-    if (activeTab === 'signup' && !formData.fullname.trim()) {
-      setError('Full name is required');
+    if (activeTab === "signup" && !formData.fullname.trim()) {
+      setError("Full name is required");
       return false;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      setError('Please enter a valid email address');
+      setError("Please enter a valid email address");
       return false;
     }
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError("Password must be at least 6 characters long");
       return false;
     }
     return true;
@@ -109,16 +131,17 @@ const UserAuth = () => {
     if (!validateForm()) return;
 
     setLoading(true);
-    setError('');
+    setError("");
+    setSuccess("");
 
     try {
       const url =
-        activeTab === 'signin'
+        activeTab === "signin"
           ? `${BASE_URL}/api/v1/user/login`
           : `${BASE_URL}/api/v1/user/register-user`;
 
       const payload =
-        activeTab === 'signin'
+        activeTab === "signin"
           ? {
               email: formData.email,
               password: formData.password,
@@ -130,9 +153,9 @@ const UserAuth = () => {
             };
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
       });
@@ -140,12 +163,14 @@ const UserAuth = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || `${activeTab === 'signin' ? 'Login' : 'Registration'} failed`);
+        throw new Error(
+          data.message ||
+            `${activeTab === "signin" ? "Login" : "Registration"} failed`
+        );
       }
 
-      toast.success(`${activeTab === 'signin' ? 'Login' : 'Registration'} successful!`);
-
-      if (activeTab === 'signin') {
+      if (activeTab === "signin") {
+        setSuccess("Login successful!");
         let token = null;
         if (data.token) {
           token = data.token;
@@ -160,94 +185,114 @@ const UserAuth = () => {
         }
 
         if (token) {
-          localStorage.setItem('authToken', token);
+          localStorage.setItem("authToken", token);
         } else {
-          toast.warning('Login successful but no token received.');
+          setSuccess("Login successful but no token received.");
         }
 
         const userData = {
           fullname: data.fullname || formData.email,
           email: formData.email,
         };
-        localStorage.setItem('userData', JSON.stringify(userData));
+        localStorage.setItem("userData", JSON.stringify(userData));
 
-        navigate('/userAccount', { state: { businessId, qrcodeId } });
+        // Navigate based on QR context
+        setTimeout(() => {
+          if (hasQrContext) {
+            if (businessId && qrcodeId) {
+              navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
+            } else {
+              navigate(
+                `/feedbackForm/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`
+              );
+            }
+          } else {
+            navigate("/userAccount");
+          }
+        }, 1500); // Delay to show success message
       } else {
-        setActiveTab('signin');
+        setSuccess("Please verify your email to continue");
+        setFormData({
+          fullname: "",
+          email: "",
+          password: "",
+        });
       }
     } catch (error) {
-      setError(error.message || 'An unexpected error occurred');
-      toast.error(error.message || 'An unexpected error occurred');
+      setError(error.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
   };
 
   const handleSkip = () => {
-    const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
-    const hasQrContext = (businessId && qrcodeId) || (storedQrContext.businessId && storedQrContext.qrcodeId);
-
     if (hasQrContext) {
-      localStorage.removeItem('userData');
+      localStorage.removeItem("userData");
       if (businessId && qrcodeId) {
         navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
       } else {
-        navigate(`/feedbackForm/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
+        navigate(
+          `/feedbackForm/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`
+        );
       }
     } else {
-      navigate('/businessAuth');
+      navigate("/businessAuth");
     }
   };
 
   const handleBack = () => {
-    const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
-    const hasQrContext = (businessId && qrcodeId) || (storedQrContext.businessId && storedQrContext.qrcodeId);
-
     if (hasQrContext) {
       if (businessId && qrcodeId) {
         navigate(`/qr/${businessId}/${qrcodeId}`);
       } else {
-        navigate(`/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`);
+        navigate(
+          `/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`
+        );
       }
     } else {
-      navigate('/');
+      navigate(-1); // Go back to previous page
     }
   };
 
   const handleForgotPassword = async () => {
     if (!forgotEmail.trim()) {
-      setForgotError('Email is required');
+      setForgotError("Email is required");
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) {
-      setForgotError('Please enter a valid email address');
+      setForgotError("Please enter a valid email address");
       return;
     }
 
     setForgotLoading(true);
-    setForgotError('');
+    setForgotError("");
+    setForgotSuccess("");
 
     try {
-      const response = await fetch(`${BASE_URL}/api/v1/user/user-forgot-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: forgotEmail }),
-      });
+      const response = await fetch(
+        `${BASE_URL}/api/v1/user/user-forgot-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: forgotEmail }),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to send password reset email');
+        throw new Error(data.message || "Failed to send password reset email");
       }
 
-      toast.success(data.message || 'Password reset email sent!');
-      setIsForgotPasswordOpen(false);
-      setForgotEmail('');
+      setForgotSuccess(data.message || "Password reset email sent!");
+      setTimeout(() => {
+        setIsForgotPasswordOpen(false);
+        setForgotEmail("");
+      }, 1500); // Delay to show success message
     } catch (error) {
-      setForgotError(error.message || 'An unexpected error occurred');
-      toast.error(error.message || 'An unexpected error occurred');
+      setForgotError(error.message || "An unexpected error occurred");
     } finally {
       setForgotLoading(false);
     }
@@ -255,24 +300,42 @@ const UserAuth = () => {
 
   const handleCloseModal = () => {
     setIsForgotPasswordOpen(false);
-    setForgotEmail('');
-    setForgotError('');
+    setForgotEmail("");
+    setForgotError("");
+    setForgotSuccess("");
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <ToastContainer />
       {/* Header */}
-      <div className="bg-white flex items-center px-4 py-4 shadow-sm">
+      <div className="bg-white flex items-center justify-between px-4 py-4 shadow-sm">
         <button
           onClick={handleBack}
           className="text-black hover:text-blue-700 cursor-pointer hover:bg-blue-100 px-2 py-1 rounded flex items-center text-sm"
         >
-          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          <svg
+            className="w-4 h-4 mr-1"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
           </svg>
           Back
         </button>
+        {!hasQrContext && (
+          <button
+            onClick={handleSkip}
+            className="text-black hover:text-blue-800 cursor-pointer hover:bg-blue-100 px-2 py-1 rounded text-sm transition-colors"
+          >
+            Continue as Business
+          </button>
+        )}
       </div>
 
       <div className="w-full max-w-md mx-auto px-4 py-12">
@@ -281,8 +344,12 @@ const UserAuth = () => {
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <User className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-blue-600 text-xl font-medium mb-2">Join ScanRevuAI</h1>
-          <p className="text-gray-600 text-sm">Sign in to track your feedback history</p>
+          <h1 className="text-blue-600 text-xl font-medium mb-2">
+            Join ScanRevuAI
+          </h1>
+          <p className="text-gray-600 text-sm">
+            Sign in to track your feedback history
+          </p>
         </div>
 
         {/* Auth Form Card */}
@@ -290,44 +357,53 @@ const UserAuth = () => {
           {/* Tab Navigation */}
           <div className="flex mb-6">
             <button
-              onClick={() => handleTabChange('signin')}
+              onClick={() => handleTabChange("signin")}
               className={`flex-1 py-2 px-4 text-sm font-medium cursor-pointer rounded-l-lg transition-colors ${
-                activeTab === 'signin'
-                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                  : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-blue-100'
+                activeTab === "signin"
+                  ? "bg-blue-100 text-blue-700 border border-blue-200"
+                  : "bg-gray-50 text-gray-600 border border-gray-200 hover:bg-blue-100"
               }`}
             >
               Sign In
             </button>
             <button
-              onClick={() => handleTabChange('signup')}
+              onClick={() => handleTabChange("signup")}
               className={`flex-1 py-2 px-4 text-sm font-medium cursor-pointer rounded-r-lg transition-colors ${
-                activeTab === 'signup'
-                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                  : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-blue-100'
+                activeTab === "signup"
+                  ? "bg-blue-100 text-blue-700 border border-blue-200"
+                  : "bg-gray-50 text-gray-600 border border-gray-200 hover:bg-blue-100"
               }`}
             >
               Sign Up
             </button>
           </div>
 
+          {/* Success Message */}
+          {success && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 flex items-center">
+              <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
+              <p className="text-green-600 text-sm">{success}</p>
+            </div>
+          )}
+
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center">
+              <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
               <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
 
           {/* Form Fields */}
           <div className="space-y-4">
-            {activeTab === 'signup' && (
+            {activeTab === "signup" && (
               <div className="relative">
                 <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Full name"
                   value={formData.fullname}
-                  onChange={(e) => handleInputChange('fullname', e.target.value)}
+                  onChange={(e) => handleInputChange("fullname", e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 />
               </div>
@@ -339,7 +415,7 @@ const UserAuth = () => {
                 type="email"
                 placeholder="Email address"
                 value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
+                onChange={(e) => handleInputChange("email", e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               />
             </div>
@@ -348,14 +424,14 @@ const UserAuth = () => {
               <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
                 type="password"
-                placeholder={activeTab === 'signin' ? 'Password' : 'Create password'}
+                placeholder={activeTab === "signin" ? "Password" : "Create password"}
                 value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
+                onChange={(e) => handleInputChange("password", e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               />
             </div>
 
-            {activeTab === 'signin' && (
+            {activeTab === "signin" && (
               <div className="text-right">
                 <button
                   onClick={() => setIsForgotPasswordOpen(true)}
@@ -372,10 +448,10 @@ const UserAuth = () => {
             onClick={handleSubmit}
             disabled={loading}
             className={`w-full py-3 rounded-lg text-sm cursor-pointer font-medium transition-colors mt-6 flex items-center justify-center ${
-              activeTab === 'signin'
-                ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                : 'bg-yellow-400 hover:bg-yellow-500 text-gray-800'
-            } ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              activeTab === "signin"
+                ? "bg-blue-500 hover:bg-blue-600 text-white"
+                : "bg-yellow-400 hover:bg-yellow-500 text-gray-800"
+            } ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
           >
             {loading ? (
               <>
@@ -385,36 +461,41 @@ const UserAuth = () => {
                   fill="none"
                   viewBox="0 0 24 24"
                 >
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  ></path>
                 </svg>
                 Processing...
               </>
-            ) : activeTab === 'signin' ? (
-              'Sign In'
+            ) : activeTab === "signin" ? (
+              "Sign In"
             ) : (
-              'Create Account'
+              "Create Account"
             )}
           </button>
 
           {/* Additional Info */}
           <div className="mt-4 text-center">
-            {activeTab === 'signin' ? (
-              <p className="text-gray-500 text-xs">Demo: Use any email and password to continue</p>
+            {activeTab === "signin" ? (
+              <p className="text-gray-500 text-xs">
+                Demo: Use any email and password to continue
+              </p>
             ) : (
-              <p className="text-gray-500 text-xs">By signing up, you agree to our Terms and Privacy Policy</p>
+              <p className="text-gray-500 text-xs">
+                By signing up, you agree to our Terms and Privacy Policy
+              </p>
             )}
           </div>
-        </div>
-
-        {/* Continue as Business */}
-        <div className="text-center">
-          <button
-            onClick={handleSkip}
-            className="text-black text-sm hover:text-blue-800 rounded-sm hover:bg-blue-100 px-2 py-3 cursor-pointer transition-colors"
-          >
-            Continue as Business
-          </button>
         </div>
 
         {/* Forgot Password Modal */}
@@ -431,8 +512,16 @@ const UserAuth = () => {
                 </button>
               </div>
 
+              {forgotSuccess && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 flex items-center">
+                  <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
+                  <p className="text-green-600 text-sm">{forgotSuccess}</p>
+                </div>
+              )}
+
               {forgotError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center">
+                  <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
                   <p className="text-red-600 text-sm">{forgotError}</p>
                 </div>
               )}
@@ -444,7 +533,8 @@ const UserAuth = () => {
                   placeholder="Enter your email address"
                   value={forgotEmail}
                   onChange={(e) => {
-                    setForgotError('');
+                    setForgotError("");
+                    setForgotSuccess("");
                     setForgotEmail(e.target.value);
                   }}
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
@@ -455,7 +545,9 @@ const UserAuth = () => {
                 onClick={handleForgotPassword}
                 disabled={forgotLoading}
                 className={`w-full py-3 rounded-lg text-sm font-medium cursor-pointer transition-colors flex items-center justify-center ${
-                  forgotLoading ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
+                  forgotLoading
+                    ? "bg-gray-400 cursor-not-allowed text-white"
+                    : "bg-blue-500 hover:bg-blue-600 text-white"
                 }`}
               >
                 {forgotLoading ? (
@@ -466,13 +558,24 @@ const UserAuth = () => {
                       fill="none"
                       viewBox="0 0 24 24"
                     >
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      ></path>
                     </svg>
                     Sending...
                   </>
                 ) : (
-                  'Send Reset Link'
+                  "Send Reset Link"
                 )}
               </button>
             </div>
