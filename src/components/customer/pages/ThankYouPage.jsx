@@ -1,39 +1,39 @@
-import { Check, Star, Users, QrCode, User } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { Check, Star, Users, QrCode, User } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const ThankYouPage = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [qrContext, setQrContext] = useState(null);
 
   // Extract businessId, qrcodeId, and qrContext from location.state or localStorage
   const { businessId, qrcodeId, qrContext: stateQrContext } = state || {};
-  const BASE_SCAN_URL = import.meta.env.VITE_SCAN_URL?.replace(/\/+$/, '') || 'https://your-app.vercel.app';
+  const BASE_SCAN_URL = import.meta.env.VITE_SCAN_URL?.replace(/\/+$/, "") || "https://your-app.vercel.app";
 
   // Timeout for clearing qrContext (30 minutes = 1800000 ms)
   const QR_CONTEXT_TIMEOUT = 30 * 60 * 1000;
 
   // Check authentication, construct QR code URL, and manage qrContext
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const userData = localStorage.getItem('userData');
+    const token = localStorage.getItem("authToken");
+    const userData = localStorage.getItem("userData");
     setIsAuthenticated(!!token && !!userData);
 
     // Check and clear expired qrContext
-    const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
-    const qrContextTimestamp = localStorage.getItem('qrContextTimestamp');
+    const storedQrContext = JSON.parse(localStorage.getItem("qrContext") || "{}");
+    const qrContextTimestamp = localStorage.getItem("qrContextTimestamp");
     const currentTime = Date.now();
 
     if (qrContextTimestamp && storedQrContext.businessId && storedQrContext.qrcodeId) {
       const timeElapsed = currentTime - parseInt(qrContextTimestamp, 10);
       if (timeElapsed > QR_CONTEXT_TIMEOUT) {
-        localStorage.removeItem('qrContext');
-        localStorage.removeItem('qrContextTimestamp');
+        localStorage.removeItem("qrContext");
+        localStorage.removeItem("qrContextTimestamp");
         // console.log('ThankYouPage - Cleared expired qrContext');
       } else {
         setQrContext(storedQrContext);
@@ -45,12 +45,12 @@ const ThankYouPage = () => {
     if (stateQrContext) {
       setQrContext(stateQrContext);
       // console.log('ThankYouPage - Loaded qrContext from location.state:', stateQrContext);
-      localStorage.setItem('qrContext', JSON.stringify(stateQrContext));
-      localStorage.setItem('qrContextTimestamp', currentTime.toString());
+      localStorage.setItem("qrContext", JSON.stringify(stateQrContext));
+      localStorage.setItem("qrContextTimestamp", currentTime.toString());
     } else if (storedQrContext.businessId && storedQrContext.qrcodeId) {
       setQrContext(storedQrContext);
     } else {
-      console.warn('ThankYouPage - No qrContext found');
+      console.warn("ThankYouPage - No qrContext found");
     }
 
     // Construct QR code URL
@@ -63,17 +63,17 @@ const ThankYouPage = () => {
       setQrCodeUrl(constructedUrl);
       // console.log('ThankYouPage - QR Code URL from qrContext:', constructedUrl);
     } else {
-      console.warn('ThankYouPage - No businessId or qrcodeId found');
+      console.warn("ThankYouPage - No businessId or qrcodeId found");
     }
 
     // Set up interval to check and clear expired qrContext
     const interval = setInterval(() => {
-      const storedTimestamp = localStorage.getItem('qrContextTimestamp');
+      const storedTimestamp = localStorage.getItem("qrContextTimestamp");
       if (storedTimestamp) {
         const timeElapsed = Date.now() - parseInt(storedTimestamp, 10);
         if (timeElapsed > QR_CONTEXT_TIMEOUT) {
-          localStorage.removeItem('qrContext');
-          localStorage.removeItem('qrContextTimestamp');
+          localStorage.removeItem("qrContext");
+          localStorage.removeItem("qrContextTimestamp");
           // console.log('ThankYouPage - Cleared expired qrContext via interval');
         }
       }
@@ -84,33 +84,53 @@ const ThankYouPage = () => {
 
   // Handle navigation to create account
   const handleCreateAccount = () => {
-    navigate('/userAuth', { state: { businessId, qrcodeId, qrContext } });
+    navigate("/userAuth", { state: { businessId, qrcodeId, qrContext } });
   };
 
   // Handle navigation to dashboard (signed-in users)
   const handleGoToDashboard = () => {
     // Clear only qrContext and qrContextTimestamp to preserve authToken and userData
-    localStorage.removeItem('qrContext');
-    localStorage.removeItem('qrContextTimestamp');
+    localStorage.removeItem("qrContext");
+    localStorage.removeItem("qrContextTimestamp");
     // console.log('ThankYouPage - Cleared qrContext and qrContextTimestamp on dashboard navigation');
-    navigate('/userAccount', { state: { businessId, qrcodeId, qrContext, fromThankYou: true } });
+    navigate("/userAccount", { state: { businessId, qrcodeId, qrContext, fromThankYou: true } });
   };
 
   // Handle navigation to submit another feedback
   const handleSubmitAnother = () => {
-    if (businessId && qrcodeId && qrContext) {
-      navigate(`/qr/${businessId}/${qrcodeId}`, { state: { qrContext } });
-    } else if (qrContext?.businessId && qrContext?.qrcodeId) {
-      navigate(`/qr/${qrContext.businessId}/${qrContext.qrcodeId}`, { state: { qrContext } });
-    } else {
-      const storedQrContext = JSON.parse(localStorage.getItem('qrContext') || '{}');
-      if (storedQrContext.businessId && storedQrContext.qrcodeId) {
-        navigate(`/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`, {
-          state: { qrContext: storedQrContext },
-        });
+    if (isAuthenticated) {
+      // For signed-in users, go directly to feedback form
+      if (businessId && qrcodeId) {
+        navigate(`/feedbackForm/${businessId}/${qrcodeId}`, { state: { qrContext } });
+      } else if (qrContext?.businessId && qrContext?.qrcodeId) {
+        navigate(`/feedbackForm/${qrContext.businessId}/${qrContext.qrcodeId}`, { state: { qrContext } });
       } else {
-        console.warn('No businessId or qrcodeId in state or qrContext, navigating to /feedbackForm');
-        navigate('/feedbackForm');
+        const storedQrContext = JSON.parse(localStorage.getItem("qrContext") || "{}");
+        if (storedQrContext.businessId && storedQrContext.qrcodeId) {
+          navigate(`/feedbackForm/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`, {
+            state: { qrContext: storedQrContext },
+          });
+        } else {
+          console.warn("No businessId or qrcodeId in state or qrContext, navigating to /feedbackForm");
+          navigate("/feedbackForm");
+        }
+      }
+    } else {
+      // For unauthenticated users, go to QR landing page
+      if (businessId && qrcodeId && qrContext) {
+        navigate(`/qr/${businessId}/${qrcodeId}`, { state: { qrContext } });
+      } else if (qrContext?.businessId && qrContext?.qrcodeId) {
+        navigate(`/qr/${qrContext.businessId}/${qrContext.qrcodeId}`, { state: { qrContext } });
+      } else {
+        const storedQrContext = JSON.parse(localStorage.getItem("qrContext") || "{}");
+        if (storedQrContext.businessId && storedQrContext.qrcodeId) {
+          navigate(`/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`, {
+            state: { qrContext: storedQrContext },
+          });
+        } else {
+          console.warn("No businessId or qrcodeId in state or qrContext, navigating to /feedbackForm");
+          navigate("/feedbackForm");
+        }
       }
     }
   };
@@ -118,8 +138,8 @@ const ThankYouPage = () => {
   // Handle sharing the QR code URL
   const handleShareQR = async () => {
     if (!qrCodeUrl) {
-      toast.error('No QR code URL available to share.', {
-        position: 'top-right',
+      toast.error("No QR code URL available to share.", {
+        position: "top-right",
         autoClose: 3000,
       });
       return;
@@ -129,18 +149,18 @@ const ThankYouPage = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Share QR Code',
-          text: 'Scan this QR code to provide feedback!',
+          title: "Share QR Code",
+          text: "Scan this QR code to provide feedback!",
           url: qrCodeUrl,
         });
-        toast.success('QR code shared successfully!', {
-          position: 'top-right',
+        toast.success("QR code shared successfully!", {
+          position: "top-right",
           autoClose: 3000,
         });
       } catch (error) {
-        console.error('Share error:', error);
-        toast.error('Failed to share QR code.', {
-          position: 'top-right',
+        console.error("Share error:", error);
+        toast.error("Failed to share QR code.", {
+          position: "top-right",
           autoClose: 3000,
         });
       }
@@ -148,14 +168,14 @@ const ThankYouPage = () => {
       // Fallback: Copy to clipboard
       try {
         await navigator.clipboard.writeText(qrCodeUrl);
-        toast.success('QR code URL copied to clipboard!', {
-          position: 'top-right',
+        toast.success("QR code URL copied to clipboard!", {
+          position: "top-right",
           autoClose: 3000,
         });
       } catch (error) {
-        console.error('Clipboard copy error:', error);
-        toast.error('Failed to copy QR code URL.', {
-          position: 'top-right',
+        console.error("Clipboard copy error:", error);
+        toast.error("Failed to copy QR code URL.", {
+          position: "top-right",
           autoClose: 3000,
         });
       }
@@ -178,8 +198,8 @@ const ThankYouPage = () => {
           <h1 className="text-green-600 text-2xl font-semibold mb-2">Thank You!</h1>
           <p className="text-gray-600 text-sm">
             {isAuthenticated
-              ? 'Your feedback has been submitted successfully. View your dashboard or submit another feedback.'
-              : 'Your feedback has been submitted successfully.'}
+              ? "Your feedback has been submitted successfully. View your dashboard or submit another feedback."
+              : "Your feedback has been submitted successfully."}
           </p>
         </div>
 

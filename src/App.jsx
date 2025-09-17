@@ -8,6 +8,8 @@ import Feedback from './components/business/pages/FeedbackExplorer.jsx';
 import Report from './components/business/pages/ReportSection.jsx';
 import FeedbackForm from './components/customer/pages/feedbackform.jsx';
 import ThankYou from './components/customer/pages/ThankYouPage.jsx';
+import AdminAuth from './components/admin/adminAuth.jsx';
+import AdminDashboard from './components/admin/adminDashboard.jsx';
 import ForgotPassword from './components/customer/pages/ForgotPassword.jsx';
 import UserAuth from './components/customer/pages/UserAuth.jsx';
 import UserAcc from './components/customer/pages/UserAccount.jsx';
@@ -78,6 +80,8 @@ function App() {
           <Route path="/userAuth" element={<UserAuth />} />
           <Route path="/businessAuth" element={<BusinessAuth />} />
           <Route path="/changePassword" element={<ForgotPassword />} /> {/* Updated route */}
+          <Route path="/adminAuth" element={<AdminAuth />} />
+          <Route path="/adminDashboard" element={<AdminDashboard />} />
 
           {/* Business-side protected routes */}
           <Route
