@@ -10,6 +10,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLogoDropdownOpen, setIsLogoDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false); // New state for logout confirmation modal
   const [isLoggingOutInternal, setIsLoggingOutInternal] = useState(false);
   const [businessName, setBusinessName] = useState(null);
   const [businessLogo, setBusinessLogo] = useState(null);
@@ -54,20 +55,16 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
   const handleLogoUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
     setIsUploading(true);
     setError(null);
     setIsLogoDropdownOpen(false);
-
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
         throw new Error('No auth token found');
       }
-
       const formData = new FormData();
       formData.append('business_logo', file);
-
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/v1/business/business-logo`,
         formData,
@@ -78,14 +75,13 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
           },
         }
       );
-
       setBusinessLogo(response.data.data?.business_logo || null);
     } catch (err) {
       console.error('Failed to upload logo:', err);
       setError(err.response?.data?.message || 'Failed to upload logo');
     } finally {
       setIsUploading(false);
-      fileInputRef.current.value = null; // Reset file input
+      fileInputRef.current.value = null;
     }
   };
 
@@ -99,17 +95,22 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
   };
 
   const handleLogout = async () => {
+    setIsLogoutModalOpen(true); // Show confirmation modal
+  };
+
+  const confirmLogout = async () => {
     setIsLoggingOutInternal(true);
     setIsMobileMenuOpen(false);
     setIsSettingsOpen(false);
     setIsLogoDropdownOpen(false);
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    setIsLogoutModalOpen(false);
     try {
       if (onLogout) {
         await onLogout();
       }
     } catch (error) {
       console.error('Logout error:', error);
+      setError('Failed to log out. Please try again.');
     } finally {
       setIsLoggingOutInternal(false);
     }
@@ -159,9 +160,55 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
 
   return (
     <>
+      {/* Full-screen loader during logout */}
+      {isLoggingOutInternal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm">
+          <div className="bg-white bg-opacity-90 rounded-xl shadow-lg p-8 flex flex-col items-center space-y-4 max-w-sm w-full">
+            <div className="relative">
+              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center animate-pulse">
+                <Settings className="w-8 h-8 text-white" />
+              </div>
+              <Loader2 className="w-20 h-20 text-blue-500 animate-spin absolute -top-2 -left-2" />
+            </div>
+            <p className="text-lg font-medium text-gray-900">Logging out...</p>
+          </div>
+        </div>
+      )}
+      {/* Logout confirmation modal */}
+      {isLogoutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm pointer-events-auto">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative pointer-events-auto">
+            <button
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+              onClick={() => setIsLogoutModalOpen(false)}
+              aria-label="Close modal"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <div className="text-center">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Confirm Logout</h3>
+              <p className="text-base text-gray-600 mb-6">Are you sure you want to log out?</p>
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={confirmLogout}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-300"
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => setIsLogoutModalOpen(false)}
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors duration-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {(isMobileMenuOpen || isSettingsOpen || isLogoDropdownOpen || isModalOpen) && (
         <div
-          className="lg:hidden fixed inset-0 z-40 backdrop-blur-sm pointer-events-auto"
+          className="lg:hidden fixed inset-0 z-40 bg-gray-900 bg-opacity-50 backdrop-blur-sm pointer-events-auto"
           onClick={() => {
             closeMobileMenu();
             setIsModalOpen(false);
@@ -169,7 +216,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
         />
       )}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm pointer-events-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm pointer-events-auto">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative">
             <button
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
@@ -266,7 +313,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                 <span className="text-xl font-bold text-black">
                   {isLoadingData ? 'Loading...' : (businessName || 'Business Name')}
                 </span>
-                <span className="text-sm text-gray-500">Business Portal</span>
+                <span className="text-xs sm:text-sm font-bold text-gray-500">Business Portal</span>
               </Link>
             </div>
             <nav className="hidden lg:flex items-center space-x-8">
