@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { QrCode, Settings, Menu, X } from 'lucide-react';
+import { QrCode, Settings, Menu, X, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
 const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
@@ -162,7 +162,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
     <>
       {/* Full-screen loader during logout */}
       {isLoggingOutInternal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
           <div className="bg-white bg-opacity-90 rounded-xl shadow-lg p-8 flex flex-col items-center space-y-4 max-w-sm w-full">
             <div className="relative">
               <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center animate-pulse">
