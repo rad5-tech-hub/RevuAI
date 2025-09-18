@@ -360,8 +360,8 @@ const AdminAuth = () => {
               className="text-blue-600 text-sm hover:underline cursor-pointer"
             >
               {isSignUp
-                ? "Already have an account? Sign In"
-                : "Need an account? Register"}
+                ? "Sign In as Admin"
+                : "Register as Admin"}
             </button>
           </div>
         </div>
