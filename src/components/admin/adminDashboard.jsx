@@ -119,10 +119,27 @@ const AdminDashboard = () => {
   };
 
   // Prepare dynamic data for charts with proper initialization
-  const totalScansData = metrics ? [{ v: metrics.scans.total }] : [{ v: 0 }];
-  const totalFeedbacksData = metrics ? [{ v: metrics.feedbacks.total }] : [{ v: 0 }];
-  const businessSignupsData = metrics ? [{ month: 1, signups: metrics.businesses.total }] : [{ month: 1, signups: 0 }];
-  const userSignupsData = metrics ? [{ v: metrics.users.total }] : [{ v: 0 }];
+  const totalScansData = metrics
+    ? Array.from({ length: 7 }, (_, i) => ({
+        day: i,
+        v: i === new Date().getDay() ? metrics.scans.today : metrics.scans.total / 7, // Spread total across days, current day gets today value
+      }))
+    : Array.from({ length: 7 }, (_, i) => ({ day: i, v: 0 }));
+  const totalFeedbacksData = metrics
+    ? Array.from({ length: 7 }, (_, i) => ({
+        day: i,
+        v: i === new Date().getDay() ? metrics.feedbacks.today : metrics.feedbacks.total / 7, // Spread total across days
+      }))
+    : Array.from({ length: 7 }, (_, i) => ({ day: i, v: 0 }));
+  const businessSignupsData = metrics
+    ? [{ month: 1, signups: metrics.businesses.total }]
+    : [{ month: 1, signups: 0 }];
+  const userSignupsData = metrics
+    ? Array.from({ length: 7 }, (_, i) => ({
+        day: i,
+        v: i === new Date().getDay() ? metrics.users.today || 0 : metrics.users.total / 7, // Spread total, current day gets today value if available
+      }))
+    : Array.from({ length: 7 }, (_, i) => ({ day: i, v: 0 }));
   const premiumBusinessesData = [{ v: 0 }]; // Placeholder
   const totalRevenueData = [{ v: 0 }]; // Placeholder
   const revenueTrendData = [
@@ -132,22 +149,22 @@ const AdminDashboard = () => {
     { month: "Apr", revenue: 0 },
     { month: "May", revenue: 0 },
     { month: "Jun", revenue: 0 },
-  ]; // Default value, updated if metrics exist (though no revenue data in API)
+  ]; // Default value, updated if metrics exist
   const revenueBreakdownData = [
-    { name: "Premium Subscriptions", value: 0, color: "#2563eb" }, // Placeholder
+    { name: "Premium Subscriptions", value: 0, color: "#2563eb" },
     { name: "QR Code Generation", value: 0, color: "#f59e0b" },
     { name: "Analytics Reports", value: 0, color: "#10b981" },
     { name: "Custom Branding", value: 0, color: "#ef4444" },
   ];
   const activityData = metrics
     ? [
-        { day: "Mon", scans: metrics.scans.today, feedbacks: metrics.feedbacks.today },
-        { day: "Tue", scans: 0, feedbacks: 0 },
-        { day: "Wed", scans: 0, feedbacks: 0 },
-        { day: "Thu", scans: 0, feedbacks: 0 },
-        { day: "Fri", scans: 0, feedbacks: 0 },
-        { day: "Sat", scans: 0, feedbacks: 0 },
-        { day: "Sun", scans: 0, feedbacks: 0 },
+        { day: "Mon", scans: new Date().getDay() === 1 ? metrics.scans.today : 0, feedbacks: new Date().getDay() === 1 ? metrics.feedbacks.today : 0 },
+        { day: "Tue", scans: new Date().getDay() === 2 ? metrics.scans.today : 0, feedbacks: new Date().getDay() === 2 ? metrics.feedbacks.today : 0 },
+        { day: "Wed", scans: new Date().getDay() === 3 ? metrics.scans.today : 0, feedbacks: new Date().getDay() === 3 ? metrics.feedbacks.today : 0 },
+        { day: "Thu", scans: new Date().getDay() === 4 ? metrics.scans.today : 0, feedbacks: new Date().getDay() === 4 ? metrics.feedbacks.today : 0 },
+        { day: "Fri", scans: new Date().getDay() === 5 ? metrics.scans.today : 0, feedbacks: new Date().getDay() === 5 ? metrics.feedbacks.today : 0 },
+        { day: "Sat", scans: new Date().getDay() === 6 ? metrics.scans.today : 0, feedbacks: new Date().getDay() === 6 ? metrics.feedbacks.today : 0 },
+        { day: "Sun", scans: new Date().getDay() === 0 ? metrics.scans.today : 0, feedbacks: new Date().getDay() === 0 ? metrics.feedbacks.today : 0 },
       ]
     : [
         { day: "Mon", scans: 0, feedbacks: 0 },
@@ -157,7 +174,7 @@ const AdminDashboard = () => {
         { day: "Fri", scans: 0, feedbacks: 0 },
         { day: "Sat", scans: 0, feedbacks: 0 },
         { day: "Sun", scans: 0, feedbacks: 0 },
-      ]; // Default with zeros
+      ];
 
   return (
     <ErrorBoundary>
@@ -167,10 +184,7 @@ const AdminDashboard = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center">
-                <div
-                  className="flex items-center space-x-2"
-                  onClick={handleLogoClick}
-                >
+                <div className="flex items-center space-x-2" onClick={handleLogoClick}>
                   <div className="hidden md:flex w-8 h-8 bg-blue-600 rounded-full items-center justify-center cursor-pointer">
                     <span className="text-white text-sm font-bold">S</span>
                   </div>
@@ -192,7 +206,19 @@ const AdminDashboard = () => {
         <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center">
-              <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
+              <svg
+                className="w-4 h-4 text-red-600 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
               <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
@@ -206,6 +232,7 @@ const AdminDashboard = () => {
                 <div>
                   <h1 className="text-2xl font-semibold text-gray-900">Admin Dashboard</h1>
                   <p className="text-gray-600">Monitor platform performance and key metrics</p>
+                  <p className="text-sm text-gray-500 mt-1">{getFormattedDate()}</p>
                 </div>
                 <p className="bg-blue-200 hidden md:flex text-black px-2 py-1 rounded-md text-sm font-medium">
                   Live Data
@@ -231,9 +258,9 @@ const AdminDashboard = () => {
                     <RefreshCw className="h-5 w-5 text-gray-400" />
                   </div>
                   {/* Mini line chart */}
-                  <div className="mt-4 h-12">
+                  <div className="mt-4 h-12 bg-white">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={totalScansData}>
+                      <LineChart data={totalScansData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                         <Line
                           type="monotone"
                           dataKey="v"
@@ -241,6 +268,8 @@ const AdminDashboard = () => {
                           strokeWidth={2}
                           dot={false}
                         />
+                        <XAxis dataKey="day" hide />
+                        <YAxis hide />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -263,9 +292,9 @@ const AdminDashboard = () => {
                     <MessageCircle className="h-5 w-5 text-gray-400" />
                   </div>
                   {/* Mini line chart */}
-                  <div className="mt-4 h-12">
+                  <div className="mt-4 h-12 bg-white">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={totalFeedbacksData}>
+                      <LineChart data={totalFeedbacksData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                         <Line
                           type="monotone"
                           dataKey="v"
@@ -273,6 +302,8 @@ const AdminDashboard = () => {
                           strokeWidth={2}
                           dot={false}
                         />
+                        <XAxis dataKey="day" hide />
+                        <YAxis hide />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -295,9 +326,9 @@ const AdminDashboard = () => {
                     <Building className="h-5 w-5 text-gray-400" />
                   </div>
                   {/* Mini bar chart */}
-                  <div className="mt-4 h-12">
+                  <div className="mt-4 h-12 bg-white">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={businessSignupsData}>
+                      <BarChart data={businessSignupsData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                         <Bar dataKey="signups" fill="#10b981" />
                       </BarChart>
                     </ResponsiveContainer>
@@ -324,9 +355,9 @@ const AdminDashboard = () => {
                     <Users className="h-5 w-5 text-gray-400" />
                   </div>
                   {/* Mini line chart */}
-                  <div className="mt-4 h-12">
+                  <div className="mt-4 h-12 bg-white">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={userSignupsData}>
+                      <LineChart data={userSignupsData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                         <Line
                           type="monotone"
                           dataKey="v"
@@ -334,6 +365,8 @@ const AdminDashboard = () => {
                           strokeWidth={2}
                           dot={false}
                         />
+                        <XAxis dataKey="day" hide />
+                        <YAxis hide />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -370,9 +403,9 @@ const AdminDashboard = () => {
                     <DollarSign className="h-5 w-5 text-gray-400" />
                   </div>
                   {/* Mini line chart */}
-                  <div className="mt-4 h-12">
+                  <div className="mt-4 h-12 bg-white">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={totalRevenueData}>
+                      <LineChart data={totalRevenueData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                         <Line
                           type="monotone"
                           dataKey="v"
@@ -380,6 +413,8 @@ const AdminDashboard = () => {
                           strokeWidth={2}
                           dot={false}
                         />
+                        <XAxis dataKey="day" hide />
+                        <YAxis hide />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>

@@ -103,7 +103,7 @@ const FeedbackForm = () => {
     try {
       const token = localStorage.getItem("authToken");
       const payload = { qrcodeId };
-      const response = await fetch(`${BASE_URL}/api/v1/user/scan-qrcode`, {
+      const response = await fetch(`${BASE_URL}/api/v1/qrcode/log-scanned-qrcode`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
