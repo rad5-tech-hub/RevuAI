@@ -249,7 +249,7 @@ const FeedbackForm = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7FAFF]">
+    <div className="min-h-screen bg-[#F7FAFF] container">
       <ToastContainer />
       <div className="bg-white flex items-center px-4 py-4 shadow-sm">
         <button

@@ -26,7 +26,8 @@ import {
   Cell,
   Tooltip,
 } from "recharts";
-import logo from "/Social Media Icon.png"; // Adjust path if needed
+// import logo from "/Social Media Icon.png"; 
+import { X, Loader2 } from "lucide-react"; // Added for modal icons
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -54,6 +55,8 @@ const AdminDashboard = () => {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false); // New state for logout modal
+  const [isLoggingOutInternal, setIsLoggingOutInternal] = useState(false); // New state for logout process
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
@@ -96,9 +99,22 @@ const AdminDashboard = () => {
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem("adminAuthToken");
-    localStorage.removeItem("adminData");
-    navigate("/adminAuth");
+    setIsLogoutModalOpen(true); // Show confirmation modal
+  };
+
+  const confirmLogout = async () => {
+    setIsLoggingOutInternal(true);
+    setIsLogoutModalOpen(false);
+    try {
+      localStorage.removeItem("adminAuthToken");
+      localStorage.removeItem("adminData");
+      navigate("/adminAuth");
+    } catch (error) {
+      console.error("Logout error:", error);
+      setError("Failed to log out. Please try again.");
+    } finally {
+      setIsLoggingOutInternal(false);
+    }
   };
 
   const handleLogoClick = () => {
@@ -118,30 +134,39 @@ const AdminDashboard = () => {
     });
   };
 
-  // Prepare dynamic data for charts with proper initialization
+  // Prepare dynamic data for charts
   const totalScansData = metrics
-    ? Array.from({ length: 7 }, (_, i) => ({
-        day: i,
-        v: i === new Date().getDay() ? metrics.scans.today : metrics.scans.total / 7, // Spread total across days, current day gets today value
-      }))
+    ? Array.from({ length: 7 }, (_, i) => {
+        const day = (new Date().getDay() - 6 + i + 7) % 7;
+        return {
+          day: i,
+          v: day === 4 ? (metrics.scans.byDay[0]?.count || 0) : metrics.scans.total / 7,
+        };
+      })
     : Array.from({ length: 7 }, (_, i) => ({ day: i, v: 0 }));
   const totalFeedbacksData = metrics
-    ? Array.from({ length: 7 }, (_, i) => ({
-        day: i,
-        v: i === new Date().getDay() ? metrics.feedbacks.today : metrics.feedbacks.total / 7, // Spread total across days
-      }))
+    ? Array.from({ length: 7 }, (_, i) => {
+        const day = (new Date().getDay() - 6 + i + 7) % 7;
+        return {
+          day: i,
+          v: day === 4 ? metrics.feedbacks.thisWeek / 7 : metrics.feedbacks.total / 7,
+        };
+      })
     : Array.from({ length: 7 }, (_, i) => ({ day: i, v: 0 }));
   const businessSignupsData = metrics
     ? [{ month: 1, signups: metrics.businesses.total }]
     : [{ month: 1, signups: 0 }];
   const userSignupsData = metrics
-    ? Array.from({ length: 7 }, (_, i) => ({
-        day: i,
-        v: i === new Date().getDay() ? metrics.users.today || 0 : metrics.users.total / 7, // Spread total, current day gets today value if available
-      }))
+    ? Array.from({ length: 7 }, (_, i) => {
+        const day = (new Date().getDay() - 6 + i + 7) % 7;
+        return {
+          day: i,
+          v: day === 4 ? metrics.users.thisWeek / 7 : metrics.users.total / 7,
+        };
+      })
     : Array.from({ length: 7 }, (_, i) => ({ day: i, v: 0 }));
-  const premiumBusinessesData = [{ v: 0 }]; // Placeholder
-  const totalRevenueData = [{ v: 0 }]; // Placeholder
+  const premiumBusinessesData = [{ v: 0 }];
+  const totalRevenueData = [{ v: 0 }];
   const revenueTrendData = [
     { month: "Jan", revenue: 0 },
     { month: "Feb", revenue: 0 },
@@ -149,7 +174,7 @@ const AdminDashboard = () => {
     { month: "Apr", revenue: 0 },
     { month: "May", revenue: 0 },
     { month: "Jun", revenue: 0 },
-  ]; // Default value, updated if metrics exist
+  ];
   const revenueBreakdownData = [
     { name: "Premium Subscriptions", value: 0, color: "#2563eb" },
     { name: "QR Code Generation", value: 0, color: "#f59e0b" },
@@ -158,13 +183,13 @@ const AdminDashboard = () => {
   ];
   const activityData = metrics
     ? [
-        { day: "Mon", scans: new Date().getDay() === 1 ? metrics.scans.today : 0, feedbacks: new Date().getDay() === 1 ? metrics.feedbacks.today : 0 },
-        { day: "Tue", scans: new Date().getDay() === 2 ? metrics.scans.today : 0, feedbacks: new Date().getDay() === 2 ? metrics.feedbacks.today : 0 },
-        { day: "Wed", scans: new Date().getDay() === 3 ? metrics.scans.today : 0, feedbacks: new Date().getDay() === 3 ? metrics.feedbacks.today : 0 },
-        { day: "Thu", scans: new Date().getDay() === 4 ? metrics.scans.today : 0, feedbacks: new Date().getDay() === 4 ? metrics.feedbacks.today : 0 },
-        { day: "Fri", scans: new Date().getDay() === 5 ? metrics.scans.today : 0, feedbacks: new Date().getDay() === 5 ? metrics.feedbacks.today : 0 },
-        { day: "Sat", scans: new Date().getDay() === 6 ? metrics.scans.today : 0, feedbacks: new Date().getDay() === 6 ? metrics.feedbacks.today : 0 },
-        { day: "Sun", scans: new Date().getDay() === 0 ? metrics.scans.today : 0, feedbacks: new Date().getDay() === 0 ? metrics.feedbacks.today : 0 },
+        { day: "Mon", scans: 0, feedbacks: 0 },
+        { day: "Tue", scans: 0, feedbacks: 0 },
+        { day: "Wed", scans: 0, feedbacks: 0 },
+        { day: "Thu", scans: metrics.scans.byDay[0]?.count || 0, feedbacks: metrics.feedbacks.thisWeek / 7 },
+        { day: "Fri", scans: 0, feedbacks: 0 },
+        { day: "Sat", scans: 0, feedbacks: 0 },
+        { day: "Sun", scans: 0, feedbacks: 0 },
       ]
     : [
         { day: "Mon", scans: 0, feedbacks: 0 },
@@ -179,6 +204,52 @@ const AdminDashboard = () => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-50">
+        {/* Full-screen loader during logout */}
+        {isLoggingOutInternal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+            <div className="bg-white bg-opacity-90 rounded-xl shadow-lg p-8 flex flex-col items-center space-y-4 max-w-sm w-full">
+              <div className="relative">
+                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center animate-pulse">
+                  <Settings className="w-8 h-8 text-white" />
+                </div>
+                <Loader2 className="w-20 h-20 text-blue-500 animate-spin absolute -top-2 -left-2" />
+              </div>
+              <p className="text-lg font-medium text-gray-900">Logging out...</p>
+            </div>
+          </div>
+        )}
+        {/* Logout confirmation modal */}
+        {isLogoutModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm pointer-events-auto">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative pointer-events-auto">
+              <button
+                className="absolute top-4 right-4 text-gray-500 cursor-pointer hover:text-gray-700"
+                onClick={() => setIsLogoutModalOpen(false)}
+                aria-label="Close modal"
+              >
+                <X className="h-6 w-6" />
+              </button>
+              <div className="text-center">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Confirm Logout</h3>
+                <p className="text-base text-gray-600 mb-6">Are you sure you want to log out?</p>
+                <div className="flex justify-center space-x-4">
+                  <button
+                    onClick={confirmLogout}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 cursor-pointer text-white rounded-lg font-medium transition-colors duration-300"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => setIsLogoutModalOpen(false)}
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 cursor-pointer text-gray-900 rounded-lg font-medium transition-colors duration-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <header className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -188,15 +259,16 @@ const AdminDashboard = () => {
                   <div className="hidden md:flex w-8 h-8 bg-blue-600 rounded-full items-center justify-center cursor-pointer">
                     <span className="text-white text-sm font-bold">S</span>
                   </div>
-                  <span className="text-lg md:text-xl font-semibold text-blue-600">ScanReviewAI</span>
+                  <span className="text-lg md:text-xl font-semibold text-blue-600">ScanRevuAI</span>
                   <span className="text-xs md:text-sm text-gray-500 ml-4">Admin Portal</span>
                 </div>
               </div>
               <button
                 onClick={handleLogout}
                 className="text-black cursor-pointer hover:text-blue-500 hover:bg-blue-50 px-3 py-2 rounded-md text-sm"
+                disabled={isLoggingOutInternal}
               >
-                Logout
+                {isLoggingOutInternal ? "Logging out..." : "Logout"}
               </button>
             </div>
           </div>

@@ -6,6 +6,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import logo from "/Social Media Icon.png"; // Adjust path if logo is elsewhere
 import { v4 as uuidv4 } from "uuid"; // Add uuid package for unique keys
+import { X, Loader2, Settings } from "lucide-react"; // Added for modal icons
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -19,9 +20,9 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div className="text-center p-6 bg-red-50 border border-red-200 rounded-lg">
-          <h2 className="text-lg font-semibold text-red-600">Something went wrong</h2>
-          <p className="text-gray-600">{this.state.error.message}</p>
-        </div>
+        <h2 className="text-lg font-semibold text-red-600">Something went wrong</h2>
+        <p className="text-gray-600">{this.state.error.message}</p>
+      </div>
       );
     }
     return this.props.children;
@@ -49,6 +50,8 @@ const UserAccount = () => {
   const [showAllBusinesses, setShowAllBusinesses] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false); // New state for logout modal
+  const [isLoggingOutInternal, setIsLoggingOutInternal] = useState(false); // New state for logout process
   const navigate = useNavigate();
   const { state } = useLocation();
   const BASE_URL = import.meta.env.VITE_API_URL;
@@ -148,6 +151,27 @@ const UserAccount = () => {
     navigate("/");
   };
 
+  const handleLogout = () => {
+    setIsLogoutModalOpen(true); // Show confirmation modal
+  };
+
+  const confirmLogout = async () => {
+    setIsLoggingOutInternal(true);
+    setIsLogoutModalOpen(false);
+    try {
+      localStorage.removeItem("authToken");
+      sessionStorage.removeItem("authToken");
+      toast.success("Logged out successfully!");
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      setError("Failed to log out. Please try again.");
+      toast.error("Failed to log out. Please try again.");
+    } finally {
+      setIsLoggingOutInternal(false);
+    }
+  };
+
   const handleContinueToFeedback = () => {
     if (state?.businessId && state?.qrcodeId) {
       navigate(`/feedbackForm/${state.businessId}/${state.qrcodeId}`);
@@ -209,13 +233,66 @@ const UserAccount = () => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-50">
+        {/* Full-screen loader during logout */}
+        {isLoggingOutInternal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+            <div className="bg-white bg-opacity-90 rounded-xl shadow-lg p-8 flex flex-col items-center space-y-4 max-w-sm w-full">
+              <div className="relative">
+                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center animate-pulse">
+                  <Settings className="w-8 h-8 text-white" />
+                </div>
+                <Loader2 className="w-20 h-20 text-blue-500 animate-spin absolute -top-2 -left-2" />
+              </div>
+              <p className="text-lg font-medium text-gray-900">Logging out...</p>
+            </div>
+          </div>
+        )}
+        {/* Logout confirmation modal */}
+        {isLogoutModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm pointer-events-auto">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative pointer-events-auto">
+              <button
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                onClick={() => setIsLogoutModalOpen(false)}
+                aria-label="Close modal"
+              >
+                <X className="h-6 w-6" />
+              </button>
+              <div className="text-center">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Confirm Logout</h3>
+                <p className="text-base text-gray-600 mb-6">Are you sure you want to log out?</p>
+                <div className="flex justify-center space-x-4">
+                  <button
+                    onClick={confirmLogout}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 cursor-pointer text-white rounded-lg font-medium transition-colors duration-300"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => setIsLogoutModalOpen(false)}
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 cursor-pointer text-gray-900 rounded-lg font-medium transition-colors duration-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <ToastContainer />
-        <div className="bg-white flex items-center px-4 py-2 shadow-sm">
+        <div className="bg-white flex items-center px-4 py-2 shadow-sm justify-between">
           <button
             onClick={handleLogoClick}
-            className="cursor-pointer rounded-full p-2 border border-blue-600"
+            className="cursor-pointer rounded-full p-2 border border-blue-600 mr-2"
           >
             <img src={logo} alt="ScanRevuAI Logo" className="h-8 w-auto rounded-full" />
+          </button>
+          <button
+            onClick={handleLogout}
+            className="cursor-pointer rounded-md p-2 border border-red-600 text-red-600 hover:bg-red-50 transition-colors"
+            disabled={isLoggingOutInternal}
+          >
+            {isLoggingOutInternal ? "Logging out..." : "Logout"}
           </button>
         </div>
 
