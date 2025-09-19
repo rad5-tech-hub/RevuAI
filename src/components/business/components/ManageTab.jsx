@@ -83,21 +83,21 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, viewQR, e
             <div className="mt-4 flex flex-wrap gap-2 sm:gap-4">
               <button
                 onClick={() => viewQR(code)}
-                className="inline-flex items-center gap-1 sm:gap-2 rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm hover:bg-slate-50 transition"
+                className="inline-flex items-center gap-1 sm:gap-2 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm hover:bg-slate-50 transition"
                 aria-label={`View QR code for ${code.title}`}
               >
                 <Eye className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> View
               </button>
               <button
                 onClick={() => editQR(code)}
-                className="inline-flex items-center gap-1 sm:gap-2 rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm hover:bg-slate-50 transition"
+                className="inline-flex items-center gap-1 sm:gap-2 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm hover:bg-slate-50 transition"
                 aria-label={`Edit QR code for ${code.title}`}
               >
                 <Settings className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Edit
               </button>
               <button
                 onClick={() => shareQR(code.url, code.title)}
-                className="inline-flex items-center gap-1 sm:gap-2 rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm hover:bg-slate-50 transition"
+                className="inline-flex items-center gap-1 sm:gap-2 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm hover:bg-slate-50 transition"
                 aria-label={`Share QR code for ${code.title}`}
               >
                 <Share2 className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Share
