@@ -183,7 +183,7 @@ const ThankYouPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#E8F5E8]">
+    <div className="min-h-screen bg-[#E8F5E8] container">
       <ToastContainer />
       <div className="w-full max-w-[80rem] mx-auto px-4 py-8">
         {/* Success Message */}

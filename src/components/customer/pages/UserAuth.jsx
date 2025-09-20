@@ -306,7 +306,7 @@ const UserAuth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 container">
       {/* Header */}
       <div className="bg-white flex items-center justify-between px-4 py-4 shadow-sm">
         <button
