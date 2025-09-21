@@ -6,3 +6,8 @@
   background-color: rgba(22, 2, 2, 0.8);
   background-size: cover;
 }
+
+.scroll {
+  scroll-behavior: smooth;
+  scroll-snap-type: none;
+}

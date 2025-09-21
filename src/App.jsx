@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import Homepage from "./Homepage.jsx";
 import LandingPage from "./LandingPage.jsx";
+import DemoBooking from "./DemoBooking.jsx";
 import BusinessAuth from "./components/business/pages/BusinessAuth.jsx";
 import BusinessDashboard from "./components/business/pages/BusinessDashboard.jsx";
 import Qr from "./components/business/pages/QrGenerator.jsx";
@@ -92,6 +93,7 @@ function App() {
           <Route path="/businessAuth" element={<BusinessAuth />} />
           <Route path="/changePassword" element={<ForgotPassword />} />
           <Route path="/adminAuth" element={<AdminAuth />} />
+          <Route path="/demoBooking" element={<DemoBooking />} />
 
           {/* Business-side protected routes */}
           <Route

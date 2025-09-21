@@ -1,7 +1,8 @@
-import  { useState } from 'react';
+import { useState } from 'react';
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { Link } from 'react-router-dom';
+import { Link as ScrollLink, animateScroll as scroll } from 'react-scroll'; 
 import "./Homepage.css";
 
 // Register Chart.js components
@@ -91,43 +92,76 @@ const Homepage = () => {
   };
 
   return (
-    <div className="font-inter bg-stone-50 text-slate-800">
+    <div className="font-inter bg-stone-50 text-black scroll-smooth scroll"> 
       {/* Header */}
       <header className="bg-white/60 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
         <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="text-2xl font-bold text-blue-700">ScanRevuAI</div>
           <div className="hidden md:flex items-center space-x-2">
-            <a
-              href="#how-it-works"
-              className="px-4 py-2 rounded-md text-slate-600 hover:bg-blue-100 hover:text-blue-800 transition-colors"
+            <ScrollLink
+              to="problem"
+              smooth={true}
+              duration={500}
+              className="px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors cursor-pointer"
+              onClick={handleNavLinkClick}
+            >
+              The Challenge
+            </ScrollLink>
+            <ScrollLink
+              to="solution"
+              smooth={true}
+              duration={500}
+              className="px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors cursor-pointer"
               onClick={handleNavLinkClick}
             >
               How It Works
-            </a>
-            <a
-              href="#features"
-              className="px-4 py-2 rounded-md text-slate-600 hover:bg-blue-100 hover:text-blue-800 transition-colors"
+            </ScrollLink>
+            <ScrollLink
+              to="features"
+              smooth={true}
+              duration={500}
+              className="px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors cursor-pointer"
               onClick={handleNavLinkClick}
             >
               Features
-            </a>
-            <a
-              href="#dashboard-demo"
-              className="px-4 py-2 rounded-md text-slate-600 hover:bg-blue-100 hover:text-blue-800 transition-colors"
+            </ScrollLink>
+            <ScrollLink
+              to="dashboard-demo"
+              smooth={true}
+              duration={500}
+              className="px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors cursor-pointer"
               onClick={handleNavLinkClick}
             >
               Dashboard Demo
-            </a>
-            <a
-              href="#benefits"
-              className="px-4 py-2 rounded-md text-slate-600 hover:bg-blue-100 hover:text-blue-800 transition-colors"
+            </ScrollLink>
+            <ScrollLink
+              to="benefits"
+              smooth={true}
+              duration={500}
+              className="px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors cursor-pointer"
               onClick={handleNavLinkClick}
             >
               Benefits
-            </a>
+            </ScrollLink>
+            <ScrollLink
+              to="social-proof"
+              smooth={true}
+              duration={500}
+              className="px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors cursor-pointer"
+              onClick={handleNavLinkClick}
+            >
+              Testimonials
+            </ScrollLink>
+            <Link
+              to="/demoBooking"
+              className="px-4 py-2 rounded-md cursor-pointer bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              onClick={handleNavLinkClick}
+            >
+              Book Demo
+            </Link>
           </div>
           <button
-            className="md:hidden p-2 rounded-md text-slate-600 hover:bg-blue-100 focus:outline-none"
+            className="md:hidden p-2 rounded-md text-black hover:bg-blue-100 cursor-pointer focus:outline-none"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -136,285 +170,346 @@ const Homepage = () => {
           </button>
         </nav>
         <div className={`md:hidden px-4 pt-2 pb-4 space-y-2 ${isMobileMenuOpen ? 'block' : 'hidden'}`}>
-          <a
-            href="#how-it-works"
-            className="block px-4 py-2 rounded-md text-slate-600 hover:bg-blue-100 hover:text-blue-800 transition-colors"
+          <ScrollLink
+            to="problem"
+            smooth={true}
+            duration={500}
+            className="block px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors"
+            onClick={handleNavLinkClick}
+          >
+            The Challenge
+          </ScrollLink>
+          <ScrollLink
+            to="solution"
+            smooth={true}
+            duration={500}
+            className="block px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors"
             onClick={handleNavLinkClick}
           >
             How It Works
-          </a>
-          <a
-            href="#features"
-            className="block px-4 py-2 rounded-md text-slate-600 hover:bg-blue-100 hover:text-blue-800 transition-colors"
+          </ScrollLink>
+          <ScrollLink
+            to="features"
+            smooth={true}
+            duration={500}
+            className="block px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors"
             onClick={handleNavLinkClick}
           >
             Features
-          </a>
-          <a
-            href="#dashboard-demo"
-            className="block px-4 py-2 rounded-md text-slate-600 hover:bg-blue-100 hover:text-blue-800 transition-colors"
+          </ScrollLink>
+          <ScrollLink
+            to="dashboard-demo"
+            smooth={true}
+            duration={500}
+            className="block px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors"
             onClick={handleNavLinkClick}
           >
             Dashboard Demo
-          </a>
-          <a
-            href="#benefits"
-            className="block px-4 py-2 rounded-md text-slate-600 hover:bg-blue-100 hover:text-blue-800 transition-colors"
+          </ScrollLink>
+          <ScrollLink
+            to="benefits"
+            smooth={true}
+            duration={500}
+            className="block px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors"
             onClick={handleNavLinkClick}
           >
             Benefits
-          </a>
+          </ScrollLink>
+          <ScrollLink
+            to="social-proof"
+            smooth={true}
+            duration={500}
+            className="block px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors"
+            onClick={handleNavLinkClick}
+          >
+            Testimonials
+          </ScrollLink>
+          <Link
+            to="/demoBooking"
+            className="block px-4 py-2 rounded-md bg-blue-600 cursor-pointer text-white hover:bg-blue-700 transition-colors"
+            onClick={handleNavLinkClick}
+          >
+            Book Demo
+          </Link>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="text-center mb-20 bg mx-auto px-6 py-8 md:py-32 flex flex-col justify-center items-center">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
-          Smarter Feedback. Better Decisions.
-        </h1>
-        <p className="max-w-3xl mx-auto text-lg md:text-xl text-white mb-10">
-          ScanRevuAI is a simple AI tool that helps businesses collect and analyze customer feedback, delivering actionable daily and weekly recommendations.
-        </p>
-        <Link
-          // href="https://forms.gle/EE2gVMah3ntVsXRG9"
-          to="/businessAuth"
-          // target="_blank"
-          // rel="noopener noreferrer"
-          className="max-w-fit p-4 border border-white text-white rounded-lg hover:bg-blue-50 hover:border-blue-500 hover:text-blue-500 transition-all flex items-center justify-center font-semibold"
-        >
-          Get Started For Free
-        </Link>
+      <section className="bg text-white text-center py-16 md:py-24 px-6">
+        <div className="container mx-auto">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+            Nigeria's #1 Artificial Intelligence Review Platform for Hotels and Restaurants!
+          </h1>
+          <p className="max-w-3xl mx-auto text-lg md:text-xl mb-6">
+            Turn thousands of customer reviews into clear action plans that boost your ratings and increase revenue.
+          </p>
+          <p className="max-w-2xl mx-auto text-md md:text-lg mb-10">
+            Stop drowning in reviews. Start growing from them!
+          </p>
+          <Link
+            to="/demoBooking"
+            className="max-w-fit px-6 py-3 bg-white text-blue-700 cursor-pointer rounded-lg hover:bg-blue-50 transition-all font-semibold"
+          >
+            Book Your FREE Demo Today
+          </Link>
+        </div>
       </section>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-6 pb-8 md:pb-16">
-        {/* How It Works Section */}
-        <section id="how-it-works" className="mb-20 md:mb-32">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-900">From Scan to Smart Decisions in 3 Simple Steps</h2>
-            <p className="max-w-2xl mx-auto mt-4 text-slate-600">
-              With ScanRevuAI, collecting and acting on customer feedback is effortless. Just a quick scan, instant feedback, and actionable insights—all in one seamless flow.
-            </p>
+      {/* Problem Section */}
+      <section id="problem" className="container mx-auto px-6 py-16 md:py-32">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-black">The Challenge Nigerian Hospitality Businesses Face</h2>
+          <p className="max-w-2xl mx-auto mt-4 text-black">
+            Are you spending hours reading customer reviews without knowing what to fix?
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.2s' }}>
+            <h3 className="text-xl font-semibold mb-2 text-blue-700">Scattered Feedback</h3>
+            <p className="text-black">Feedback across multiple platforms you can't control.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="flex flex-col items-center">
-              <div className="bg-blue-600 text-white rounded-full w-16 h-16 flex items-center justify-center text-2xl font-bold mb-4">1</div>
-              <h3 className="text-xl font-semibold mb-2">Scan the QR Code</h3>
-              <p className="text-slate-500">
-                Customers simply scan a unique QR code at your business location or on a product—no app required.
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.1s' }}>
+            <h3 className="text-xl font-semibold mb-2 text-blue-700">Delayed Responses</h3>
+            <p className="text-black">Finding out about problems too late.</p>
+          </div>
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.2s' }}>
+            <h3 className="text-xl font-semibold mb-2 text-blue-700">No Real-Time Insights</h3>
+            <p className="text-black">Missing insights while customers are still in your business.</p>
+          </div>
+          <div className="col-span-1 lg:col-start-1 lg:row-start-2 mt-8 lg:mt-0" style={{ marginLeft: 'auto', marginRight: 'auto', width: 'fit-content' }}>
+            <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.3s' }}>
+              <h3 className="text-xl font-semibold mb-2 text-blue-700">No Direct Channel</h3>
+              <p className="text-black">Customers leave without telling you what went wrong.</p>
+            </div>
+          </div>
+          <div className="col-span-1 lg:col-start-3 lg:row-start-2 mt-16 lg:mt-0" style={{ marginLeft: 'auto', marginRight: 'auto', width: 'fit-content' }}>
+            <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.4s' }}>
+              <h3 className="text-xl font-semibold mb-2 text-blue-700">Reactive Approach</h3>
+              <p className="text-black">Only hearing complaints after customers leave unhappy.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Solution Section */}
+      <section id="solution" className="bg-blue-50 py-16 md:py-32 px-6">
+        <div className="container mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-black mb-6">How ScanRevuAI Solves This</h2>
+          <p className="max-w-2xl mx-auto text-black mb-10">
+            ScanRevuAI captures customer feedback instantly and tells you exactly what guests loved, the top issues, and specific actions to improve service quality.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="card animate-fade-in bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+              <h3 className="text-xl font-semibold mb-2 text-blue-700">What Guests Loved</h3>
+              <p className="text-black">Highlights the best aspects of their experience.</p>
+            </div>
+            <div className="card animate-fade-in bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.1s' }}>
+              <h3 className="text-xl font-semibold mb-2 text-blue-700">Top Issues</h3>
+              <p className="text-black">Identifies key areas affecting satisfaction.</p>
+            </div>
+            <div className="card animate-fade-in bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.2s' }}>
+              <h3 className="text-xl font-semibold mb-2 text-blue-700">Actionable Steps</h3>
+              <p className="text-black">Provides specific improvements to enhance service.</p>
+            </div>
+            <div className="card animate-fade-in bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.3s' }}>
+              <h3 className="text-xl font-semibold mb-2 text-blue-700">Real-Time Alerts</h3>
+              <p className="text-black">Notifies you instantly of problems needing attention.</p>
+            </div>
+          </div>
+          <div className="mt-24">
+            <h3 className="text-2xl font-bold text-black mb-4">Simple 3-Step Process</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+              <div className="card animate-fade-in bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 text-center">
+                <div className="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 font-bold">1</div>
+                <h4 className="text-lg font-semibold">Generate</h4>
+                <p className="text-black">Get your unique QR code to display in your business.</p>
+              </div>
+              <div className="card animate-fade-in bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 text-center" style={{ animationDelay: '0.1s' }}>
+                <div className="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 font-bold">2</div>
+                <h4 className="text-lg font-semibold">Collect</h4>
+                <p className="text-black">Customers scan and leave instant feedback.</p>
+              </div>
+              <div className="card animate-fade-in bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 text-center" style={{ animationDelay: '0.2s' }}>
+                <div className="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 font-bold">3</div>
+                <h4 className="text-lg font-semibold">Analyze</h4>
+                <p className="text-black">AI processes reviews for clear insights & recommendations.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="container mx-auto px-6 py-16 md:py-32">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-black">What Powers ScanRevuAI</h2>
+          <p className="max-w-2xl mx-auto mt-4 text-black">
+            Discover the key features that make ScanRevuAI simple, smart, and effective — from QR code feedback collection to analytics that drive improvement.
+          </p>
+        </div>
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="md:w-1/3">
+            <ul className="space-y-2">
+              <li>
+                <button
+                  className={`w-full text-left p-4 border border-slate-300 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-500 hover:text-blue-500 transition-all ${activeFeature === 'feature-qr' ? 'bg-blue-600 text-white border-blue-600' : ''}`}
+                  onClick={() => handleFeatureTabClick('feature-qr')}
+                >
+                  Unique QR Codes
+                </button>
+              </li>
+              <li>
+                <button
+                  className={`w-full text-left p-4 border border-slate-300 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-500 hover:text-blue-500 transition-all ${activeFeature === 'feature-dashboard' ? 'bg-blue-600 text-white border-blue-600' : ''}`}
+                  onClick={() => handleFeatureTabClick('feature-dashboard')}
+                >
+                  Analytics Dashboard
+                </button>
+              </li>
+              <li>
+                <button
+                  className={`w-full text-left p-4 border border-slate-300 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-500 hover:text-blue-500 transition-all ${activeFeature === 'feature-loyalty' ? 'bg-blue-600 text-white border-blue-600' : ''}`}
+                  onClick={() => handleFeatureTabClick('feature-loyalty')}
+                >
+                  Loyalty Programs
+                </button>
+              </li>
+              <li>
+                <button
+                  className={`w-full text-left p-4 border border-slate-300 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-500 hover:text-blue-500 transition-all ${activeFeature === 'feature-interface' ? 'bg-blue-600 text-white border-blue-600' : ''}`}
+                  onClick={() => handleFeatureTabClick('feature-interface')}
+                >
+                  User Feedback Interface
+                </button>
+              </li>
+            </ul>
+          </div>
+          <div className="md:w-2/3 bg-white p-8 rounded-lg shadow-lg min-h-[300px]">
+            <div className={activeFeature === 'feature-qr' ? 'block' : 'hidden'}>
+              <h3 className="text-2xl font-bold mb-4">QR Code Generation & Deployment</h3>
+              <p className="text-black space-y-3">
+                <span><strong>Business-Specific Codes:</strong> Generate codes for your physical locations to gather general feedback.</span><br /><br />
+                <span><strong>Product-Specific Codes:</strong> Attach QR codes to individual products for granular reviews and performance tracking.</span><br /><br />
+                <span><strong>Customizable:</strong> Add your branding for a seamless customer experience.</span>
               </p>
             </div>
-            <div className="flex flex-col items-center">
-              <div className="bg-blue-600 text-white rounded-full w-16 h-16 flex items-center justify-center text-2xl font-bold mb-4">2</div>
-              <h3 className="text-xl font-semibold mb-2">Share Feedback Instantly</h3>
-              <p className="text-slate-500">
-                They’re taken to a mobile-friendly page where they can leave ratings and reviews, and even upload photos or videos — anonymously or with an account.
+            <div className={activeFeature === 'feature-dashboard' ? 'block' : 'hidden'}>
+              <h3 className="text-2xl font-bold mb-4">Comprehensive Business Dashboard</h3>
+              <p className="text-black space-y-3">
+                <span><strong>Centralized View:</strong> See all feedback in one secure place.</span><br /><br />
+                <span><strong>Automated Summaries:</strong> AI-powered reports highlight key themes, common complaints, and praises.</span><br /><br />
+                <span><strong>Frequency Prioritization:</strong> Automatically identify and flag the most frequent feedback points.</span><br /><br />
+                <span><strong>Multimedia Reports:</strong> Generate audio/video summaries for quick updates.</span>
               </p>
             </div>
-            <div className="flex flex-col items-center">
-              <div className="bg-blue-600 text-white rounded-full w-16 h-16 flex items-center justify-center text-2xl font-bold mb-4">3</div>
-              <h3 className="text-xl font-semibold mb-2">Get Actionable Insights</h3>
-              <p className="text-slate-500">
-                ScanRevuAI organizes and analyzes feedback in your private dashboard, highlighting trends, prioritizing recurring issues, and delivering clear, data-driven recommendations.
+            <div className={activeFeature === 'feature-loyalty' ? 'block' : 'hidden'}>
+              <h3 className="text-2xl font-bold mb-4">Loyalty Program Integration</h3>
+              <p className="text-black space-y-3">
+                <span><strong>Track Engagement:</strong> Monitor feedback from registered users.</span><br /><br />
+                <span><strong>Incentivize Feedback:</strong> Reward engaged customers with bonuses and offers.</span><br /><br />
+                <span><strong>Build Community:</strong> Turn customers into loyal advocates.</span>
+              </p>
+            </div>
+            <div className={activeFeature === 'feature-interface' ? 'block' : 'hidden'}>
+              <h3 className="text-2xl font-bold mb-4">Intuitive User Feedback Interface</h3>
+              <p className="text-black space-y-3">
+                <span><strong>Instant & App-less:</strong> A mobile-optimized web page for feedback.</span><br /><br />
+                <span><strong>Multi-Format Feedback:</strong> Submit text, ratings, images, and videos.</span><br /><br />
+                <span><strong>Anonymity & Accounts:</strong> Choose anonymity or account-based submission.</span>
               </p>
             </div>
           </div>
-          <Link
-          // href="https://forms.gle/EE2gVMah3ntVsXRG9"
-          to="/businessAuth"
-          // target="_blank"
-          // rel="noopener noreferrer"
-          className="max-w-fit p-4 border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-100 hover:border-white-500 mx-auto hover:text-blue-500 transition-all flex items-center justify-center font-semibold mt-12"
-        >
-          Get Started For Free
-        </Link>
-        </section>
+        </div>
+      </section>
 
-        {/* Features Section */}
-        <section id="features" className="mb-20 md:mb-32">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900">What Powers ScanRevuAI</h2>
-            <p className="max-w-2xl mx-auto mt-4 text-slate-600">
-              Discover the key features that make ScanRevuAI simple, smart, and effective — from QR code feedback collection to loyalty programs that keep customers engaged.
-            </p>
+      {/* Dashboard Demo Section */}
+      <section id="dashboard-demo" className="py-16 md:py-32 bg-white p-6 md:p-10 rounded-lg">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-black">Interactive Dashboard Demo</h2>
+          <p className="max-w-3xl mx-auto mt-4 text-black">
+            This simulation shows how ScanRevuAI categorizes and quantifies feedback. Use filters to explore trends over time.
+          </p>
+        </div>
+        <div className="text-center mb-8">
+          <div className="inline-flex rounded-md shadow-sm" role="group">
+            <button
+              className={`px-4 py-2 text-sm cursor-pointer font-medium ${chartPeriod === 'weekly' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600'} border border-blue-700 rounded-l-lg hover:bg-blue-700 hover:text-blue-500`}
+              onClick={() => handleChartFilterClick('weekly')}
+            >
+              Weekly
+            </button>
+            <button
+              className={`px-4 py-2 text-sm cursor-pointer font-medium ${chartPeriod === 'monthly' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600'} border-t border-b border-blue-700 hover:bg-blue-50 hover:text-blue-500`}
+              onClick={() => handleChartFilterClick('monthly')}
+            >
+              Monthly
+            </button>
+            <button
+              className={`px-4 py-2 text-sm cursor-pointer font-medium ${chartPeriod === 'quarterly' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600'} border border-blue-700 rounded-r-md hover:bg-blue-50 hover:text-blue-500`}
+              onClick={() => handleChartFilterClick('quarterly')}
+            >
+              Quarterly
+            </button>
           </div>
-          <div className="flex flex-col md:flex-row gap-8">
-            <div className="md:w-1/3">
-              <ul className="space-y-2">
-                <li>
-                  <button
-                    className={`w-full text-left p-4 border border-slate-300 rounded-lg hover:bg-blue-50 hover:border-blue-500 hover:text-blue-500 transition-all ${activeFeature === 'feature-qr' ? 'bg-blue-600 text-white border-blue-600' : ''}`}
-                    onClick={() => handleFeatureTabClick('feature-qr')}
-                  >
-                    Unique QR Codes
-                  </button>
-                </li>
-                <li>
-                  <button
-                    className={`w-full text-left p-4 border border-slate-300 rounded-lg hover:bg-blue-50 hover:border-blue-500 hover:text-blue-500 transition-all ${activeFeature === 'feature-dashboard' ? 'bg-blue-600 text-white border-blue-600' : ''}`}
-                    onClick={() => handleFeatureTabClick('feature-dashboard')}
-                  >
-                    Analytics Dashboard
-                  </button>
-                </li>
-                <li>
-                  <button
-                    className={`w-full text-left p-4 border border-slate-300 rounded-lg hover:bg-blue-50 hover:border-blue-500 hover:text-blue-500 transition-all ${activeFeature === 'feature-loyalty' ? 'bg-blue-600 text-white border-blue-600' : ''}`}
-                    onClick={() => handleFeatureTabClick('feature-loyalty')}
-                  >
-                    Loyalty Programs
-                  </button>
-                </li>
-                <li>
-                  <button
-                    className={`w-full text-left p-4 border border-slate-300 rounded-lg hover:bg-blue-50 hover:border-blue-500 hover:text-blue-500 transition-all ${activeFeature === 'feature-interface' ? 'bg-blue-600 text-white border-blue-600' : ''}`}
-                    onClick={() => handleFeatureTabClick('feature-interface')}
-                  >
-                    User Feedback Interface
-                  </button>
-                </li>
-              </ul>
-            </div>
-            <div className="md:w-2/3 bg-white p-8 rounded-lg shadow-lg min-h-[300px]">
-              <div className={activeFeature === 'feature-qr' ? 'block' : 'hidden'}>
-                <h3 className="text-2xl font-bold mb-4">QR Code Generation & Deployment</h3>
-                <p className="text-slate-600 space-y-3">
-                  <span><strong>Business-Specific Codes:</strong> Generate codes for your physical locations to gather general feedback.</span><br /><br />
-                  <span><strong>Product-Specific Codes:</strong> Attach QR codes to individual products for granular reviews and performance tracking.</span><br /><br />
-                  <span><strong>Customizable:</strong> Add your branding for a seamless customer experience.</span>
-                </p>
-              </div>
-              <div className={activeFeature === 'feature-dashboard' ? 'block' : 'hidden'}>
-                <h3 className="text-2xl font-bold mb-4">Comprehensive Business Dashboard</h3>
-                <p className="text-slate-600 space-y-3">
-                  <span><strong>Centralized View:</strong> See all feedback in one secure place.</span><br /><br />
-                  <span><strong>Automated Summaries:</strong> AI-powered reports highlight key themes, common complaints, and praises.</span><br /><br />
-                  <span><strong>Frequency Prioritization:</strong> Automatically identify and flag the most frequent feedback points so you know what to tackle first.</span><br /><br />
-                  <span><strong>Multimedia Reports:</strong> Generate audio/video summaries for quick, digestible weekly updates.</span>
-                </p>
-              </div>
-              <div className={activeFeature === 'feature-loyalty' ? 'block' : 'hidden'}>
-                <h3 className="text-2xl font-bold mb-4">Loyalty Program Integration</h3>
-                <p className="text-slate-600 space-y-3">
-                  <span><strong>Track Engagement:</strong> Monitor feedback submissions from registered users.</span><br /><br />
-                  <span><strong>Incentivize Feedback:</strong> Create custom loyalty programs to reward your most engaged customers with bonuses and offers.</span><br /><br />
-                  <span><strong>Build Community:</strong> Encourage repeat feedback and turn customers into loyal advocates for your brand.</span>
-                </p>
-              </div>
-              <div className={activeFeature === 'feature-interface' ? 'block' : 'hidden'}>
-                <h3 className="text-2xl font-bold mb-4">Intuitive User Feedback Interface</h3>
-                <p className="text-slate-600 space-y-3">
-                  <span><strong>Instant & App-less:</strong> A direct link to a mobile-optimized web page.</span><br /><br />
-                  <span><strong>Multi-Format Feedback:</strong> Users can submit text, ratings, images, and even short videos.</span><br /><br />
-                  <span><strong>Anonymity & Accounts:</strong> Users can choose to submit anonymously or create an account to participate in loyalty programs.</span>
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
+        </div>
+        <div className="relative w-full max-w-[800px] mx-auto h-[300px] md:h-[400px]">
+          <Bar data={chartData} options={chartOptions} />
+        </div>
+      </section>
 
-        {/* Dashboard Demo Section */}
-        <section id="dashboard-demo" className="mb-20 md:mb-32 bg-white p-6 md:p-10 rounded-lg shadow-xl">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900">Interactive Dashboard Demo</h2>
-            <p className="max-w-3xl mx-auto mt-4 text-slate-600">
-              This is a simulation of the core of the ScanRevuAI business dashboard. Here, you can see how feedback is categorized and quantified. Use the filters to see how insights can change over different time periods, demonstrating the power of identifying recurring trends.
-            </p>
+      {/* Benefits Section */}
+      <section id="benefits" className="container mx-auto px-6 py-16 md:py-32">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-black">What You Get</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+            <h3 className="text-xl font-semibold mb-2 text-blue-700">Instant Feedback!</h3>
+            <p className="text-black">Get insights while customers are still in your business.</p>
           </div>
-          <div className="text-center mb-8">
-            <div className="inline-flex rounded-md shadow-sm" role="group">
-              <button
-                className={`px-4 py-2 text-sm font-medium ${chartPeriod === 'weekly' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600'} border border-blue-700 rounded-l-lg hover:bg-blue-700 hover:text-blue-500`}
-                onClick={() => handleChartFilterClick('weekly')}
-              >
-                Weekly
-              </button>
-              <button
-                className={`px-4 py-2 text-sm font-medium ${chartPeriod === 'monthly' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600'} border-t border-b border-blue-700 hover:bg-blue-50 hover:text-blue-500`}
-                onClick={() => handleChartFilterClick('monthly')}
-              >
-                Monthly
-              </button>
-              <button
-                className={`px-4 py-2 text-sm font-medium ${chartPeriod === 'quarterly' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600'} border border-blue-700 rounded-r-md hover:bg-blue-50 hover:text-blue-500`}
-                onClick={() => handleChartFilterClick('quarterly')}
-              >
-                Quarterly
-              </button>
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.1s' }}>
+            <h3 className="text-xl font-semibold mb-2 text-blue-700">Real-Time Alerts!</h3>
+            <p className="text-black">Know immediately when issues arise.</p>
+          </div>
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.2s' }}>
+            <h3 className="text-xl font-semibold mb-2 text-blue-700">Prevent Lost Customers!</h3>
+            <p className="text-black">Address problems before bad reviews.</p>
+          </div>
+          <div className="col-span-1 lg:col-start-1 lg:row-start-2 mt-8 lg:mt-0" style={{ marginLeft: 'auto', marginRight: 'auto', width: 'fit-content' }}>
+            <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.3s' }}>
+              <h3 className="text-xl font-semibold mb-2 text-blue-700">Direct Channel!</h3>
+              <p className="text-black">Easy feedback collection from customers.</p>
             </div>
           </div>
-          <div className="relative w-full max-w-[800px] mx-auto h-[300px] md:h-[400px]">
-            <Bar data={chartData} options={chartOptions} />
+          <div className="col-span-1 lg:col-start-3 lg:row-start-2 mt-16 lg:mt-0" style={{ marginLeft: 'auto', marginRight: 'auto', width: 'fit-content' }}>
+            <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.4s' }}>
+              <h3 className="text-xl font-semibold mb-2 text-blue-700">Actionable Insights!</h3>
+              <p className="text-black">AI guides you on improvements and strengths.</p>
+            </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Benefits Section */}
-        <section id="benefits" className="mb-20">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900">A Win-Win Platform</h2>
-            <p className="max-w-2xl mx-auto mt-4 text-slate-600">
-              ScanRevuAI is designed to create value for both sides of the counter — from businesses seeking to improve and for customers who want their voices heard.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-            <div className="bg-white p-8 rounded-lg shadow-lg">
-              <h3 className="text-2xl font-bold mb-4 text-blue-700">For Businesses</h3>
-              <ul className="space-y-3 text-slate-600">
-                <li className="flex items-start">
-                  <span className="text-blue-500 mr-3 mt-1">✓</span>
-                  <span><strong>Real-time Insights:</strong> Get immediate, unfiltered feedback at the point of experience.</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-500 mr-3 mt-1">✓</span>
-                  <span><strong>Data-Driven Decisions:</strong> Make informed choices based on summarized and prioritized data.</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-500 mr-3 mt-1">✓</span>
-                  <span><strong>Improved Satisfaction:</strong> Proactively address issues and enhance positive experiences.</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-500 mr-3 mt-1">✓</span>
-                  <span><strong>Increased Loyalty:</strong> Build a loyal following through recognition and incentives.</span>
-                </li>
-              </ul>
+      {/* Social Proof Section */}
+      <section id="social-proof" className="bg-blue-50 py-16 md:py-32 px-6">
+        <div className="container mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-black mb-12">Why Nigerian Hospitality Businesses Choose ScanRevuAI</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="card animate-fade-in bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+              <p className="text-black italic mb-4">"ScanRevuAI gave us a direct line to our customers. We now catch issues immediately and fix them before they become bigger problems."</p>
+              <p className="font-semibold text-blue-700">— Hotel Manager, Lagos</p>
             </div>
-            <div className="bg-white p-8 rounded-lg shadow-lg">
-              <h3 className="text-2xl font-bold mb-4 text-blue-700">For Customers</h3>
-              <ul className="space-y-3 text-slate-600">
-                <li className="flex items-start">
-                  <span className="text-blue-500 mr-3 mt-1">✓</span>
-                  <span><strong>Effortless Submission:</strong> A quick, convenient way to share opinions.</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-500 mr-3 mt-1">✓</span>
-                  <span><strong>Feel Heard:</strong> Know your feedback directly contributes to improvements.</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-500 mr-3 mt-1">✓</span>
-                  <span><strong>Anonymity Option:</strong> Comfort in providing honest feedback without revealing your identity.</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-500 mr-3 mt-1">✓</span>
-                  <span><strong>Get Rewarded:</strong> Benefit from loyalty programs for active participation.</span>
-                </li>
-              </ul>
+            <div className="card animate-fade-in bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.1s' }}>
+              <p className="text-black italic mb-4">"Our guests love how easy it is to share feedback. We've improved our service quality dramatically since we can address concerns in real-time."</p>
+              <p className="font-semibold text-blue-700">— Restaurant Owner, Abuja</p>
             </div>
           </div>
-          <Link
-          // href="https://forms.gle/EE2gVMah3ntVsXRG9"
-          to="/businessAuth"
-          // target="_blank"
-          // rel="noopener noreferrer"
-          className="max-w-fit p-4 border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-100 hover:border-white-500 mx-auto hover:text-blue-500 transition-all flex items-center justify-center font-semibold mt-12"
-        >
-          Get Started For Free
-        </Link>
-        </section>
-      </main>
+        </div>
+      </section>
 
       {/* Footer */}
-      <footer className="bg-slate-800 text-white">
-        <div className="container mx-auto px-6 py-8 text-center text-slate-400">
+      <footer className="bg-[#000C2D] text-white">
+        <div className="container mx-auto px-6 py-8 text-center text-white">
           <p className="font-bold text-lg text-white mb-2">ScanRevuAI</p>
           <p>&copy; 2025 ScanRevuAI. All rights reserved.</p>
         </div>
