@@ -10,7 +10,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLogoDropdownOpen, setIsLogoDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false); // New state for logout confirmation modal
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOutInternal, setIsLoggingOutInternal] = useState(false);
   const [businessName, setBusinessName] = useState(null);
   const [businessLogo, setBusinessLogo] = useState(null);
@@ -58,6 +58,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
     setIsUploading(true);
     setError(null);
     setIsLogoDropdownOpen(false);
+    setIsMobileMenuOpen(false); // Close mobile menu
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
@@ -95,7 +96,8 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
   };
 
   const handleLogout = async () => {
-    setIsLogoutModalOpen(true); // Show confirmation modal
+    setIsLogoutModalOpen(true);
+    setIsMobileMenuOpen(false); // Close mobile menu
   };
 
   const confirmLogout = async () => {
@@ -180,7 +182,10 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative pointer-events-auto">
             <button
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-              onClick={() => setIsLogoutModalOpen(false)}
+              onClick={() => {
+                setIsLogoutModalOpen(false);
+                setIsMobileMenuOpen(false); // Close mobile menu
+              }}
               aria-label="Close modal"
             >
               <X className="h-6 w-6" />
@@ -196,7 +201,10 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                   Yes
                 </button>
                 <button
-                  onClick={() => setIsLogoutModalOpen(false)}
+                  onClick={() => {
+                    setIsLogoutModalOpen(false);
+                    setIsMobileMenuOpen(false); // Close mobile menu
+                  }}
                   className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors duration-300"
                 >
                   Cancel
@@ -208,7 +216,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
       )}
       {(isMobileMenuOpen || isSettingsOpen || isLogoDropdownOpen || isModalOpen) && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-gray-900 bg-opacity-50 backdrop-blur-sm pointer-events-auto"
+          className="lg:hidden fixed inset-0 z-40 backdrop-blur-sm pointer-events-auto"
           onClick={() => {
             closeMobileMenu();
             setIsModalOpen(false);
@@ -216,11 +224,14 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
         />
       )}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm pointer-events-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm pointer-events-auto">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative">
             <button
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => {
+                setIsModalOpen(false);
+                setIsMobileMenuOpen(false); // Close mobile menu
+              }}
               aria-label="Close modal"
             >
               <X className="h-6 w-6" />
@@ -245,7 +256,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
           </div>
         </div>
       )}
-      <header className="bg-white border-b border-gray-200 top-0 z-50 relative">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 ">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
@@ -257,7 +268,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                   disabled={isLoadingData || isUploading}
                 >
                   {isLoadingData || isUploading ? (
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-200">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center ">
                       <LoadingSpinner />
                     </div>
                   ) : (
@@ -288,13 +299,17 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                       onClick={() => {
                         setIsModalOpen(true);
                         setIsLogoDropdownOpen(false);
+                        setIsMobileMenuOpen(false); // Close mobile menu
                       }}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
                       View Profile Image
                     </button>
                     <button
-                      onClick={() => fileInputRef.current.click()}
+                      onClick={() => {
+                        fileInputRef.current.click();
+                        setIsMobileMenuOpen(false); // Close mobile menu
+                      }}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
                       Update Profile Picture
@@ -313,7 +328,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                 <span className="text-xl font-bold text-black">
                   {isLoadingData ? 'Loading...' : (businessName || 'Business Name')}
                 </span>
-                <span className="text-xs sm:text-sm font-bold text-gray-500">Business Portal</span>
+                <span className="text-xs sm:text-sm font-bold text-gray-500 sm:px-4 pb-2 sm:pb-4 md:pb-4">Business Portal</span>
               </Link>
             </div>
             <nav className="hidden lg:flex items-center space-x-8">
@@ -341,7 +356,10 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                     <Link
                       to="/businessProfile"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      onClick={() => setIsSettingsOpen(false)}
+                      onClick={() => {
+                        setIsSettingsOpen(false);
+                        setIsMobileMenuOpen(false); // Close mobile menu
+                      }}
                     >
                       Profile
                     </Link>
