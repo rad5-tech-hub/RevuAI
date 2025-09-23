@@ -212,7 +212,7 @@ const FeedbackCard = ({ feedback, onDownloadCSV, onDownloadPDF, onShare }) => {
         ) : null}
       </div>
       <div className="flex gap-2 self-end sm:self-start">
-        <button
+        {/* <button
           onClick={() =>
             toast.info("View feedback details coming soon!", {
               position: "top-right",
@@ -223,7 +223,7 @@ const FeedbackCard = ({ feedback, onDownloadCSV, onDownloadPDF, onShare }) => {
           aria-label="View Feedback"
         >
           <Eye size={18} />
-        </button>
+        </button> */}
         <div className="relative group">
           <button className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100" aria-label="Download Feedback">
             <Download size={18} />
