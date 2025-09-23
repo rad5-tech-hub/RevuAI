@@ -328,7 +328,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                 <span className="text-xl font-bold text-black">
                   {isLoadingData ? 'Loading...' : (businessName || 'Business Name')}
                 </span>
-                <span className="text-xs sm:text-sm font-bold text-gray-500 sm:px-4 pb-2 sm:pb-4 md:pb-4">Business Portal</span>
+                <span className="text-xs sm:text-sm font-bold text-gray-500">Business Portal</span>
               </Link>
             </div>
             <nav className="hidden lg:flex items-center space-x-8">
