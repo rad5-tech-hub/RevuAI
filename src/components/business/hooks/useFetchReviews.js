@@ -83,13 +83,13 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
           const reviewsWithUrls = reviews.map((review) => {
             const mappedReview = {
               ...review,
-              qrcode_url: review.qrcode?.id || "Unknown QR Code",
+              qrcode_label: review.qrcode?.label || "Unknown QR Code",
               reviewerName: review.isAnonymous || !review.user?.fullname ? "Anonymous" : review.user.fullname,
             };
             console.log("Mapped review:", {
               id: review.id,
               reviewerName: mappedReview.reviewerName,
-              qrcode_url: mappedReview.qrcode_url,
+              qrcode_label: mappedReview.qrcode_label,
               user: review.user,
               qrcodeId: review.qrcode?.id,
             });

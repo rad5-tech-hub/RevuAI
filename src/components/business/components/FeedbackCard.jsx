@@ -13,58 +13,48 @@ const sentimentColors = {
 // Helper function to format time in a user-friendly way
 const formatTimeAgo = (dateString) => {
   if (!dateString) return "Unknown time";
-
   try {
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now - date) / 1000);
-
     // Handle invalid dates
     if (isNaN(diffInSeconds)) {
       return "Invalid date";
     }
-
     // Less than a minute ago
     if (diffInSeconds < 60) {
       return "Just now";
     }
-
     // Less than an hour ago
     if (diffInSeconds < 3600) {
       const minutes = Math.floor(diffInSeconds / 60);
       return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
     }
-
     // Less than a day ago
     if (diffInSeconds < 86400) {
       const hours = Math.floor(diffInSeconds / 3600);
       return `${hours} hour${hours === 1 ? "" : "s"} ago`;
     }
-
     // Less than a week ago
     if (diffInSeconds < 604800) {
       const days = Math.floor(diffInSeconds / 86400);
       return `${days} day${days === 1 ? "" : "s"} ago`;
     }
-
     // Less than a month ago (30 days)
     if (diffInSeconds < 2592000) {
       const weeks = Math.floor(diffInSeconds / 604800);
       return `${weeks} week${weeks === 1 ? "" : "s"} ago`;
     }
-
     // Less than a year ago
     if (diffInSeconds < 31536000) {
       const months = Math.floor(diffInSeconds / 2592000);
       return `${months} month${months === 1 ? "" : "s"} ago`;
     }
-
     // More than a year ago
     const years = Math.floor(diffInSeconds / 31536000);
     if (years === 1) {
       return "1 year ago";
     }
-
     // For dates more than a year ago, show the actual date
     return date.toLocaleDateString("en-US", {
       year: "numeric",
@@ -165,7 +155,7 @@ const FeedbackCard = ({ feedback, onDownloadCSV, onDownloadPDF, onShare }) => {
           )}
         </div>
         <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
-          <MessageCircle size={16} /> {feedback.qrCode || "No QR Code"}
+          <MessageCircle size={16} /> {feedback.qrcode_label || "No QR Code Label"}
         </div>
         {replies.length > 0 && (
           <div className="mt-3 space-y-2">
@@ -212,18 +202,6 @@ const FeedbackCard = ({ feedback, onDownloadCSV, onDownloadPDF, onShare }) => {
         ) : null}
       </div>
       <div className="flex gap-2 self-end sm:self-start">
-        {/* <button
-          onClick={() =>
-            toast.info("View feedback details coming soon!", {
-              position: "top-right",
-              autoClose: 3000,
-            })
-          }
-          className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
-          aria-label="View Feedback"
-        >
-          <Eye size={18} />
-        </button> */}
         <div className="relative group">
           <button className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100" aria-label="Download Feedback">
             <Download size={18} />
