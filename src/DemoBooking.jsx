@@ -1,9 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { CheckCircle, Sparkles, Star, Calendar, MessageSquare, TrendingUp } from 'lucide-react';
 
 const DemoBooking = () => {
-  const navigate = useNavigate();
-
   const [formData, setFormData] = useState({
     businessName: '',
     yourName: '',
@@ -17,10 +15,15 @@ const DemoBooking = () => {
 
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [focusedField, setFocusedField] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
+    }
   };
 
   const validateForm = () => {
@@ -37,133 +40,291 @@ const DemoBooking = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validateForm()) {
-      // Simulate form submission (replace with API call in production)
       console.log('Form submitted:', formData);
       setSubmitted(true);
-      // Redirect to a thank you page or dashboard after submission
-      setTimeout(() => navigate('/thank-you'), 2000);
     }
   };
 
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-400 flex items-center justify-center px-4 py-12 sm:p-6">
+        <div className="bg-white/70 backdrop-blur-xl p-6 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl shadow-lg md:shadow-2xl border border-blue-600 max-w-xs sm:max-w-sm md:max-w-md w-full text-center animate-pulse">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full sm:rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 animate-bounce">
+            <CheckCircle className="w-8 sm:w-10 h-8 sm:h-10 text-white" />
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-2 sm:mb-4">Thank You!</h2>
+          <p className="text-blue-700 text-base sm:text-lg mb-4 sm:mb-6">Your demo request has been submitted successfully.</p>
+          <div className="flex items-center justify-center space-x-1 sm:space-x-2 text-blue-600">
+            <Sparkles className="w-4 sm:w-5 h-4 sm:h-5 animate-spin" />
+            <span className="text-sm sm:text-base">Redirecting to confirmation...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="font-inter bg-stone-50 text-slate-800 min-h-screen flex items-center justify-center py-12 px-4">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h1 className="text-3xl font-bold text-blue-700 text-center mb-6">Book Your FREE Demo</h1>
-        <p className="text-center text-slate-600 mb-8">See RevuAI in Action</p>
-        {submitted ? (
-          <div className="text-center text-green-600">Thank you! Your demo request has been submitted. Redirecting...</div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Business Name</label>
-              <input
-                type="text"
-                name="businessName"
-                value={formData.businessName}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-              />
-              {errors.businessName && <p className="text-red-500 text-sm">{errors.businessName}</p>}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 py-6 sm:py-8 md:py-12 px-4 sm:px-6">
+      {/* Floating background elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-48 sm:w-72 md:w-96 h-48 sm:h-72 md:h-96 bg-blue-200/20 rounded-full blur-xl sm:blur-2xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-48 sm:w-72 md:w-96 h-48 sm:h-72 md:h-96 bg-blue-300/20 rounded-full blur-xl sm:blur-2xl animate-pulse delay-1000"></div>
+      </div>
+
+      <div className="relative max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center">
+          {/* Left side - Form */}
+          <div className="bg-white/70 backdrop-blur-xl p-4 sm:p-6 md:p-8 lg:p-12 rounded-xl sm:rounded-2xl md:rounded-3xl shadow-md md:shadow-xl border border-blue-600 hover:shadow-blue-200/50 transition-all duration-700">
+            {/* Header */}
+            <div className="text-center mb-4 sm:mb-6">
+              <div className="inline-flex items-center justify-center w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg sm:rounded-xl md:rounded-2xl mb-2 sm:mb-4 shadow-md">
+                <Calendar className="w-6 sm:w-7 md:w-8 h-6 sm:h-7 md:h-8 text-white" />
+              </div>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-2 sm:mb-3">
+                Book Your FREE Demo
+              </h1>
+              <p className="text-blue-600 text-base sm:text-lg font-medium">See ScanRevuAI Transform Your Business</p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Your Name</label>
-              <input
-                type="text"
-                name="yourName"
-                value={formData.yourName}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-              />
-              {errors.yourName && <p className="text-red-500 text-sm">{errors.yourName}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Phone/WhatsApp</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-              />
-              {errors.phone && <p className="text-red-500 text-sm">{errors.phone}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-              />
-              {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Business Type</label>
-              <select
-                name="businessType"
-                value={formData.businessType}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+
+            <div className="space-y-4 sm:space-y-5">
+              {/* Business Name */}
+              <div className="group">
+                <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Business Name *</label>
+                <input
+                  type="text"
+                  name="businessName"
+                  value={formData.businessName}
+                  onChange={handleChange}
+                  onFocus={() => setFocusedField('businessName')}
+                  onBlur={() => setFocusedField('')}
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 bg-white/50 backdrop-blur-sm
+                    ${errors.businessName 
+                      ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100' 
+                      : 'border-blue-500 focus:border-blue-600 focus:ring-4 focus:ring-blue-100'
+                    } focus:outline-none placeholder-blue-600`}
+                  placeholder="Enter your business name"
+                />
+                {errors.businessName && (
+                  <p className="text-red-500 text-xs sm:text-sm mt-1 sm:mt-2 animate-pulse">{errors.businessName}</p>
+                )}
+              </div>
+
+              {/* Your Name */}
+              <div className="group">
+                <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Your Name *</label>
+                <input
+                  type="text"
+                  name="yourName"
+                  value={formData.yourName}
+                  onChange={handleChange}
+                  onFocus={() => setFocusedField('yourName')}
+                  onBlur={() => setFocusedField('')}
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 bg-white/50 backdrop-blur-sm
+                    ${errors.yourName 
+                      ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100' 
+                      : 'border-blue-500 focus:border-blue-600 focus:ring-4 focus:ring-blue-100'
+                    } focus:outline-none placeholder-blue-600`}
+                  placeholder="Enter your full name"
+                />
+                {errors.yourName && (
+                  <p className="text-red-500 text-xs sm:text-sm mt-1 sm:mt-2 animate-pulse">{errors.yourName}</p>
+                )}
+              </div>
+
+              {/* Phone and Email Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Phone/WhatsApp *</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 bg-white/50 backdrop-blur-sm
+                      ${errors.phone 
+                        ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100' 
+                        : 'border-blue-500 focus:border-blue-600 focus:ring-4 focus:ring-blue-100'
+                      } focus:outline-none placeholder-blue-500`}
+                    placeholder="+234 xxx xxx xxxx"
+                  />
+                  {errors.phone && (
+                    <p className="text-red-500 text-xs sm:text-sm mt-1 sm:mt-2 animate-pulse">{errors.phone}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Email *</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 bg-white/50 backdrop-blur-sm
+                      ${errors.email 
+                        ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100' 
+                        : 'border-blue-500 focus:border-blue-600 focus:ring-4 focus:ring-blue-100'
+                      } focus:outline-none placeholder-blue-500`}
+                    placeholder="your@email.com"
+                  />
+                  {errors.email && (
+                    <p className="text-red-500 text-xs sm:text-sm mt-1 sm:mt-2 animate-pulse">{errors.email}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Business Type and Location Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Business Type</label>
+                  <select
+                    name="businessType"
+                    value={formData.businessType}
+                    onChange={handleChange}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 border-blue-500 focus:border-blue-700 focus:ring-4 focus:ring-blue-100 transition-all duration-300 bg-white/50 backdrop-blur-sm focus:outline-none text-blue-800"
+                  >
+                    <option value="Hotel">Hotel</option>
+                    <option value="Restaurant">Restaurant</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Location *</label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 bg-white/50 backdrop-blur-sm
+                      ${errors.location 
+                        ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100' 
+                        : 'border-blue-500 focus:border-blue-6500 focus:ring-4 focus:ring-blue-100'
+                      } focus:outline-none placeholder-blue-500`}
+                    placeholder="City, Country"
+                  />
+                  {errors.location && (
+                    <p className="text-red-500 text-xs sm:text-sm mt-1 sm:mt-2 animate-pulse">{errors.location}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Review Count */}
+              <div>
+                <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Monthly Reviews</label>
+                <select
+                  name="reviewCount"
+                  value={formData.reviewCount}
+                  onChange={handleChange}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 border-blue-500 focus:border-blue-700 focus:ring-4 focus:ring-blue-100 transition-all duration-300 bg-white/50 backdrop-blur-sm focus:outline-none text-blue-800"
+                >
+                  <option value="Less than 50">Less than 50</option>
+                  <option value="50-200">50-200</option>
+                  <option value="200-500">200-500</option>
+                  <option value="500+">500+</option>
+                </select>
+              </div>
+
+              {/* Biggest Challenge */}
+              <div>
+                <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Biggest Review Challenge</label>
+                <textarea
+                  name="biggestChallenge"
+                  value={formData.biggestChallenge}
+                  onChange={handleChange}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 border-blue-500 focus:border-blue-700 focus:ring-4 focus:ring-blue-100 transition-all duration-300 bg-white/50 backdrop-blur-sm focus:outline-none placeholder-blue-700 resize-none"
+                  rows="3 sm:rows-4"
+                  placeholder="Tell us about your biggest challenge with reviews..."
+                />
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                onClick={handleSubmit}
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-2 sm:py-3 md:py-4 px-4 sm:px-6 md:px-8 rounded-lg sm:rounded-xl shadow-md md:shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 text-base sm:text-lg group"
               >
-                <option value="Hotel">Hotel</option>
-                <option value="Restaurant">Restaurant</option>
-                <option value="Other">Other</option>
-              </select>
+                <span className="flex items-center justify-center space-x-1 sm:space-x-2">
+                  <Calendar className="w-4 sm:w-5 h-4 sm:h-5 group-hover:animate-pulse" />
+                  <span>Book My FREE Demo</span>
+                  <Sparkles className="w-4 sm:w-5 h-4 sm:h-5 group-hover:animate-spin" />
+                </span>
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Location</label>
-              <input
-                type="text"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-              />
-              {errors.location && <p className="text-red-500 text-sm">{errors.location}</p>}
+          </div>
+
+          {/* Right side - Benefits */}
+          <div className="space-y-4 sm:space-y-6">
+            <div className="text-center md:text-left">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-900 mb-2 sm:mb-4">
+                Transform Your Customer Experience in 15 Minutes
+              </h2>
+              <p className="text-blue-700 text-base sm:text-lg leading-relaxed">
+                See exactly how ScanRevuAI can revolutionize your review management and boost customer satisfaction.
+              </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">How many reviews do you get monthly?</label>
-              <select
-                name="reviewCount"
-                value={formData.reviewCount}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-              >
-                <option value="Less than 50">Less than 50</option>
-                <option value="50-200">50-200</option>
-                <option value="200-500">200-500</option>
-                <option value="500+">500+</option>
-              </select>
+
+            <div className="grid gap-4 sm:gap-6">
+              <div className="bg-white/40 backdrop-blur-sm p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl border border-blue-200 hover:bg-white/60 transition-all duration-300 group">
+                <div className="flex items-start space-x-2 sm:space-x-4">
+                  <div className="w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 bg-gradient-to-r from-blue-400 to-blue-500 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <MessageSquare className="w-3 sm:w-4 md:w-6 h-3 sm:h-4 md:h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base md:text-xl font-bold text-blue-900 mb-1 sm:mb-2">QR Code Feedback System</h3>
+                    <p className="text-blue-700 text-xs sm:text-sm md:text-base">Watch how customers leave feedback instantly with our seamless QR system</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white/40 backdrop-blur-sm p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl border border-blue-200 hover:bg-white/60 transition-all duration-300 group">
+                <div className="flex items-start space-x-2 sm:space-x-4">
+                  <div className="w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <TrendingUp className="w-3 sm:w-4 md:w-6 h-3 sm:h-4 md:h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base md:text-xl font-bold text-blue-900 mb-1 sm:mb-2">Real-time AI Analysis</h3>
+                    <p className="text-blue-700 text-xs sm:text-sm md:text-base">See AI analyze sentiment and extract insights from customer feedback instantly</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white/40 backdrop-blur-sm p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl border border-blue-200 hover:bg-white/60 transition-all duration-300 group">
+                <div className="flex items-start space-x-2 sm:space-x-4">
+                  <div className="w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <Star className="w-3 sm:w-4 md:w-6 h-3 sm:h-4 md:h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base md:text-xl font-bold text-blue-900 mb-1 sm:mb-2">Personalized Recommendations</h3>
+                    <p className="text-blue-700 text-xs sm:text-sm md:text-base">Get tailored insights and action plans specific to your business type</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white/40 backdrop-blur-sm p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl border border-blue-200 hover:bg-white/60 transition-all duration-300 group">
+                <div className="flex items-start space-x-2 sm:space-x-4">
+                  <div className="w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 bg-gradient-to-r from-blue-700 to-blue-800 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <Sparkles className="w-3 sm:w-4 md:w-6 h-3 sm:h-4 md:h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base md:text-xl font-bold text-blue-900 mb-1 sm:mb-2">Complete Setup Guide</h3>
+                    <p className="text-blue-700 text-xs sm:text-sm md:text-base">Learn step-by-step how to implement and optimize your feedback system</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">What's your biggest review challenge?</label>
-              <textarea
-                name="biggestChallenge"
-                value={formData.biggestChallenge}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                rows="3"
-              />
+
+            {/* Trust indicators */}
+            <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 sm:p-6 rounded-lg sm:rounded-xl border border-blue-200">
+              <div className="text-center">
+                <p className="text-blue-800 text-sm sm:text-base font-semibold mb-1 sm:mb-2">Join 500+ Businesses Already Using ScanRevuAI</p>
+                <div className="flex items-center justify-center space-x-0.5 sm:space-x-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 sm:w-5 h-4 sm:h-5 text-yellow-400 fill-current" />
+                  ))}
+                  <span className="text-blue-700 text-xs sm:text-sm md:text-base ml-1 sm:ml-2">4.9/5 Average Rating</span>
+                </div>
+              </div>
             </div>
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Submit Request
-            </button>
-          </form>
-        )}
-        <p className="text-center text-slate-600 mt-4">
-          What you'll get in your 15-minute demo:
-          <ul className="text-left mt-2 space-y-2">
-            <li>✔ See how the QR code feedback system works</li>
-            <li>✔ Watch AI analyze customer feedback in real-time</li>
-            <li>✔ Get sample insights and recommendations for your business type</li>
-            <li>✔ Learn how to set up your feedback collection system</li>
-            <li>✔ Discover how to turn feedback into improved customer satisfaction</li>
-          </ul>
-        </p>
+          </div>
+        </div>
       </div>
     </div>
   );
