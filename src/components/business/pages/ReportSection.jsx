@@ -21,6 +21,7 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useState, useEffect } from "react";
 import BusinessHeader from "./../components/headerComponents";
+import StrengthsProblemsSection from "../components/StrengthsProblemsSection";
 
 const ReportSection = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -330,8 +331,7 @@ const ReportSection = () => {
               </div>
             </div>
             {/* Bottom Section - Insights and Reports */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-              {/* Left Column - AI Insights */}
+            <div className="mt-8">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-medium text-gray-900">AI-Powered Insights</h2>
@@ -342,19 +342,6 @@ const ReportSection = () => {
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   {dynamicKeywordData.length > 0 || recommendations.length > 0 ? (
                     <div className="space-y-6">
-                      <ul className="space-y-4">
-                        {dynamicKeywordData.slice(0, 5).map((item, index) => ( // Show first 5 as teaser
-                          <li key={index} className="flex items-start gap-2">
-                            <Lightbulb
-                              className={`w-6 h-6 ${item.type === "issue" ? "text-red-500" : "text-green-500"}`}
-                            />
-                            <div>
-                              <p className="text-base font-medium text-gray-900">{item.name}</p>
-                              <p className="text-base text-gray-500">Mentions: {item.frequency}</p>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
                       {recommendations.length > 0 && (
                         <div>
                           <h4 className="text-base font-medium text-gray-700 mb-2">Recommendations</h4>
@@ -373,37 +360,12 @@ const ReportSection = () => {
                   )}
                 </div>
               </div>
-              {/* Right Column - Generated Reports */}
+<StrengthsProblemsSection 
+    businessId={localStorage.getItem("authBusinessId")}
+    authToken={localStorage.getItem("authToken")}
+    baseUrl={BASE_URL}
+  />
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-medium text-gray-900">Generated Reports</h2>
-                  <button className="flex items-center cursor-pointer space-x-1 text-base text-blue-600 hover:text-blue-700" onClick={emailReports}>
-                    <Mail className="w-5 h-5" />
-                    <span>Email All</span>
-                  </button>
-                </div>
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  {dynamicFeedbackData.length > 0 ? (
-                    <ul className="space-y-4">
-                      {dynamicFeedbackData.map((feedback) => (
-                        <li key={feedback.id} className="flex items-start gap-2">
-                          <FileText className="w-6 h-6 text-blue-500" />
-                          <div>
-                            <p className="text-base font-medium text-gray-900">
-                              {feedback.qrcodeTitle} - {feedback.rating_label} ({feedback.rating}/5)
-                            </p>
-                            <p className="text-base text-gray-500">{feedback.comment}</p>
-                            <p className="text-sm text-gray-400 mt-1">
-                              By {feedback.reviewer} on {feedback.createdAt}
-                            </p>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-base text-gray-500">No reports available yet</p>
-                  )}
-                </div>
               </div>
             </div>
           </div>
