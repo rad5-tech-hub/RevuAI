@@ -5,7 +5,7 @@ import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import QRCode from "qrcode";
 import { QrCode, Download, Share2, Printer, Eye, Plus, X, Check, Loader2, Star, User, MessageCircle, Calendar, Award, Settings } from "lucide-react";
-import { HeaderSection } from "../components/HeaderSection";
+import { HeaderSection } from "../components/headerSection";
 import { Tabs } from "../components/Tabs";
 import { TypeCard } from "../components/TypeCard";
 import { QRModal } from "../components/QRModal";
