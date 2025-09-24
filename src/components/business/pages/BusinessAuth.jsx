@@ -293,7 +293,7 @@ const BusinessAuth = () => {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pt-8">
+            {/* <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pt-8">
               <div className="text-center">
                 <div className="text-4xl font-bold text-blue-600 mb-1">10K+</div>
                 <div className="text-base text-gray-600">Businesses</div>
@@ -306,7 +306,7 @@ const BusinessAuth = () => {
                 <div className="text-4xl font-bold text-green-600 mb-1">98%</div>
                 <div className="text-base text-gray-600">Satisfaction</div>
               </div>
-            </div>
+            </div> */}
           </div>
           <div className="flex justify-center lg:justify-end">
             <div className="w-full max-w-md">
