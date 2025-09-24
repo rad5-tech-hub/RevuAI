@@ -10,6 +10,8 @@ import Report from "./components/business/pages/ReportSection.jsx";
 import FeedbackForm from "./components/customer/pages/feedbackform.jsx";
 import ThankYou from "./components/customer/pages/ThankYouPage.jsx";
 import AdminAuth from "./components/admin/adminAuth.jsx";
+import Terms from "./components/admin/terms.jsx";
+import Privacy from "./components/admin/privacy.jsx";
 import AdminDashboard from "./components/admin/adminDashboard.jsx";
 import ForgotPassword from "./components/customer/pages/ForgotPassword.jsx";
 import UserAuth from "./components/customer/pages/UserAuth.jsx";
@@ -94,6 +96,8 @@ function App() {
           <Route path="/changePassword" element={<ForgotPassword />} />
           <Route path="/adminAuth" element={<AdminAuth />} />
           <Route path="/demoBooking" element={<DemoBooking />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
 
           {/* Business-side protected routes */}
           <Route
