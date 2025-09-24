@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, } from 'react-router-dom';
 import { QrCode, Settings, Menu, X, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
 const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
   const location = useLocation();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLogoDropdownOpen, setIsLogoDropdownOpen] = useState(false);
@@ -23,7 +23,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
     { path: '/businessDashboard', label: '📊 Dashboard', icon: '📊' },
     { path: '/businessFeedback', label: '💬 Feedback', icon: '💬' },
     { path: '/businessQrpage', label: '📱 QR Codes', icon: '📱' },
-    { path: '/businessReports', label: '📈 Ai Reports', icon: '📈' },
+    { path: '/businessReports', label: '📈 AI Reports', icon: '📈' },
   ];
 
   // Fetch business data
@@ -328,7 +328,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                 <span className="text-xl font-bold text-black">
                   {isLoadingData ? 'Loading...' : (businessName || 'Business Name')}
                 </span>
-                <span className="text-xs sm:text-sm font-bold text-gray-500 sm:px-4 pb-2 sm:pb-4 md:pb-4">Business Portal</span>
+                <span className="text-xs sm:text-sm font-bold text-gray-500 ">Business Portal</span>
               </Link>
             </div>
             <nav className="hidden lg:flex items-center space-x-8">
