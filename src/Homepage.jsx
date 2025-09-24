@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { Link } from 'react-router-dom';
-import { Link as ScrollLink, animateScroll as scroll } from 'react-scroll'; 
+import { Facebook, X, Instagram, Linkedin, Mail, MapPin, Phone } from 'lucide-react';
+import  { ToastContainer } from 'react-toastify';
 import "./Homepage.css";
 
 // Register Chart.js components
@@ -93,65 +94,12 @@ const Homepage = () => {
 
   return (
     <div className="font-inter bg-stone-50 text-black scroll-smooth scroll"> 
+      <ToastContainer position="top-right" />
       {/* Header */}
       <header className="bg-white/60 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
         <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="text-2xl font-bold text-blue-700">ScanRevuAI</div>
+          <div className="text-xl lg:text-2xl font-bold text-blue-700">ScanRevuAI</div>
           <div className="hidden md:flex items-center space-x-2">
-            <ScrollLink
-              to="problem"
-              smooth={true}
-              duration={500}
-              className="px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors cursor-pointer"
-              onClick={handleNavLinkClick}
-            >
-              The Challenge
-            </ScrollLink>
-            <ScrollLink
-              to="solution"
-              smooth={true}
-              duration={500}
-              className="px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors cursor-pointer"
-              onClick={handleNavLinkClick}
-            >
-              How It Works
-            </ScrollLink>
-            <ScrollLink
-              to="features"
-              smooth={true}
-              duration={500}
-              className="px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors cursor-pointer"
-              onClick={handleNavLinkClick}
-            >
-              Features
-            </ScrollLink>
-            <ScrollLink
-              to="dashboard-demo"
-              smooth={true}
-              duration={500}
-              className="px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors cursor-pointer"
-              onClick={handleNavLinkClick}
-            >
-              Dashboard Demo
-            </ScrollLink>
-            <ScrollLink
-              to="benefits"
-              smooth={true}
-              duration={500}
-              className="px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors cursor-pointer"
-              onClick={handleNavLinkClick}
-            >
-              Benefits
-            </ScrollLink>
-            <ScrollLink
-              to="social-proof"
-              smooth={true}
-              duration={500}
-              className="px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors cursor-pointer"
-              onClick={handleNavLinkClick}
-            >
-              Testimonials
-            </ScrollLink>
             <Link
               to="/demoBooking"
               className="px-4 py-2 rounded-md cursor-pointer bg-blue-600 text-white hover:bg-blue-700 transition-colors"
@@ -170,60 +118,6 @@ const Homepage = () => {
           </button>
         </nav>
         <div className={`md:hidden px-4 pt-2 pb-4 space-y-2 ${isMobileMenuOpen ? 'block' : 'hidden'}`}>
-          <ScrollLink
-            to="problem"
-            smooth={true}
-            duration={500}
-            className="block px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors"
-            onClick={handleNavLinkClick}
-          >
-            The Challenge
-          </ScrollLink>
-          <ScrollLink
-            to="solution"
-            smooth={true}
-            duration={500}
-            className="block px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors"
-            onClick={handleNavLinkClick}
-          >
-            How It Works
-          </ScrollLink>
-          <ScrollLink
-            to="features"
-            smooth={true}
-            duration={500}
-            className="block px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors"
-            onClick={handleNavLinkClick}
-          >
-            Features
-          </ScrollLink>
-          <ScrollLink
-            to="dashboard-demo"
-            smooth={true}
-            duration={500}
-            className="block px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors"
-            onClick={handleNavLinkClick}
-          >
-            Dashboard Demo
-          </ScrollLink>
-          <ScrollLink
-            to="benefits"
-            smooth={true}
-            duration={500}
-            className="block px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors"
-            onClick={handleNavLinkClick}
-          >
-            Benefits
-          </ScrollLink>
-          <ScrollLink
-            to="social-proof"
-            smooth={true}
-            duration={500}
-            className="block px-4 py-2 rounded-md text-black hover:bg-blue-100 hover:text-blue-800 transition-colors"
-            onClick={handleNavLinkClick}
-          >
-            Testimonials
-          </ScrollLink>
           <Link
             to="/demoBooking"
             className="block px-4 py-2 rounded-md bg-blue-600 cursor-pointer text-white hover:bg-blue-700 transition-colors"
@@ -235,15 +129,15 @@ const Homepage = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="bg text-white text-center py-16 md:py-24 px-6">
+      <section className="bg text-white text-center py-16 md:py-24 px-6 h-[90vh] flex items-center">
         <div className="container mx-auto">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-            Nigeria's #1 Artificial Intelligence Review Platform for Hotels and Restaurants!
+          <h1 className="text-4xl md:text-5xl max-w-5xl mx-auto font-bold tracking-tight mb-4">
+            Nigeria’s #1 AI-Powered Feedback Intelligence Platform for Hotels & Restaurants. 
           </h1>
-          <p className="max-w-3xl mx-auto text-lg md:text-xl mb-6">
+          <p className="max-w-2xl mx-auto text-lg md:text-xl mb-6">
             Turn thousands of customer reviews into clear action plans that boost your ratings and increase revenue.
           </p>
-          <p className="max-w-2xl mx-auto text-md md:text-lg mb-10">
+          <p className="max-w-xl mx-auto text-md md:text-lg mb-10">
             Stop drowning in reviews. Start growing from them!
           </p>
           <Link
@@ -263,30 +157,26 @@ const Homepage = () => {
             Are you spending hours reading customer reviews without knowing what to fix?
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.2s' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.2s' }}>
             <h3 className="text-xl font-semibold mb-2 text-blue-700">Scattered Feedback</h3>
             <p className="text-black">Feedback across multiple platforms you can't control.</p>
           </div>
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.1s' }}>
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.1s' }}>
             <h3 className="text-xl font-semibold mb-2 text-blue-700">Delayed Responses</h3>
             <p className="text-black">Finding out about problems too late.</p>
           </div>
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.2s' }}>
-            <h3 className="text-xl font-semibold mb-2 text-blue-700">No Real-Time Insights</h3>
-            <p className="text-black">Missing insights while customers are still in your business.</p>
-          </div>
-          <div className="col-span-1 lg:col-start-1 lg:row-start-2 mt-8 lg:mt-0" style={{ marginLeft: 'auto', marginRight: 'auto', width: 'fit-content' }}>
-            <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.3s' }}>
-              <h3 className="text-xl font-semibold mb-2 text-blue-700">No Direct Channel</h3>
-              <p className="text-black">Customers leave without telling you what went wrong.</p>
-            </div>
-          </div>
-          <div className="col-span-1 lg:col-start-3 lg:row-start-2 mt-16 lg:mt-0" style={{ marginLeft: 'auto', marginRight: 'auto', width: 'fit-content' }}>
-            <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.4s' }}>
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.4s' }}>
               <h3 className="text-xl font-semibold mb-2 text-blue-700">Reactive Approach</h3>
               <p className="text-black">Only hearing complaints after customers leave unhappy.</p>
             </div>
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.3s' }}>
+              <h3 className="text-xl font-semibold mb-2 text-blue-700">No Direct Channel</h3>
+              <p className="text-black">Customers leave without telling you what went wrong.</p>
+            </div>
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.2s' }}>
+            <h3 className="text-xl font-semibold mb-2 text-blue-700">No Real-Time Insights</h3>
+            <p className="text-black">Missing insights while customers are still in your business.</p>
           </div>
         </div>
       </section>
@@ -462,30 +352,26 @@ const Homepage = () => {
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-black">What You Get</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80">
             <h3 className="text-xl font-semibold mb-2 text-blue-700">Instant Feedback!</h3>
             <p className="text-black">Get insights while customers are still in your business.</p>
           </div>
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.1s' }}>
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg        transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.4s' }}>
+            <h3 className="text-xl font-semibold mb-2 text-blue-700">Actionable Insights!</h3>
+            <p className="text-black">AI guides you on improvements and strengths.</p>
+          </div>
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.1s' }}>
             <h3 className="text-xl font-semibold mb-2 text-blue-700">Real-Time Alerts!</h3>
             <p className="text-black">Know immediately when issues arise.</p>
           </div>
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.2s' }}>
-            <h3 className="text-xl font-semibold mb-2 text-blue-700">Prevent Lost Customers!</h3>
-            <p className="text-black">Address problems before bad reviews.</p>
-          </div>
-          <div className="col-span-1 lg:col-start-1 lg:row-start-2 mt-8 lg:mt-0" style={{ marginLeft: 'auto', marginRight: 'auto', width: 'fit-content' }}>
-            <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.3s' }}>
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.3s' }}>
               <h3 className="text-xl font-semibold mb-2 text-blue-700">Direct Channel!</h3>
               <p className="text-black">Easy feedback collection from customers.</p>
             </div>
-          </div>
-          <div className="col-span-1 lg:col-start-3 lg:row-start-2 mt-16 lg:mt-0" style={{ marginLeft: 'auto', marginRight: 'auto', width: 'fit-content' }}>
-            <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.4s' }}>
-              <h3 className="text-xl font-semibold mb-2 text-blue-700">Actionable Insights!</h3>
-              <p className="text-black">AI guides you on improvements and strengths.</p>
-            </div>
+          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.2s' }}>
+            <h3 className="text-xl font-semibold mb-2 text-blue-700">Prevent Lost Customers!</h3>
+            <p className="text-black">Address problems before bad reviews.</p>
           </div>
         </div>
       </section>
@@ -509,9 +395,77 @@ const Homepage = () => {
 
       {/* Footer */}
       <footer className="bg-[#000C2D] text-white">
-        <div className="container mx-auto px-6 py-8 text-center text-white">
-          <p className="font-bold text-lg text-white mb-2">ScanRevuAI</p>
-          <p>&copy; 2025 ScanRevuAI. All rights reserved.</p>
+        <div className="container mx-auto px-6 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {/* Company Info */}
+            <div>
+              <h3 className="text-xl font-bold mb-4">ScanRevuAI</h3>
+              <p className="text-sm">Nigeria’s #1 AI-Powered Feedback Intelligence Platform for Hotels & Restaurants..</p>
+            </div>
+
+            {/* Links */}
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Legal</h4>
+              <ul className="space-y-2">
+                <li>
+                  <Link to="/privacy" className="text-sm hover:text-blue-300 transition-colors">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms" className="text-sm hover:text-blue-300 transition-colors">
+                    Terms of Service
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Contact Info */}
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Contact</h4>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center">
+                  <Mail className="w-4 h-4 mr-2" />
+                  info@scanrevuai.com
+                </li>
+                <li className="flex items-center">
+                  <Phone className="w-4 h-4 mr-2" />
+                  +234 707 296 7842
+                </li>
+                <li className="flex items-center">
+                  <Phone className="w-4 h-4 mr-2" />
+                  +234 916 130 5561
+                </li>
+                <li className="flex items-center">
+                  <MapPin className="w-4 h-4 mr-2" />
+                  3rd Floor, 7 Factory Road, Aba, Abia State, Nigeria
+                </li>
+              </ul>
+            </div>
+
+            {/* Social Icons */}
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Follow Us</h4>
+              <div className="flex space-x-4">
+                <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
+                  <Facebook className="w-6 h-6" />
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
+                  <X className="w-6 h-6" />
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
+                  <Instagram className="w-6 h-6" />
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
+                  <Linkedin className="w-6 h-6" />
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 pt-8 border-t border-gray-700 text-center text-sm">
+            &copy; 2025 ScanRevuAI. All rights reserved.
+          </div>
         </div>
       </footer>
     </div>

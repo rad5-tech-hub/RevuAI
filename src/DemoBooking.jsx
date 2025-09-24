@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CheckCircle, Sparkles, Star, Calendar, MessageSquare, TrendingUp } from 'lucide-react';
+import emailjs from '@emailjs/browser';
 
 const DemoBooking = () => {
   const [formData, setFormData] = useState({
@@ -12,15 +13,14 @@ const DemoBooking = () => {
     reviewCount: 'Less than 50',
     biggestChallenge: '',
   });
-
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [focusedField, setFocusedField] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -37,11 +37,71 @@ const DemoBooking = () => {
     return Object.keys(tempErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const emailID = import.meta.env.EMAILJS_SERVICE_ID;
+  const emailTemp = import.meta.env.EMAILJS_TEMPLATE_ID;
+  const emailPublic = import.meta.env.EMAILJS_PUBLIC_KEY;
+
+  const sendEmail = async () => {
+    try {
+      const templateParams = {
+        to_email: 'info@scanrevuai.com',
+        from_name: formData.yourName,
+        business_name: formData.businessName,
+        phone: formData.phone,
+        email: formData.email,
+        business_type: formData.businessType,
+        location: formData.location,
+        review_count: formData.reviewCount,
+        biggest_challenge: formData.biggestChallenge,
+      };
+
+      await emailjs.send(
+        emailID, // Replace with your EmailJS service ID
+        emailTemp, // Replace with your EmailJS template ID
+        templateParams,
+        emailPublic // Replace with your EmailJS public key
+      );
+    } catch (error) {
+      console.error('Email sending failed:', error);
+      throw new Error('Failed to send email');
+    }
+  };
+
+  // const appendToGoogleSheet = async () => {
+  //   try {
+  //     const response = await fetch('YOUR_GOOGLE_SHEETS_API_ENDPOINT', { // Replace with your Google Apps Script Web App URL
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         ...formData,
+  //         timestamp: new Date().toISOString(),
+  //       }),
+  //     });
+
+  //     if (!response.ok) {
+  //       throw new Error('Failed to append to Google Sheet');
+  //     }
+  //   } catch (error) {
+  //     console.error('Google Sheet append failed:', error);
+  //     throw error;
+  //   }
+  // };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-      console.log('Form submitted:', formData);
-      setSubmitted(true);
+      setIsSubmitting(true);
+      try {
+        await Promise.all([sendEmail()]);
+        setSubmitted(true);
+      } catch (error) {
+        console.error('Submission error:', error);
+        setErrors({ submit: 'Failed to submit form. Please try again.' });
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -65,17 +125,13 @@ const DemoBooking = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 py-6 sm:py-8 md:py-12 px-4 sm:px-6">
-      {/* Floating background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-48 sm:w-72 md:w-96 h-48 sm:h-72 md:h-96 bg-blue-200/20 rounded-full blur-xl sm:blur-2xl animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-48 sm:w-72 md:w-96 h-48 sm:h-72 md:h-96 bg-blue-300/20 rounded-full blur-xl sm:blur-2xl animate-pulse delay-1000"></div>
       </div>
-
       <div className="relative max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center">
-          {/* Left side - Form */}
           <div className="bg-white/70 backdrop-blur-xl p-4 sm:p-6 md:p-8 lg:p-12 rounded-xl sm:rounded-2xl md:rounded-3xl shadow-md md:shadow-xl border border-blue-600 hover:shadow-blue-200/50 transition-all duration-700">
-            {/* Header */}
             <div className="text-center mb-4 sm:mb-6">
               <div className="inline-flex items-center justify-center w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg sm:rounded-xl md:rounded-2xl mb-2 sm:mb-4 shadow-md">
                 <Calendar className="w-6 sm:w-7 md:w-8 h-6 sm:h-7 md:h-8 text-white" />
@@ -87,7 +143,6 @@ const DemoBooking = () => {
             </div>
 
             <div className="space-y-4 sm:space-y-5">
-              {/* Business Name */}
               <div className="group">
                 <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Business Name *</label>
                 <input
@@ -109,7 +164,6 @@ const DemoBooking = () => {
                 )}
               </div>
 
-              {/* Your Name */}
               <div className="group">
                 <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Your Name *</label>
                 <input
@@ -131,7 +185,6 @@ const DemoBooking = () => {
                 )}
               </div>
 
-              {/* Phone and Email Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Phone/WhatsApp *</label>
@@ -171,7 +224,6 @@ const DemoBooking = () => {
                 </div>
               </div>
 
-              {/* Business Type and Location Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Business Type</label>
@@ -196,7 +248,7 @@ const DemoBooking = () => {
                     className={`w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 bg-white/50 backdrop-blur-sm
                       ${errors.location 
                         ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100' 
-                        : 'border-blue-500 focus:border-blue-6500 focus:ring-4 focus:ring-blue-100'
+                        : 'border-blue-500 focus:border-blue-600 focus:ring-4 focus:ring-blue-100'
                       } focus:outline-none placeholder-blue-500`}
                     placeholder="City, Country"
                   />
@@ -206,7 +258,6 @@ const DemoBooking = () => {
                 </div>
               </div>
 
-              {/* Review Count */}
               <div>
                 <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Monthly Reviews</label>
                 <select
@@ -222,7 +273,6 @@ const DemoBooking = () => {
                 </select>
               </div>
 
-              {/* Biggest Challenge */}
               <div>
                 <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Biggest Review Challenge</label>
                 <textarea
@@ -235,22 +285,25 @@ const DemoBooking = () => {
                 />
               </div>
 
-              {/* Submit Button */}
+              {errors.submit && (
+                <p className="text-red-500 text-xs sm:text-sm mt-1 sm:mt-2 animate-pulse">{errors.submit}</p>
+              )}
+
               <button
                 type="submit"
                 onClick={handleSubmit}
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-2 sm:py-3 md:py-4 px-4 sm:px-6 md:px-8 rounded-lg sm:rounded-xl shadow-md md:shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 text-base sm:text-lg group"
+                disabled={isSubmitting}
+                className={`w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-2 sm:py-3 md:py-4 px-4 sm:px-6 md:px-8 rounded-lg sm:rounded-xl shadow-md md:shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 text-base sm:text-lg group ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <span className="flex items-center justify-center space-x-1 sm:space-x-2">
                   <Calendar className="w-4 sm:w-5 h-4 sm:h-5 group-hover:animate-pulse" />
-                  <span>Book My FREE Demo</span>
+                  <span>{isSubmitting ? 'Submitting...' : 'Book My FREE Demo'}</span>
                   <Sparkles className="w-4 sm:w-5 h-4 sm:h-5 group-hover:animate-spin" />
                 </span>
               </button>
             </div>
           </div>
 
-          {/* Right side - Benefits */}
           <div className="space-y-4 sm:space-y-6">
             <div className="text-center md:text-left">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-900 mb-2 sm:mb-4">
@@ -311,7 +364,6 @@ const DemoBooking = () => {
               </div>
             </div>
 
-            {/* Trust indicators */}
             <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 sm:p-6 rounded-lg sm:rounded-xl border border-blue-200">
               <div className="text-center">
                 <p className="text-blue-800 text-sm sm:text-base font-semibold mb-1 sm:mb-2">Join 500+ Businesses Already Using ScanRevuAI</p>
