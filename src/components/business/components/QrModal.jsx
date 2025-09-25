@@ -176,12 +176,12 @@ export const QRModal = ({ showModal, setShowModal, modalCanvasRef, generatedQrDa
           Scan this QR code with your device
         </div>
         <div className="mt-4 flex justify-center gap-3">
-          <button
+          {/* <button
             onClick={handleCopyUrl}
             className="inline-flex items-center cursor-pointer justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 transition"
           >
             <Copy className="h-4 w-4" /> Copy URL
-          </button>
+          </button> */}
           <button
             onClick={handleDownload}
             className="inline-flex items-center cursor-pointer justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 transition"

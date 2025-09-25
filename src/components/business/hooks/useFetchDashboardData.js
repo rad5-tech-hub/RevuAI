@@ -27,7 +27,7 @@ const fetchDashboardData = async () => {
       `${import.meta.env.VITE_API_URL}/api/v1/business/business-dashboard`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    console.log("Server response:", response.data);
+    // console.log("Server response:", response.data);
 
     if (!response.data) {
       throw new Error("No data received from the server");

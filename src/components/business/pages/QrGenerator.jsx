@@ -428,7 +428,7 @@ export default function QRGenerator() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const qrData = response.data.qr || {};
-      console.log("Fetched QR data for editing:", qrData); // Debug log
+      // console.log("Fetched QR data for editing:", qrData); // Debug log
       const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
       setQrType(qrTypeMap[code.id] || (qrData.type === "Product" ? "product" : qrData.type === "Service" ? "service" : "general"));
       setQrName(qrData.label || "");

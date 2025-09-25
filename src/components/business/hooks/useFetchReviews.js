@@ -73,9 +73,9 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
           }
         );
         if (isMounted) {
-          console.log("Raw reviews response:", reviewsResponse.data);
+          // console.log("Raw reviews response:", reviewsResponse.data);
           const reviews = reviewsResponse.data.reviews || [];
-          console.log("Reviews count:", reviews.length, "Total reviews:", reviewsResponse.data.totalReviews);
+          // console.log("Reviews count:", reviews.length, "Total reviews:", reviewsResponse.data.totalReviews);
           const total = reviewsResponse.data.totalReviews || reviews.length;
           const totalPages = Math.ceil(total / 10) || 1; // Assuming 10 reviews per page
           const ratingSummary = reviewsResponse.data.ratingSummary || {};
@@ -86,13 +86,13 @@ const useFetchReviews = ({ search, ratingFilter, sentimentFilter, dateFilter, re
               qrcode_label: review.qrcode?.label || "Unknown QR Code",
               reviewerName: review.isAnonymous || !review.user?.fullname ? "Anonymous" : review.user.fullname,
             };
-            console.log("Mapped review:", {
-              id: review.id,
-              reviewerName: mappedReview.reviewerName,
-              qrcode_label: mappedReview.qrcode_label,
-              user: review.user,
-              qrcodeId: review.qrcode?.id,
-            });
+            // console.log("Mapped review:", {
+            //   id: review.id,
+            //   reviewerName: mappedReview.reviewerName,
+            //   qrcode_label: mappedReview.qrcode_label,
+            //   user: review.user,
+            //   qrcodeId: review.qrcode?.id,
+            // });
             return mappedReview;
           });
           setFeedback(reviewsWithUrls);
