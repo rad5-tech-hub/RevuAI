@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Building, User, Mail, Phone, MapPin, Tag, Image, Loader2 } from 'lucide-react';
-import BusinessHeader from '../components/headerComponents'; // Adjusted import path
+import BusinessHeader from '../components/headerComponents';
+
 const EditBusinessProfile = () => {
   const [formData, setFormData] = useState({
     business_name: '',
@@ -11,7 +12,7 @@ const EditBusinessProfile = () => {
     phone: '',
     address: '',
     categoryId: '',
-    business_logo: null, // Stores file or URL
+    business_logo: null,
   });
   const [categories, setCategories] = useState([]);
   const [logoPreview, setLogoPreview] = useState(null);
@@ -21,6 +22,7 @@ const EditBusinessProfile = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
+
   // Fetch profile data and categories
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -73,6 +75,7 @@ const EditBusinessProfile = () => {
     };
     fetchData();
   }, [navigate]);
+
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -80,11 +83,11 @@ const EditBusinessProfile = () => {
     setError('');
     setSuccess('');
   };
+
   // Handle logo file upload
   const handleLogoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file type and size
       const validTypes = ['image/jpeg', 'image/png'];
       if (!validTypes.includes(file.type)) {
         setError('Please upload a JPEG or PNG image');
@@ -99,6 +102,7 @@ const EditBusinessProfile = () => {
       setError('');
     }
   };
+
   // Validate form
   const validateForm = () => {
     if (!formData.business_name.trim()) return 'Business name is required';
@@ -110,6 +114,7 @@ const EditBusinessProfile = () => {
     if (!formData.categoryId) return 'Category is required';
     return '';
   };
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -127,7 +132,6 @@ const EditBusinessProfile = () => {
         throw new Error('No auth token found');
       }
       let logoUrl = formData.business_logo;
-      // Upload logo if a new file is selected
       if (formData.business_logo instanceof File) {
         const formDataToSend = new FormData();
         formDataToSend.append('business_logo', formData.business_logo);
@@ -138,7 +142,6 @@ const EditBusinessProfile = () => {
         );
         logoUrl = logoResponse.data?.data?.business_logo || logoUrl;
       }
-      // Update profile (excluding business_logo as per PUT endpoint spec)
       await axios.put(
         `${import.meta.env.VITE_API_URL}/api/v1/business/edit-business`,
         {
@@ -147,7 +150,7 @@ const EditBusinessProfile = () => {
           email: formData.email,
           phone: formData.phone.trim(),
           address: formData.address.trim(),
-          categoryId: formData.categoryId,
+          categoryId: formData.categoryId, // Still include categoryId in submission
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -168,6 +171,7 @@ const EditBusinessProfile = () => {
       setIsSubmitting(false);
     }
   };
+
   // Handle logout
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -193,15 +197,23 @@ const EditBusinessProfile = () => {
       setIsLoggingOut(false);
     }
   };
+
   const LoadingSpinner = () => (
     <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-200 border-t-blue-600"></div>
   );
+
+  // Get category name from categoryId
+  const getCategoryName = () => {
+    const category = categories.find((cat) => cat.id === formData.categoryId);
+    return category ? category.name : 'Not set';
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <BusinessHeader onLogout={handleLogout} isLoggingOut={isLoggingOut} />
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Edit Business Profile</h1>
+          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Edit Business Profile</h1> {/* Adjusted to text-2xl */}
           <Link
             to="/businessProfile"
             className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-sm transition-colors duration-200"
@@ -237,7 +249,7 @@ const EditBusinessProfile = () => {
                       alt="Business Logo Preview"
                       className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 group-hover:border-blue-300 transition-colors duration-200"
                       onError={(e) => {
-                        e.target.src = ''; // Fallback if image fails to load
+                        e.target.src = '';
                         setLogoPreview(null);
                       }}
                     />
@@ -248,7 +260,7 @@ const EditBusinessProfile = () => {
                   )}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{formData.business_name || 'Edit Your Profile'}</h2>
+                  <h2 className="text-lg font-bold text-gray-900">{formData.business_name || 'Edit Your Profile'}</h2> {/* Adjusted to text-lg */}
                   <p className="text-sm text-gray-500 mt-1">Update your business details</p>
                 </div>
               </div>
@@ -268,7 +280,7 @@ const EditBusinessProfile = () => {
                     value={formData.business_name}
                     onChange={handleInputChange}
                     placeholder="Business Name"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm" 
                     disabled={isSubmitting}
                   />
                 </div>
@@ -280,7 +292,7 @@ const EditBusinessProfile = () => {
                     value={formData.owner_name}
                     onChange={handleInputChange}
                     placeholder="Owner Name"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm" 
                     disabled={isSubmitting}
                   />
                 </div>
@@ -292,7 +304,7 @@ const EditBusinessProfile = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="Business Email"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm" 
                     disabled={isSubmitting}
                   />
                 </div>
@@ -304,7 +316,7 @@ const EditBusinessProfile = () => {
                     value={formData.phone}
                     onChange={handleInputChange}
                     placeholder="Phone Number"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm"
                     disabled={isSubmitting}
                   />
                 </div>
@@ -316,26 +328,20 @@ const EditBusinessProfile = () => {
                     value={formData.address}
                     onChange={handleInputChange}
                     placeholder="Business Address"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm" 
                     disabled={isSubmitting}
                   />
                 </div>
                 <div className="relative">
                   <Tag className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                  <select
-                    name="categoryId"
-                    value={formData.categoryId}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors appearance-none"
-                    disabled={isSubmitting || categories.length === 0}
-                  >
-                    <option value="" disabled>Select Category</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id || cat.name} value={cat.id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
+                  <input
+                    type="text"
+                    value={getCategoryName()}
+                    readOnly
+                    disabled
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 text-sm cursor-not-allowed" 
+                    title="Category cannot be changed"
+                  />
                 </div>
                 <div className="relative">
                   <Image className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -343,7 +349,7 @@ const EditBusinessProfile = () => {
                     type="file"
                     accept="image/jpeg,image/png"
                     onChange={handleLogoChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-600 file:hover:bg-blue-100"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-600 file:hover:bg-blue-100 text-sm"
                     disabled={isSubmitting}
                   />
                 </div>
@@ -377,4 +383,5 @@ const EditBusinessProfile = () => {
     </div>
   );
 };
+
 export default EditBusinessProfile;
