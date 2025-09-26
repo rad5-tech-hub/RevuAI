@@ -33,19 +33,16 @@ const EditBusinessProfile = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Fetch business profile
         const businessResponse = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/v1/business/profile`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const profile = businessResponse.data?.profile || {};
-        // Fetch categories to map category name to categoryId
         const categoriesResponse = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/v1/category/all-category`
         );
         const fetchedCategories = categoriesResponse.data?.categories || [];
         setCategories(fetchedCategories);
-        // Find categoryId based on category name
         const matchedCategory = fetchedCategories.find((cat) => cat.name === (profile.category || ''));
         const categoryId = matchedCategory ? matchedCategory.id : '';
         setFormData({
@@ -150,7 +147,7 @@ const EditBusinessProfile = () => {
           email: formData.email,
           phone: formData.phone.trim(),
           address: formData.address.trim(),
-          categoryId: formData.categoryId, // Still include categoryId in submission
+          categoryId: formData.categoryId,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -213,7 +210,7 @@ const EditBusinessProfile = () => {
       <BusinessHeader onLogout={handleLogout} isLoggingOut={isLoggingOut} />
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Edit Business Profile</h1> {/* Adjusted to text-2xl */}
+          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Edit Business Profile</h1>
           <Link
             to="/businessProfile"
             className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-sm transition-colors duration-200"
@@ -260,7 +257,7 @@ const EditBusinessProfile = () => {
                   )}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">{formData.business_name || 'Edit Your Profile'}</h2> {/* Adjusted to text-lg */}
+                  <h2 className="text-lg font-bold text-gray-900">{formData.business_name || 'Edit Your Profile'}</h2>
                   <p className="text-sm text-gray-500 mt-1">Update your business details</p>
                 </div>
               </div>
@@ -272,93 +269,135 @@ const EditBusinessProfile = () => {
                 </div>
               )}
               <div className="grid gap-6 sm:grid-cols-2">
-                <div className="relative">
-                  <Building className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                  <input
-                    type="text"
-                    name="business_name"
-                    value={formData.business_name}
-                    onChange={handleInputChange}
-                    placeholder="Business Name"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm" 
-                    disabled={isSubmitting}
-                  />
+                <div>
+                  <label htmlFor="business_name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Business Name
+                  </label>
+                  <div className="relative">
+                    <Building className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <input
+                      type="text"
+                      id="business_name"
+                      name="business_name"
+                      value={formData.business_name}
+                      onChange={handleInputChange}
+                      placeholder="Business Name"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm"
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
-                <div className="relative">
-                  <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                  <input
-                    type="text"
-                    name="owner_name"
-                    value={formData.owner_name}
-                    onChange={handleInputChange}
-                    placeholder="Owner Name"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm" 
-                    disabled={isSubmitting}
-                  />
+                <div>
+                  <label htmlFor="owner_name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Owner Name
+                  </label>
+                  <div className="relative">
+                    <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <input
+                      type="text"
+                      id="owner_name"
+                      name="owner_name"
+                      value={formData.owner_name}
+                      onChange={handleInputChange}
+                      placeholder="Owner Name"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm"
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
-                <div className="relative">
-                  <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="Business Email"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm" 
-                    disabled={isSubmitting}
-                  />
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Business Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      placeholder="Business Email"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm"
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
-                <div className="relative">
-                  <Phone className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    placeholder="Phone Number"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm"
-                    disabled={isSubmitting}
-                  />
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone Number
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      placeholder="Phone Number"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm"
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
-                <div className="relative sm:col-span-2">
-                  <MapPin className="w-5 h-5 text-gray-400 absolute left-3 top-4" />
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    placeholder="Business Address"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm" 
-                    disabled={isSubmitting}
-                  />
+                <div className="sm:col-span-2">
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                    Business Address
+                  </label>
+                  <div className="relative">
+                    <MapPin className="w-5 h-5 text-gray-400 absolute left-3 top-4" />
+                    <input
+                      type="text"
+                      id="address"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      placeholder="Business Address"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-sm"
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
-                <div className="relative">
-                  <Tag className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={getCategoryName()}
-                    readOnly
-                    disabled
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 text-sm cursor-not-allowed" 
-                    title="Category cannot be changed"
-                  />
+                <div>
+                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                    Category
+                  </label>
+                  <div className="relative">
+                    <Tag className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <input
+                      type="text"
+                      id="category"
+                      value={getCategoryName()}
+                      readOnly
+                      disabled
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 text-sm cursor-not-allowed"
+                      title="Category cannot be changed"
+                    />
+                  </div>
                 </div>
-                <div className="relative">
-                  <Image className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png"
-                    onChange={handleLogoChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-600 file:hover:bg-blue-100 text-sm"
-                    disabled={isSubmitting}
-                  />
+                <div>
+                  <label htmlFor="business_logo" className="block text-sm font-medium text-gray-700 mb-1">
+                    Business Logo
+                  </label>
+                  <div className="relative">
+                    <Image className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <input
+                      type="file"
+                      id="business_logo"
+                      accept="image/jpeg,image/png"
+                      onChange={handleLogoChange}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-600 file:hover:bg-blue-100 text-sm"
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="mt-8 flex items-center gap-4">
                 <button
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="inline-flex cursor-pointer items-center px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex cursor-pointer items-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <>

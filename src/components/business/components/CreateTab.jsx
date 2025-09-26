@@ -1,6 +1,5 @@
-import { Loader2, Plus, X, Eye, QrCode, ImageIcon, Star, Tag } from "lucide-react";
+import { Loader2, Plus, X, QrCode, ImageIcon, Star, Tag } from "lucide-react";
 
-// TypeCard Component (defined locally to avoid import issues)
 const TypeCard = ({ id, title, desc, icon, qrType, setQrType }) => (
   <button
     onClick={() => setQrType(id)}
@@ -59,12 +58,13 @@ export const CreateTab = ({
   const removeTag = (value) => setTags((prev) => prev.filter((t) => t !== value));
 
   const onTagKeyDown = (e) => {
-    if (e.key === "Enter") {
+    // Handle Enter (key code 13) and comma (key code 188 or character ',')
+    if (e.key === "Enter" || e.key === "," || e.keyCode === 13 || e.keyCode === 188) {
       e.preventDefault();
-      addTag();
-    } else if (e.key === ",") {
-      e.preventDefault();
-      addTag(tagInput.replace(/,$/, ""));
+      const value = tagInput.replace(/,$/, "").trim();
+      if (value) {
+        addTag(value);
+      }
     }
   };
 
@@ -129,7 +129,7 @@ export const CreateTab = ({
             rows={3}
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
           />
-          <label className="mt-4 block text-[13px] font-medium text-slate-600">Tags customers should review (Press Enter)</label>
+          <label className="mt-4 block text-[13px] font-medium text-slate-600">Tags customers should review (Press Enter or Comma)</label>
           <div className="mt-1">
             <input
               ref={tagInputRef}
@@ -215,13 +215,6 @@ export const CreateTab = ({
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             {isLoading ? "Processing..." : editingId ? "Update QR Code" : "Create QR Code"}
           </button>
-          {/* <button
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700 text-sm font-semibold hover:bg-slate-50"
-            aria-label="Preview QR Code"
-          >
-            <Eye className="h-4 w-4" />
-            Preview
-          </button> */}
         </div>
       </div>
     </div>

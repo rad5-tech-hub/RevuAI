@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -7,7 +7,7 @@ import useFetchReviews from "../hooks/useFetchReviews";
 import FeedbackCard from "../components/FeedbackCard";
 import FilterDropdown from "../components/FilterDropdown";
 import { generatePDF } from "./../../../utils/pdfUtils";
-import { MessageSquare, Loader2 } from "lucide-react";
+import { MessageSquare, X } from "lucide-react";
 import debounce from "lodash/debounce";
 import BusinessHeader from "../components/headerComponents";
 import { FeedbackCardSkeleton, StatsCardSkeleton, FullPageSkeleton } from "../components/SkeletonLoaders";
@@ -17,15 +17,15 @@ const FeedbackExplorer = () => {
   const [ratingFilter, setRatingFilter] = useState("All Ratings");
   const [sentimentFilter, setSentimentFilter] = useState("All Sentiments");
   const [dateFilter, setDateFilter] = useState("All Time");
-  const [retryTrigger, setRetryTrigger] = useState(0);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false); // State for share modal
+  const [currentFeedback, setCurrentFeedback] = useState(null); // Store feedback for sharing
   const navigate = useNavigate();
-
+  const modalRef = useRef(null); // Ref for modal focus management
   const { feedback, loading, error, page, meta, ratingSummary, averageRating, setPage } = useFetchReviews({
     search,
     ratingFilter,
     sentimentFilter,
     dateFilter,
-    retryTrigger,
   });
 
   const debouncedSetSearch = useCallback(
@@ -146,8 +146,9 @@ const FeedbackExplorer = () => {
     const shareData = {
       title: `Feedback for ${feedback.qrcode_url || "Business"}`,
       text: `Rating: ${feedback.rating} Stars\nComment: ${feedback.comment || "No comment"}`,
-      url: window.location.href,
+      url: feedback.qrcode_url || "Business Feedback",
     };
+
     if (navigator.share) {
       try {
         await navigator.share(shareData);
@@ -156,38 +157,102 @@ const FeedbackExplorer = () => {
           autoClose: 3000,
         });
       } catch (error) {
-        try {
-          await navigator.clipboard.writeText(shareData.text);
-          toast.success("Share not supported. Feedback text copied to clipboard!", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-        } catch (copyError) {
-          toast.error("Failed to share or copy feedback.", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-        }
+        setCurrentFeedback(feedback);
+        setIsShareModalOpen(true); // Open modal if Web Share API fails
       }
     } else {
-      try {
-        await navigator.clipboard.writeText(shareData.text);
-        toast.success("Share not supported. Feedback text copied to clipboard!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } catch (error) {
-        toast.error("Failed to copy feedback.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      }
+      setCurrentFeedback(feedback);
+      setIsShareModalOpen(true); // Open modal if Web Share API is unavailable
     }
   };
 
-  const handleRetry = () => {
-    setRetryTrigger((prev) => prev + 1);
+  // Handle share modal actions
+  const handleShareOption = async (option, feedback) => {
+    const shareData = {
+      title: `Feedback for ${feedback.qrcode_url || "Business"}`,
+      text: `Rating: ${feedback.rating} Stars\nComment: ${feedback.comment || "No comment"}`,
+      url: feedback.qrcode_url || "Business Feedback",
+    };
+
+    try {
+      switch (option) {
+        case "email":
+          const mailtoLink = `mailto:?subject=${encodeURIComponent(shareData.title)}&body=${encodeURIComponent(
+            `${shareData.text}\nQR Code: ${shareData.url}`
+          )}`;
+          window.location.href = mailtoLink;
+          toast.success("Opening email client to share feedback!", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          break;
+        case "twitter":
+          const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+            `${shareData.text}\nQR Code: ${shareData.url}`
+          )}`;
+          window.open(twitterUrl, "_blank");
+          toast.success("Opening Twitter to share feedback!", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          break;
+        case "linkedin":
+          const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+            shareData.url
+          )}&title=${encodeURIComponent(shareData.title)}&summary=${encodeURIComponent(shareData.text)}`;
+          window.open(linkedinUrl, "_blank");
+          toast.success("Opening LinkedIn to share feedback!", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          break;
+        case "whatsapp":
+          const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
+            `${shareData.text}\nQR Code: ${shareData.url}`
+          )}`;
+          window.open(whatsappUrl, "_blank");
+          toast.success("Opening WhatsApp to share feedback!", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          break;
+        case "copy":
+          await navigator.clipboard.writeText(shareData.url);
+          toast.success("QR code URL copied to clipboard!", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          break;
+        default:
+          throw new Error("Unknown share option");
+      }
+    } catch (error) {
+      console.error("Share error:", error);
+      toast.error(`Failed to share via ${option}.`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    }
+    setIsShareModalOpen(false); // Close modal after action
   };
+
+  // Close modal on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isShareModalOpen) {
+        setIsShareModalOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isShareModalOpen]);
+
+  // Focus management for modal
+  useEffect(() => {
+    if (isShareModalOpen && modalRef.current) {
+      modalRef.current.focus();
+    }
+  }, [isShareModalOpen]);
 
   // Apply client-side filtering for search, sentiment, and date
   const filteredFeedback = feedback.filter((fb) => {
@@ -226,7 +291,11 @@ const FeedbackExplorer = () => {
     return matchesSearch && matchesSentiment && matchesDate;
   });
 
-  if (loading && !error && feedback.length === 0) {
+  // Treat "No reviews found for this business" as a non-error state
+  const isNoReviews = error === "No reviews found for thisಸ0for this business";
+  const showError = error && !isNoReviews;
+
+  if (loading && !error) {
     return <FullPageSkeleton />;
   }
 
@@ -237,18 +306,10 @@ const FeedbackExplorer = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <h1 className="text-2xl font-bold text-slate-900">Feedback Explorer</h1>
         <p className="mt-1 text-sm text-slate-500">View and manage customer feedback</p>
-
-        {error ? (
+        {showError ? (
           <>
             <div className="mt-6 text-center">
               <p className="text-red-600 text-sm mb-4">{error}</p>
-              <button
-                onClick={handleRetry}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mx-auto"
-              >
-                <Loader2 size={18} />
-                <span>Retry</span>
-              </button>
             </div>
             <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               {Array(5).fill().map((_, index) => (
@@ -270,17 +331,17 @@ const FeedbackExplorer = () => {
                 ))
               ) : (
                 [
-                  { label: "Total", value: meta.total.toString() },
+                  { label: "Total", value: meta.total?.toString() || "0" },
                   {
                     label: "Positive",
-                    value: (ratingSummary["Excellent"] || 0) + (ratingSummary["Very Good"] || 0),
+                    value: ((ratingSummary["Excellent"] || 0) + (ratingSummary["Very Good"] || 0)).toString() || "0",
                   },
-                  { label: "Neutral", value: ratingSummary["Good"] || 0 },
+                  { label: "Neutral", value: (ratingSummary["Good"] || 0).toString() || "0" },
                   {
                     label: "Negative",
-                    value: (ratingSummary["Poor"] || 0) + (ratingSummary["Very Poor"] || 0),
+                    value: ((ratingSummary["Poor"] || 0) + (ratingSummary["Very Poor"] || 0)).toString() || "0",
                   },
-                  { label: "Average Rating", value: averageRating },
+                  { label: "Average Rating", value: averageRating || "0.0" },
                 ].map((stat) => (
                   <div
                     key={stat.label}
@@ -292,7 +353,6 @@ const FeedbackExplorer = () => {
                 ))
               )}
             </div>
-
             <div className="mt-6 flex flex-wrap gap-4 items-center">
               <input
                 type="text"
@@ -319,13 +379,12 @@ const FeedbackExplorer = () => {
                 options={["All Time", "Today", "This Week", "This Month", "This Quarter"]}
               />
             </div>
-
             <div className="mt-6 space-y-4 pb-10">
-              {loading && filteredFeedback.length === 0 ? (
+              {(loading && filteredFeedback.length === 0 && !isNoReviews) ? (
                 Array(3).fill().map((_, index) => (
                   <FeedbackCardSkeleton key={index} />
                 ))
-              ) : filteredFeedback.length === 0 ? (
+              ) : (filteredFeedback.length === 0 || isNoReviews) ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                     <MessageSquare className="w-6 h-6 text-gray-400" />
@@ -360,7 +419,6 @@ const FeedbackExplorer = () => {
                 ))
               )}
             </div>
-
             {meta.totalPages > 1 && !loading && (
               <div className="flex justify-center gap-2 mt-6">
                 <button
@@ -385,6 +443,55 @@ const FeedbackExplorer = () => {
           </>
         )}
       </main>
+      {isShareModalOpen && (
+        <div className="fixed inset-0 backdrop-blur-sm  flex items-center justify-center z-50" role="dialog" aria-labelledby="shareModalTitle" ref={modalRef} tabIndex={-1}>
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h2 id="shareModalTitle" className="text-lg font-medium text-gray-900">Share Feedback</h2>
+              <button
+                onClick={() => setIsShareModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700  cursor-pointer"
+                aria-label="Close share modal"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">Choose how to share the feedback:</p>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => handleShareOption("email", currentFeedback)}
+                className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 text-sm"
+              >
+                Email
+              </button>
+              <button
+                onClick={() => handleShareOption("twitter", currentFeedback)}
+                className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 text-sm"
+              >
+                Twitter
+              </button>
+              <button
+                onClick={() => handleShareOption("linkedin", currentFeedback)}
+                className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 text-sm"
+              >
+                LinkedIn
+              </button>
+              <button
+                onClick={() => handleShareOption("whatsapp", currentFeedback)}
+                className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 text-sm"
+              >
+                WhatsApp
+              </button>
+              <button
+                onClick={() => handleShareOption("copy", currentFeedback)}
+                className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 text-sm col-span-2"
+              >
+                Copy QR Code URL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

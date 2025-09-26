@@ -1,24 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import axios from "axios";
 import QRCode from "qrcode";
-import { QrCode, Download, Share2, Printer, Eye, Plus, X, Check, Loader2, Star, User, MessageCircle, Calendar, Award, Settings } from "lucide-react";
-import { HeaderSection } from "../components/headerSection";
-import { Tabs } from "../components/Tabs";
-import { TypeCard } from "../components/TypeCard";
-import { QRModal } from "../components/QRModal";
-import BusinessHeader from "../components/headerComponents";
-import LoadingState from "../components/LoadingState";
-import { PreviewSection } from "../components/Preview";
-import { CreateTab } from "../components/CreateTab";
-import { UsageTips } from "../components/UsageTips";
+import { MessageCircle, Star, User, Calendar, Award, Settings, QrCode, X, Share2, Download, Printer , Plus,Loader2} from "lucide-react";
 
-// ManageTab Component with fixed qrcode_tags handling
-export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, shareQR, filterType, setFilterType }) => {
+export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, shareQR, filterType, setFilterType, viewQR }) => {
   const navigate = useNavigate();
-  // Local state to manage feedback for each QR code
   const [qrCodesWithFeedback, setQrCodesWithFeedback] = useState(
     filteredQrCodes.map((code) => ({
       ...code,
@@ -29,8 +17,11 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
       feedbackSummary: null,
     }))
   );
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [currentQrCode, setCurrentQrCode] = useState(null);
+  const qrModalCanvasRef = useRef(null);
+  const modalRef = useRef(null);
 
-  // Sync local state when filteredQrCodes prop changes
   useEffect(() => {
     setQrCodesWithFeedback(
       filteredQrCodes.map((code) => {
@@ -47,6 +38,41 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
     );
   }, [filteredQrCodes]);
 
+  useEffect(() => {
+    if (isQrModalOpen && qrModalCanvasRef.current && currentQrCode?.url) {
+      QRCode.toCanvas(qrModalCanvasRef.current, currentQrCode.url, {
+        width: 300,
+        height: 300,
+        color: { dark: "#0E5FD8", light: "#ffffff" },
+        errorCorrectionLevel: "H",
+      }, (error) => {
+        if (error) {
+          console.error("Modal QRCode error:", error);
+          toast.error("Failed to generate QR code in modal.", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+        }
+      });
+    }
+  }, [isQrModalOpen, currentQrCode]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isQrModalOpen) {
+        setIsQrModalOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isQrModalOpen]);
+
+  useEffect(() => {
+    if (isQrModalOpen && modalRef.current) {
+      modalRef.current.focus();
+    }
+  }, [isQrModalOpen]);
+
   const handleViewFeedbacks = async (code) => {
     const token = localStorage.getItem("authToken");
     if (!token) {
@@ -57,7 +83,6 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
       navigate("/businessAuth");
       return;
     }
-
     setQrCodesWithFeedback((prev) =>
       prev.map((qr) =>
         qr.id === code.id
@@ -72,9 +97,7 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
           : { ...qr, showFeedback: false }
       )
     );
-
-    if (code.showFeedback) return; // If closing, no need to fetch
-
+    if (code.showFeedback) return;
     try {
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/v1/review/qrcode-reviews/${code.id}`,
@@ -114,6 +137,85 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
     }
   };
 
+  const handleViewQrCode = (code) => {
+    setCurrentQrCode(code);
+    setIsQrModalOpen(true);
+  };
+
+  const downloadPNG = (code) => {
+    if (!code?.url) {
+      toast.error("No QR code available to download.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    QRCode.toDataURL(code.url, {
+      width: 300,
+      height: 300,
+      color: { dark: "#0E5FD8", light: "#ffffff" },
+      errorCorrectionLevel: "H",
+    }, (error, url) => {
+      if (error) {
+        console.error("QRCode download error:", error);
+        toast.error("Failed to download QR code.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `qr_${code.title || "code"}.png`;
+      link.click();
+      toast.success("QR code downloaded as PNG!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    });
+  };
+
+  const printQR = (code) => {
+    if (!code?.url) {
+      toast.error("No QR code available to print.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    QRCode.toDataURL(code.url, {
+      width: 300,
+      height: 300,
+      color: { dark: "#0E5FD8", light: "#ffffff" },
+      errorCorrectionLevel: "H",
+    }, (error, url) => {
+      if (error) {
+        console.error("QRCode print error:", error);
+        toast.error("Failed to print QR code.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        return;
+      }
+      const printWindow = window.open("");
+      if (!printWindow) {
+        toast.error("Failed to open print window. Please check your browser settings.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        return;
+      }
+      printWindow.document.write(`
+        <html>
+          <body>
+            <img src="${url}" onload="window.print();window.close()" alt="${code.title || "QR Code"}" />
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    });
+  };
+
   const renderStarRating = (rating) => {
     return (
       <div className="flex items-center gap-1">
@@ -121,9 +223,7 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
           <Star
             key={star}
             className={`h-4 w-4 ${
-              star <= rating
-                ? "text-yellow-400 fill-yellow-400"
-                : "text-gray-300"
+              star <= rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
             }`}
           />
         ))}
@@ -163,7 +263,6 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
           Create New
         </button>
       </div>
-      
       {isFetching && filteredQrCodes.length === 0 ? (
         <div className="space-y-4 sm:space-y-6" aria-busy="true" aria-label="Loading QR codes">
           {[1, 2, 3].map((i) => (
@@ -214,15 +313,22 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                 </div>
               </div>
               <div className="mt-2 text-sm sm:text-base text-slate-600 truncate">
-                {code.businessName} • {code.categoryName} • {code.feedback} Feedback • Created {code.date}
+                {code.businessName} • {code.categoryName || "General"} • {code.feedback} Feedback • Created {code.date}
               </div>
               <div className="mt-4 flex flex-wrap gap-2 sm:gap-4">
+                <button
+                  onClick={() => handleViewQrCode(code)}
+                  className="inline-flex items-center gap-1 sm:gap-2 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm hover:bg-slate-50 transition"
+                  aria-label={`View QR Code for ${code.title}`}
+                >
+                  <QrCode className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> View QR Code
+                </button>
                 <button
                   onClick={() => handleViewFeedbacks(code)}
                   className="inline-flex items-center gap-1 sm:gap-2 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm hover:bg-slate-50 transition"
                   aria-label={`View Feedbacks for ${code.title}`}
                 >
-                  <Eye className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> View Feedbacks
+                  <MessageCircle className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> View Feedbacks
                 </button>
                 <button
                   onClick={() => editQR && editQR(code)}
@@ -239,8 +345,6 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                   <Share2 className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Share
                 </button>
               </div>
-              
-              {/* Enhanced Feedback Dropdown */}
               {code.showFeedback && (
                 <div className="mt-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200 shadow-inner overflow-hidden">
                   {code.feedbackLoading ? (
@@ -257,7 +361,6 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                     </div>
                   ) : code.feedbacks?.length > 0 ? (
                     <div>
-                      {/* Header Section */}
                       <div className="bg-white border-b border-slate-200 p-4 sm:p-6">
                         <div className="flex justify-between items-start">
                           <div>
@@ -267,8 +370,6 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                                 Customer Reviews ({code.feedbacks.length})
                               </h4>
                             </div>
-                            
-                            {/* Summary Stats */}
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-4">
                               <div className="bg-blue-50 rounded-lg p-3 text-center">
                                 <p className="text-2xl font-bold text-blue-600">{code.feedbackSummary?.totalReviews || 0}</p>
@@ -292,22 +393,20 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                           </button>
                         </div>
                       </div>
-                      {/* Reviews List */}
                       <div className="max-h-[500px] overflow-y-auto">
                         <div className="p-4 space-y-4">
-                          {code.feedbacks.map((feedback, index) => (
+                          {code.feedbacks.map((feedback) => (
                             <div
                               key={feedback.id}
                               className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow"
                             >
-                              {/* Review Header */}
                               <div className="flex justify-between items-start mb-3">
                                 <div className="flex items-center gap-3">
                                   <div className="flex-shrink-0">
                                     {feedback.user && !feedback.isAnonymous ? (
                                       <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
                                         <span className="text-white font-semibold text-sm">
-                                          {feedback.user.fullname?.charAt(0)?.toUpperCase() || 'U'}
+                                          {feedback.user.fullname?.charAt(0)?.toUpperCase() || "U"}
                                         </span>
                                       </div>
                                     ) : (
@@ -321,8 +420,7 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                                       <p className="font-semibold text-slate-800">
                                         {feedback.user && !feedback.isAnonymous
                                           ? feedback.user.fullname
-                                          : "Anonymous Customer"
-                                        }
+                                          : "Anonymous Customer"}
                                       </p>
                                       <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRatingColor(feedback.rating)}`}>
                                         {feedback.ratingLabel}
@@ -330,26 +428,22 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                                     </div>
                                     <div className="flex items-center gap-2">
                                       {renderStarRating(feedback.rating)}
-                                      <span className="text-sm text-slate-600">
-                                        ({feedback.rating}/5)
-                                      </span>
+                                      <span className="text-sm text-slate-600">({feedback.rating}/5)</span>
                                     </div>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-slate-500">
                                   <Calendar className="h-3 w-3" />
-                                  {new Date(feedback.createdAt).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
+                                  {new Date(feedback.createdAt).toLocaleDateString("en-US", {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
                                   })}
                                 </div>
                               </div>
-                              {/* Review Content */}
                               <div className="mb-3">
                                 <p className="text-slate-700 leading-relaxed">{feedback.comment}</p>
                               </div>
-                              {/* QR Code Tags */}
                               {Array.isArray(feedback.qrcode_tags) && feedback.qrcode_tags.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mb-3">
                                   {feedback.qrcode_tags.map((tag, tagIndex) => (
@@ -362,7 +456,6 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                                   ))}
                                 </div>
                               )}
-                              {/* Business Responses */}
                               {feedback.responses?.length > 0 && (
                                 <div className="mt-4 border-t border-slate-100 pt-3">
                                   <div className="flex items-center gap-2 mb-2">
@@ -373,10 +466,10 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                                     <div key={response.id} className="bg-blue-50 rounded-lg p-3 ml-6">
                                       <p className="text-sm text-slate-700 mb-1">{response.response}</p>
                                       <p className="text-xs text-slate-500">
-                                        Responded on {new Date(response.createdAt).toLocaleDateString('en-US', {
-                                          year: 'numeric',
-                                          month: 'short',
-                                          day: 'numeric'
+                                        Responded on {new Date(response.createdAt).toLocaleDateString("en-US", {
+                                          year: "numeric",
+                                          month: "short",
+                                          day: "numeric",
                                         })}
                                       </p>
                                     </div>
@@ -401,6 +494,50 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
               )}
             </div>
           ))}
+        </div>
+      )}
+      {isQrModalOpen && currentQrCode && (
+        <div className="fixed inset-0 backdrop-blur-sm  flex items-center justify-center z-50" role="dialog" aria-labelledby="qrModalTitle" ref={modalRef} tabIndex={-1}>
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h2 id="qrModalTitle" className="text-lg font-medium text-gray-900">QR Code Preview</h2>
+              <button
+                onClick={() => setIsQrModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+                aria-label="Close QR code modal"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex flex-col items-center">
+              <canvas ref={qrModalCanvasRef} className="rounded-2xl border border-slate-200" style={{ width: 300, height: 300 }} />
+              <div className="mt-3 text-sm font-medium text-slate-600">{currentQrCode.title}</div>
+              <div className="mt-1 text-[13px] text-slate-500 text-center w-full truncate">{currentQrCode.url}</div>
+              <div className="mt-4 flex gap-3">
+                <button
+                  onClick={() => shareQR(currentQrCode.url, currentQrCode.title)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 transition"
+                  aria-label={`Share QR code for ${currentQrCode.title}`}
+                >
+                  <Share2 className="h-4 w-4" /> Share
+                </button>
+                <button
+                  onClick={() => downloadPNG(currentQrCode)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 transition"
+                  aria-label={`Download QR code for ${currentQrCode.title}`}
+                >
+                  <Download className="h-4 w-4" /> Download
+                </button>
+                <button
+                  onClick={() => printQR(currentQrCode)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 transition"
+                  aria-label={`Print QR code for ${currentQrCode.title}`}
+                >
+                  <Printer className="h-4 w-4" /> Print
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
