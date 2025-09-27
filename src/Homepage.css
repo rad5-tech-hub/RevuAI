@@ -1,9 +1,9 @@
 .bg{
-  background-image: url("../src/assets/bg.jpg");
+  background-image: url("../src/assets/hero.png");
   background-position: center;
   background-repeat: no-repeat;
   background-blend-mode: overlay;
-  background-color: rgba(22, 2, 2, 0.8);
+  background-color: rgba(12, 9, 9, 0.76);
   background-size: cover;
 }
 

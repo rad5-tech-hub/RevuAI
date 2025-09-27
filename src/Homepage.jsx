@@ -134,15 +134,15 @@ const Homepage = () => {
           <h1 className="text-4xl md:text-5xl max-w-5xl mx-auto font-bold tracking-tight mb-4">
             Nigeria’s #1 AI-Powered Feedback Intelligence Platform for Hotels & Restaurants. 
           </h1>
-          <p className="max-w-2xl mx-auto text-lg md:text-xl mb-6">
+          <p className="max-w-2xl mx-auto text-lg md:text-xl mb-6 font-bold">
             Turn thousands of customer reviews into clear action plans that boost your ratings and increase revenue.
           </p>
-          <p className="max-w-xl mx-auto text-md md:text-lg mb-10">
+          <p className="max-w-xl mx-auto text-md md:text-lg mb-10 font-bold">
             Stop drowning in reviews. Start growing from them!
           </p>
           <Link
             to="/demoBooking"
-            className="max-w-fit px-6 py-3 bg-white text-blue-700 cursor-pointer rounded-lg hover:bg-blue-50 transition-all font-semibold"
+            className="max-w-fit px-6 py-3 bg-white text-blue-700 cursor-pointer rounded-lg hover:bg-blue-200 transition-all font-semibold"
           >
             Book Your FREE Demo Today
           </Link>
