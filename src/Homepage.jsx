@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { Link } from 'react-router-dom';
-import { Facebook, X, Instagram, Linkedin, Mail, MapPin, Phone } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Mail, MapPin, Phone } from 'lucide-react';
 import { FaXTwitter } from "react-icons/fa6";
 import  { ToastContainer } from 'react-toastify';
 import "./Homepage.css";
