@@ -17,45 +17,36 @@ const formatTimeAgo = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now - date) / 1000);
-    // Handle invalid dates
     if (isNaN(diffInSeconds)) {
       return "Invalid date";
     }
-    // Less than a minute ago
     if (diffInSeconds < 60) {
       return "Just now";
     }
-    // Less than an hour ago
     if (diffInSeconds < 3600) {
       const minutes = Math.floor(diffInSeconds / 60);
       return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
     }
-    // Less than a day ago
     if (diffInSeconds < 86400) {
       const hours = Math.floor(diffInSeconds / 3600);
       return `${hours} hour${hours === 1 ? "" : "s"} ago`;
     }
-    // Less than a week ago
     if (diffInSeconds < 604800) {
       const days = Math.floor(diffInSeconds / 86400);
       return `${days} day${days === 1 ? "" : "s"} ago`;
     }
-    // Less than a month ago (30 days)
     if (diffInSeconds < 2592000) {
       const weeks = Math.floor(diffInSeconds / 604800);
       return `${weeks} week${weeks === 1 ? "" : "s"} ago`;
     }
-    // Less than a year ago
     if (diffInSeconds < 31536000) {
       const months = Math.floor(diffInSeconds / 2592000);
       return `${months} month${months === 1 ? "" : "s"} ago`;
     }
-    // More than a year ago
     const years = Math.floor(diffInSeconds / 31536000);
     if (years === 1) {
       return "1 year ago";
     }
-    // For dates more than a year ago, show the actual date
     return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -223,7 +214,7 @@ const FeedbackCard = ({ feedback, onDownloadCSV, onDownloadPDF, onShare }) => {
         </div>
         <button
           onClick={onShare}
-          className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100"
+          className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 cursor-pointer"
           aria-label="Share Feedback"
         >
           <Share2 size={18} />

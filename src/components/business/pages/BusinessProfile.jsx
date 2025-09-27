@@ -202,7 +202,7 @@ const BusinessProfile = () => {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Business Profile</h1>
-          <Link
+          {/* <Link
             to="/businessDashboard"
             className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-sm transition-colors duration-200"
           >
@@ -210,7 +210,7 @@ const BusinessProfile = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
             </svg>
             Back to Dashboard
-          </Link>
+          </Link> */}
         </div>
         {error && (
           <div className="mb-8 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm font-medium">

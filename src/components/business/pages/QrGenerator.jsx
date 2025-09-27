@@ -5,16 +5,19 @@ import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import QRCode from "qrcode";
 import { QrCode, Download, Share2, Printer, Eye, Plus, X, Check, Loader2 } from "lucide-react";
-import { HeaderSection } from "../components/headerSection";
+import { HeaderSection } from "../components/HeaderSection";
 import { Tabs } from "../components/Tabs";
 import { TypeCard } from "../components/TypeCard";
-import { QRModal } from "../components/QrModal";
+import { QRModal } from "../components/QRModal";
+// import BusinessHeader from "../components/headerComponents";
 import BusinessHeader from "../components/headerComponents";
-import LoadingState from "../components/LoadingStates";
+import LoadingState from "../components/LoadingState";
 import { PreviewSection } from "../components/Preview";
 import { CreateTab } from "../components/CreateTab";
 import { ManageTab } from "../components/ManageTab";
 import { UsageTips } from "../components/UsageTips";
+import { ShareModal } from "../components/ShareModal";
+
 // Main QRGenerator Component
 export default function QRGenerator() {
   const qrRef = useRef(null);
@@ -36,6 +39,7 @@ export default function QRGenerator() {
   const [copied, setCopied] = useState(false);
   const [generatedQrData, setGeneratedQrData] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [qrCodeIds, setQrCodeIds] = useState(() => {
     const saved = localStorage.getItem("qrCodeIds");
     return saved ? JSON.parse(saved) : [];
@@ -44,13 +48,16 @@ export default function QRGenerator() {
   const [isFetching, setIsFetching] = useState(false);
   const [filterType, setFilterType] = useState("all");
   const [editingId, setEditingId] = useState(null);
+
   const isValidUUID = (str) => {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(str);
   };
+
   useEffect(() => {
     localStorage.setItem("qrCodeIds", JSON.stringify(qrCodeIds));
   }, [qrCodeIds]);
+
   useEffect(() => {
     const fetchBusinessCategory = async () => {
       setIsCategoryLoading(true);
@@ -111,9 +118,9 @@ export default function QRGenerator() {
     };
     fetchBusinessCategory();
   }, [navigate]);
+
   useEffect(() => {
     if (!categoryId || !isValidUUID(categoryId) || editingId) {
-      // Skip fetching tags if editing a QR code to preserve qrData.qrcode_tags
       if (!editingId) setTags([]);
       return;
     }
@@ -147,6 +154,7 @@ export default function QRGenerator() {
     };
     fetchTags();
   }, [categoryId, navigate, editingId]);
+
   useEffect(() => {
     if (activeTab !== "manage") {
       setQrCodes([]);
@@ -182,8 +190,6 @@ export default function QRGenerator() {
           date: qr.createdAt?.split("T")[0] || new Date().toISOString().split("T")[0],
           url: `${import.meta.env.VITE_SCAN_URL}/qr/${businessId}/${qr.id}`,
           businessName: response.data.business.business_name || "Unknown Business",
-          categoryName: qr.category?.name || "Unknown Category",
-          categoryId: qr.category?.id || "",
           description: qr.description || "",
           tags: Array.isArray(qr.qrcode_tags) ? qr.qrcode_tags : [],
         }));
@@ -210,7 +216,7 @@ export default function QRGenerator() {
             position: "top-right",
             autoClose: 3000,
           });
-          setQrCodes([]); // Fallback to empty list
+          setQrCodes([]);
         }
       } finally {
         setIsFetching(false);
@@ -218,6 +224,7 @@ export default function QRGenerator() {
     };
     fetchQrCodes();
   }, [activeTab, navigate]);
+
   useEffect(() => {
     if (generatedQrData?.scan_url && qrRef.current) {
       qrRef.current.innerHTML = "";
@@ -235,12 +242,12 @@ export default function QRGenerator() {
             position: "top-right",
             autoClose: 3000,
           });
-          // Fallback: Clear preview
           qrRef.current.innerHTML = "<p class='text-red-500'>Preview unavailable</p>";
         }
       });
     }
   }, [generatedQrData, primaryColor]);
+
   useEffect(() => {
     if (showModal && modalCanvasRef.current && generatedQrData?.scan_url) {
       QRCode.toCanvas(modalCanvasRef.current, generatedQrData.scan_url, {
@@ -259,6 +266,7 @@ export default function QRGenerator() {
       });
     }
   }, [showModal, generatedQrData, primaryColor]);
+
   const copyUrl = async () => {
     const generatedUrl = generatedQrData?.scan_url || "";
     if (!generatedUrl) {
@@ -269,20 +277,55 @@ export default function QRGenerator() {
       return;
     }
     try {
-      await navigator.clipboard.writeText(generatedUrl);
-      setCopied(true);
-      toast.success("URL copied to clipboard!", {
-        position: "top-right",
-        autoClose: 1600,
-      });
-      setTimeout(() => setCopied(false), 1600);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(generatedUrl);
+        setCopied(true);
+        toast.success("URL copied to clipboard!", {
+          position: "top-right",
+          autoClose: 1600,
+        });
+        setTimeout(() => setCopied(false), 1600);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = generatedUrl;
+        textarea.style.position = "fixed";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        try {
+          const successful = document.execCommand("copy");
+          if (successful) {
+            setCopied(true);
+            toast.success("URL copied to clipboard!", {
+              position: "top-right",
+              autoClose: 1600,
+            });
+            setTimeout(() => setCopied(false), 1600);
+          } else {
+            throw new Error("document.execCommand failed");
+          }
+        } catch (err) {
+          throw new Error("Fallback copy failed");
+        } finally {
+          document.body.removeChild(textarea);
+        }
+      }
     } catch (error) {
-      toast.error("Failed to copy URL. Please try again.", {
-        position: "top-right",
-        autoClose: 3000,
+      console.error("Copy URL error:", {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
       });
+      toast.error(
+        "Failed to copy URL automatically. Please select and copy the URL manually from the input field.",
+        {
+          position: "top-right",
+          autoClose: 5000,
+        }
+      );
     }
   };
+
   const downloadPNG = () => {
     if (!generatedQrData?.scan_url) {
       toast.error("No QR code available to download.", {
@@ -311,54 +354,24 @@ export default function QRGenerator() {
       link.click();
     });
   };
-  const shareQR = async (url, title) => {
-    if (!url || !title) {
-      toast.error("No QR code available to share.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Share Feedback: ${title}`,
-          text: `Scan this QR code to provide feedback for ${title}`,
-          url,
-        });
-        toast.success("QR code shared successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } catch (error) {
-        try {
-          await navigator.clipboard.writeText(url);
-          toast.success("Share not supported. URL copied to clipboard!", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-        } catch (copyError) {
-          toast.error("Failed to share or copy URL. Please try again.", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-        }
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(url);
-        toast.success("Share not supported. URL copied to clipboard!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } catch (error) {
-        toast.error("Failed to copy URL. Please try again.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      }
-    }
-  };
+// Updated shareQR function to replace in your main component
+const shareQR = (url, title, color) => {
+  if (!url || !title) {
+    toast.error("No QR code available to share.", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    return;
+  }
+
+  // Set the QR code data for the share modal (similar to viewQR)
+  setGeneratedQrData({ scan_url: url, label: title });
+  
+  // Open the share modal - it will handle all sharing logic internally
+  setIsShareModalOpen(true);
+  setPrimaryColor(color || "#0E5FD8");
+};
+
   const printQR = () => {
     if (!generatedQrData?.scan_url) {
       toast.error("No QR code available to print.", {
@@ -399,6 +412,7 @@ export default function QRGenerator() {
       printWindow.document.close();
     });
   };
+
   const viewQR = (code) => {
     if (!code?.url || !code?.title) {
       toast.error("Invalid QR code data for viewing.", {
@@ -410,6 +424,7 @@ export default function QRGenerator() {
     setGeneratedQrData({ scan_url: code.url, label: code.title });
     setActiveTab("create");
   };
+
   const editQR = async (code) => {
     const token = localStorage.getItem("authToken");
     const businessId = localStorage.getItem("authBusinessId");
@@ -421,21 +436,19 @@ export default function QRGenerator() {
       navigate("/businessAuth");
       return;
     }
-    setIsLoading(true); // Show loading while fetching for edit
+    setIsLoading(true);
     try {
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/v1/qrcode/qrcode/${code.id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const qrData = response.data.qr || {};
-      // console.log("Fetched QR data for editing:", qrData); // Debug log
       const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
       setQrType(qrTypeMap[code.id] || (qrData.type === "Product" ? "product" : qrData.type === "Service" ? "service" : "general"));
       setQrName(qrData.label || "");
       setDescription(qrData.description || "");
       setTags(Array.isArray(qrData.qrcode_tags) ? qrData.qrcode_tags : []);
       setEditingId(code.id);
-      // Set preview for editing
       const constructedScanUrl = `${import.meta.env.VITE_SCAN_URL}/qr/${businessId}/${code.id}`;
       setGeneratedQrData({
         ...qrData,
@@ -461,6 +474,7 @@ export default function QRGenerator() {
       setIsLoading(false);
     }
   };
+
   const handleCreateQR = async () => {
     if (!qrName || qrName.trim() === "") {
       toast.error("QR Code Name is required.", {
@@ -497,18 +511,17 @@ export default function QRGenerator() {
       }
       const apiType = (qrType === "general" || qrType === "product" || qrType === "location") ? "Product" : "Service";
       const productOrServiceId = `${qrName.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`;
-      const payload = {
-        label: qrName.trim(),
-        type: apiType,
-        productOrServiceId,
-        qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
-        description: description?.trim() || undefined,
-        categoryId,
-      };
+      let payload;
       let qrData;
       if (editingId) {
-        const response = await axios.patch(
-          `${import.meta.env.VITE_API_URL}/api/v1/qrcode/${editingId}`,
+        payload = {
+          label: qrName.trim(),
+          type: apiType,
+          qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
+          description: description?.trim() || undefined,
+        };
+        const response = await axios.put(
+          `${import.meta.env.VITE_API_URL}/api/v1/qrcode/edit-qrcode/${editingId}`,
           payload,
           {
             headers: {
@@ -524,6 +537,14 @@ export default function QRGenerator() {
           autoClose: 3000,
         });
       } else {
+        payload = {
+          label: qrName.trim(),
+          type: apiType,
+          productOrServiceId,
+          qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
+          description: description?.trim() || undefined,
+          categoryId,
+        };
         const response = await axios.post(
           `${import.meta.env.VITE_API_URL}/api/v1/qrcode/generate`,
           payload,
@@ -558,13 +579,23 @@ export default function QRGenerator() {
         data: error.response?.data,
         message: error.message,
       });
-      if (error.response?.status === 401) {
+      if (error.response?.status === 400) {
+        toast.error(error.response?.data?.message || "Invalid request data. Please check the input fields and try again.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      } else if (error.response?.status === 401) {
         toast.error("Session expired or invalid token. Please log in again.", {
           position: "top-right",
           autoClose: 3000,
         });
         localStorage.removeItem("authToken");
         navigate("/businessAuth");
+      } else if (error.response?.status === 404) {
+        toast.error("QR code not found or endpoint unavailable. Please verify the QR code ID or contact support.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
       } else if (error.response?.status === 409) {
         toast.error("A QR code with this name or ID already exists. Please choose a different name.", {
           position: "top-right",
@@ -581,7 +612,9 @@ export default function QRGenerator() {
       setIsLoading(false);
     }
   };
+
   const filteredQrCodes = filterType === "all" ? qrCodes : qrCodes.filter((code) => code.type === filterType);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <BusinessHeader
@@ -667,6 +700,13 @@ export default function QRGenerator() {
         setShowModal={setShowModal}
         modalCanvasRef={modalCanvasRef}
         generatedQrData={generatedQrData}
+        primaryColor={primaryColor}
+      />
+      <ShareModal
+        isOpen={isShareModalOpen}
+        setIsOpen={setIsShareModalOpen}
+        url={generatedQrData?.scan_url || ""}
+        title={generatedQrData?.label || "QR Code"}
         primaryColor={primaryColor}
       />
     </div>
