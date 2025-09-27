@@ -249,9 +249,9 @@ const FeedbackForm = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7FAFF] container">
+    <div className="bg-[#F7FAFF] ">
       <ToastContainer />
-      <div className="bg-white flex items-center px-4 py-4 shadow-sm">
+      <div className="bg-white max-w-4xl mx-auto rounded-b-md flex items-center px-4 py-4 shadow-sm">
         <button
           onClick={handleBack}
           className="text-black cursor-pointer hover:text-blue-700 hover:bg-blue-200 px-2 py-1 rounded flex items-center text-sm"
@@ -273,7 +273,7 @@ const FeedbackForm = () => {
         </button>
       </div>
 
-      <div className="w-full max-w-[80rem] mx-auto px-4 py-6">
+      <div className="w-full max-w-4xl mx-auto px-4 py-6">
         <div className="text-center mb-6">
           <h2 className="text-blue-600 text-xl font-medium">Share Your Experience</h2>
           <p className="text-gray-500 text-sm mt-1">{businessName}</p>

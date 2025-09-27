@@ -98,7 +98,7 @@ const Homepage = () => {
       {/* Header */}
       <header className="bg-white/60 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
         <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="text-xl lg:text-2xl font-bold text-blue-700">ScanRevuAI</div>
+          <Link className="text-xl lg:text-2xl font-bold text-blue-700">ScanRevuAI</Link>
           <div className="hidden md:flex items-center space-x-2">
             <Link
               to="/demoBooking"
@@ -150,7 +150,7 @@ const Homepage = () => {
       </section>
 
       {/* Problem Section */}
-      <section id="problem" className="container mx-auto px-6 py-16 md:py-32">
+      <section id="problem" className="container mx-auto px-6 py-16 md:py-32 flex flex-col items-center justify-center">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-black">The Challenge Nigerian Hospitality Businesses Face</h2>
           <p className="max-w-2xl mx-auto mt-4 text-black">
@@ -348,11 +348,11 @@ const Homepage = () => {
       </section>
 
       {/* Benefits Section */}
-      <section id="benefits" className="container mx-auto px-6 py-16 md:py-32">
+      <section id="benefits" className="container mx-auto flex flex-col items-center justify-center px-6 py-16 md:py-32">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-black">What You Get</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 justify-center items-center">
           <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80">
             <h3 className="text-xl font-semibold mb-2 text-blue-700">Instant Feedback!</h3>
             <p className="text-black">Get insights while customers are still in your business.</p>
@@ -447,18 +447,18 @@ const Homepage = () => {
             <div>
               <h4 className="text-lg font-semibold mb-4">Follow Us</h4>
               <div className="flex space-x-4">
-                <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
+                {/* <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
                   <Facebook className="w-6 h-6" />
-                </a>
-                <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
+                </a> */}
+                <a href="https://x.com/Revu_Ai" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
                   <X className="w-6 h-6" />
                 </a>
-                <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
+                {/* <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
                   <Instagram className="w-6 h-6" />
                 </a>
                 <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
                   <Linkedin className="w-6 h-6" />
-                </a>
+                </a> */}
               </div>
             </div>
           </div>

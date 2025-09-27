@@ -34,17 +34,17 @@ const ThankYouPage = () => {
       if (timeElapsed > QR_CONTEXT_TIMEOUT) {
         localStorage.removeItem("qrContext");
         localStorage.removeItem("qrContextTimestamp");
-        // console.log('ThankYouPage - Cleared expired qrContext');
+        console.log('ThankYouPage - Cleared expired qrContext');
       } else {
         setQrContext(storedQrContext);
-        // console.log('ThankYouPage - Loaded qrContext from localStorage:', storedQrContext);
+        console.log('ThankYouPage - Loaded qrContext from localStorage:', storedQrContext);
       }
     }
 
     // Set qrContext from state if provided
     if (stateQrContext) {
       setQrContext(stateQrContext);
-      // console.log('ThankYouPage - Loaded qrContext from location.state:', stateQrContext);
+      console.log('ThankYouPage - Loaded qrContext from location.state:', stateQrContext);
       localStorage.setItem("qrContext", JSON.stringify(stateQrContext));
       localStorage.setItem("qrContextTimestamp", currentTime.toString());
     } else if (storedQrContext.businessId && storedQrContext.qrcodeId) {
@@ -54,14 +54,15 @@ const ThankYouPage = () => {
     }
 
     // Construct QR code URL
+    let constructedUrl = "";
     if (businessId && qrcodeId) {
-      const constructedUrl = `${BASE_SCAN_URL}/qr/${businessId}/${qrcodeId}`;
+      constructedUrl = `${BASE_SCAN_URL}/qr/${businessId}/${qrcodeId}`;
       setQrCodeUrl(constructedUrl);
-      // console.log('ThankYouPage - QR Code URL:', constructedUrl);
+      console.log('ThankYouPage - QR Code URL:', constructedUrl);
     } else if (storedQrContext.businessId && storedQrContext.qrcodeId) {
-      const constructedUrl = `${BASE_SCAN_URL}/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`;
+      constructedUrl = `${BASE_SCAN_URL}/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`;
       setQrCodeUrl(constructedUrl);
-      // console.log('ThankYouPage - QR Code URL from qrContext:', constructedUrl);
+      console.log('ThankYouPage - QR Code URL from qrContext:', constructedUrl);
     } else {
       console.warn("ThankYouPage - No businessId or qrcodeId found");
     }
@@ -74,7 +75,7 @@ const ThankYouPage = () => {
         if (timeElapsed > QR_CONTEXT_TIMEOUT) {
           localStorage.removeItem("qrContext");
           localStorage.removeItem("qrContextTimestamp");
-          // console.log('ThankYouPage - Cleared expired qrContext via interval');
+          console.log('ThankYouPage - Cleared expired qrContext via interval');
         }
       }
     }, 60000); // Check every minute
@@ -89,17 +90,15 @@ const ThankYouPage = () => {
 
   // Handle navigation to dashboard (signed-in users)
   const handleGoToDashboard = () => {
-    // Clear only qrContext and qrContextTimestamp to preserve authToken and userData
     localStorage.removeItem("qrContext");
     localStorage.removeItem("qrContextTimestamp");
-    // console.log('ThankYouPage - Cleared qrContext and qrContextTimestamp on dashboard navigation');
+    console.log('ThankYouPage - Cleared qrContext and qrContextTimestamp on dashboard navigation');
     navigate("/userAccount", { state: { businessId, qrcodeId, qrContext, fromThankYou: true } });
   };
 
   // Handle navigation to submit another feedback
   const handleSubmitAnother = () => {
     if (isAuthenticated) {
-      // For signed-in users, go directly to feedback form
       if (businessId && qrcodeId) {
         navigate(`/feedbackForm/${businessId}/${qrcodeId}`, { state: { qrContext } });
       } else if (qrContext?.businessId && qrContext?.qrcodeId) {
@@ -116,7 +115,6 @@ const ThankYouPage = () => {
         }
       }
     } else {
-      // For unauthenticated users, go to QR landing page
       if (businessId && qrcodeId && qrContext) {
         navigate(`/qr/${businessId}/${qrcodeId}`, { state: { qrContext } });
       } else if (qrContext?.businessId && qrContext?.qrcodeId) {
@@ -138,10 +136,23 @@ const ThankYouPage = () => {
   // Handle sharing the QR code URL
   const handleShareQR = async () => {
     if (!qrCodeUrl) {
-      toast.error("No QR code URL available to share.", {
+      toast.error("No QR code URL available to share. Please try submitting feedback again.", {
         position: "top-right",
         autoClose: 3000,
       });
+      console.error("handleShareQR - No qrCodeUrl available. State:", state, "qrContext:", qrContext);
+      return;
+    }
+
+    // Validate URL format
+    try {
+      new URL(qrCodeUrl);
+    } catch (error) {
+      toast.error("Invalid QR code URL. Please contact support.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      console.error("handleShareQR - Invalid qrCodeUrl:", qrCodeUrl, error);
       return;
     }
 
@@ -158,11 +169,27 @@ const ThankYouPage = () => {
           autoClose: 3000,
         });
       } catch (error) {
-        console.error("Share error:", error);
-        toast.error("Failed to share QR code.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
+        if (error.name !== "AbortError") {
+          console.error("handleShareQR - Web Share API error:", error);
+          toast.error("Failed to share QR code. Trying to copy to clipboard.", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          // Fallback to clipboard
+          try {
+            await navigator.clipboard.writeText(qrCodeUrl);
+            toast.success("QR code URL copied to clipboard!", {
+              position: "top-right",
+              autoClose: 3000,
+            });
+          } catch (clipError) {
+            console.error("handleShareQR - Clipboard copy error:", clipError);
+            toast.error("Failed to copy QR code URL. Please copy it manually: " + qrCodeUrl, {
+              position: "top-right",
+              autoClose: 5000,
+            });
+          }
+        }
       }
     } else {
       // Fallback: Copy to clipboard
@@ -172,20 +199,20 @@ const ThankYouPage = () => {
           position: "top-right",
           autoClose: 3000,
         });
-      } catch (error) {
-        console.error("Clipboard copy error:", error);
-        toast.error("Failed to copy QR code URL.", {
+      } catch (clipError) {
+        console.error("handleShareQR - Clipboard copy error:", clipError);
+        toast.error("Failed to copy QR code URL. Please copy it manually: " + qrCodeUrl, {
           position: "top-right",
-          autoClose: 3000,
+          autoClose: 5000,
         });
       }
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#E8F5E8] container">
+    <div className="min-h-screen bg-[#E8F5E8]">
       <ToastContainer />
-      <div className="w-full max-w-[80rem] mx-auto px-4 py-8">
+      <div className="w-full max-w-3xl mx-auto px-4 py-8">
         {/* Success Message */}
         <div className="text-center mb-8">
           <div className="relative mb-6">

@@ -1,69 +1,68 @@
-import { User, Mail, Lock, CheckCircle, AlertCircle } from "lucide-react";
+import { User, Mail, Lock, X, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState, 
-  // useEffect 
-} from "react";
+import { useState, useEffect } from "react";
 
 const AdminAuth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
-  // const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
-  // const [forgotEmail, setForgotEmail] = useState("");
-  // const [forgotLoading, setForgotLoading] = useState(false);
-  // const [forgotError, setForgotError] = useState("");
-  // const [forgotSuccess, setForgotSuccess] = useState("");
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState("");
   const [success, setSuccess] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // New state for password visibility
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    role: "admin", // Fixed role for admin sign-up
+    role: "admin",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   // Auto-login check
-  // useEffect(() => {
-  //   const adminAuthToken = localStorage.getItem("adminAuthToken");
-  //   if (adminAuthToken) {
-  //     const validateToken = async () => {
-  //       try {
-  //         const response = await fetch(`${BASE_URL}/api/v1/admins/validate-token`, {
-  //           method: "GET",
-  //           headers: {
-  //             "Content-Type": "application/json",
-  //             Authorization: `Bearer ${adminAuthToken}`,
-  //           },
-  //         });
+  useEffect(() => {
+    const adminAuthToken = localStorage.getItem("adminAuthToken");
+    if (adminAuthToken) {
+      const validateToken = async () => {
+        try {
+          const response = await fetch(`${BASE_URL}/api/v1/admins/validate-token`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${adminAuthToken}`,
+            },
+          });
 
-  //         const data = await response.json();
+          const data = await response.json();
 
-  //         if (response.ok && data.valid) {
-  //           let adminData = localStorage.getItem("adminData");
-  //           if (!adminData) {
-  //             adminData = JSON.stringify({
-  //               adminId: data.admin?.id || data.admin?.adminId || "",
-  //               name: data.admin?.name || "Admin",
-  //               email: data.admin?.email || "",
-  //             });
-  //             localStorage.setItem("adminData", adminData);
-  //           }
-  //           navigate("/adminDashboard");
-  //         } else {
-  //           localStorage.removeItem("adminAuthToken");
-  //           localStorage.removeItem("adminData");
-  //           setError("Session expired. Please sign in again.");
-  //         }
-  //       } catch (error) {
-  //         localStorage.removeItem("adminAuthToken");
-  //         localStorage.removeItem("adminData");
-  //         setError("Failed to validate session. Please sign in again.");
-  //       }
-  //     };
-  //     validateToken();
-  //   }
-  // }, [navigate]);
+          if (response.ok && data.valid) {
+            let adminData = localStorage.getItem("adminData");
+            if (!adminData) {
+              adminData = JSON.stringify({
+                adminId: data.admin?.id || data.admin?.adminId || "",
+                name: data.admin?.name || "Admin",
+                email: data.admin?.email || "",
+              });
+              localStorage.setItem("adminData", adminData);
+            }
+            navigate("/adminDashboard");
+          } else {
+            localStorage.removeItem("adminAuthToken");
+            localStorage.removeItem("adminData");
+            setError("Session expired. Please sign in again.");
+          }
+        } catch (error) {
+          localStorage.removeItem("adminAuthToken");
+          localStorage.removeItem("adminData");
+          setError("Failed to validate session. Please sign in again.");
+        }
+      };
+      validateToken();
+    }
+  }, [navigate]);
 
   const handleToggle = () => {
     setIsSignUp((prev) => !prev);
@@ -75,6 +74,7 @@ const AdminAuth = () => {
       password: "",
       role: "admin",
     });
+    setShowPassword(false); // Reset password visibility
   };
 
   const handleInputChange = (field, value) => {
@@ -110,7 +110,8 @@ const AdminAuth = () => {
     return true;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault(); // Prevent form submission from reloading page
     if (!validateForm()) return;
 
     setLoading(true);
@@ -178,6 +179,7 @@ const AdminAuth = () => {
           password: "",
           role: "admin",
         });
+        setShowPassword(false);
       }
     } catch (error) {
       setError(error.message || "An unexpected error occurred");
@@ -186,56 +188,68 @@ const AdminAuth = () => {
     }
   };
 
-  // const handleForgotPassword = async () => {
-  //   if (!forgotEmail.trim()) {
-  //     setForgotError("Email is required");
-  //     return;
-  //   }
-  //   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) {
-  //     setForgotError("Please enter a valid email address");
-  //     return;
-  //   }
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleSubmit();
+    }
+  };
 
-  //   setForgotLoading(true);
-  //   setForgotError("");
-  //   setForgotSuccess("");
+  const handleForgotPassword = async () => {
+    if (!forgotEmail.trim()) {
+      setForgotError("Email is required");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) {
+      setForgotError("Please enter a valid email address");
+      return;
+    }
 
-  //   try {
-  //     const response = await fetch(`${BASE_URL}/api/v1/admins/forgot-password`, {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({ email: forgotEmail }),
-  //     });
+    setForgotLoading(true);
+    setForgotError("");
+    setForgotSuccess("");
 
-  //     const data = await response.json();
+    try {
+      const response = await fetch(`${BASE_URL}/api/v1/admins/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
 
-  //     if (!response.ok) {
-  //       throw new Error(data.message || "Failed to send password reset email");
-  //     }
+      const data = await response.json();
 
-  //     setForgotSuccess(data.message || "Password reset email sent!");
-  //     setTimeout(() => {
-  //       setIsForgotPasswordOpen(false);
-  //       setForgotEmail("");
-  //     }, 1500);
-  //   } catch (error) {
-  //     setForgotError(error.message || "An unexpected error occurred");
-  //   } finally {
-  //     setForgotLoading(false);
-  //   }
-  // };
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to send password reset email");
+      }
 
-  // const handleCloseModal = () => {
-  //   setIsForgotPasswordOpen(false);
-  //   setForgotEmail("");
-  //   setForgotError("");
-  //   setForgotSuccess("");
-  // };
+      setForgotSuccess(data.message || "Password reset email sent!");
+      setTimeout(() => {
+        setIsForgotPasswordOpen(false);
+        setForgotEmail("");
+      }, 1500);
+    } catch (error) {
+      setForgotError(error.message || "An unexpected error occurred");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleForgotKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleForgotPassword();
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsForgotPasswordOpen(false);
+    setForgotEmail("");
+    setForgotError("");
+    setForgotSuccess("");
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center container mx-auto">
       <div className="w-full max-w-md px-4">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -266,7 +280,7 @@ const AdminAuth = () => {
             </div>
           )}
 
-          <div className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
               <div className="relative">
                 <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -275,6 +289,7 @@ const AdminAuth = () => {
                   placeholder="Full name"
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
+                  onKeyDown={handleKeyDown}
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 />
               </div>
@@ -287,6 +302,7 @@ const AdminAuth = () => {
                 placeholder="Email address"
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               />
             </div>
@@ -294,79 +310,92 @@ const AdminAuth = () => {
             <div className="relative">
               <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder={isSignUp ? "Create password" : "Password"}
                 value={formData.password}
                 onChange={(e) => handleInputChange("password", e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                onKeyDown={handleKeyDown}
+                className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4 cursor-pointer" />
+                ) : (
+                  <Eye className="w-4 h-4 cursor-pointer" />
+                )}
+              </button>
             </div>
 
-            {/* {!isSignUp && (
+            {!isSignUp && (
               <div className="text-right">
                 <button
+                  type="button"
                   onClick={() => setIsForgotPasswordOpen(true)}
                   className="text-blue-600 text-xs hover:underline cursor-pointer"
                 >
                   Forgot Password?
                 </button>
               </div>
-            )} */}
-          </div>
-
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className={`w-full py-3 rounded-lg text-sm cursor-pointer font-medium transition-colors mt-6 flex items-center justify-center ${
-              isSignUp
-                ? "bg-yellow-400 hover:bg-yellow-500 text-gray-800"
-                : "bg-blue-500 hover:bg-blue-600 text-white"
-            } ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
-          >
-            {loading ? (
-              <>
-                <svg
-                  className="animate-spin h-4 w-4 mr-2 text-current"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                  ></path>
-                </svg>
-                Processing...
-              </>
-            ) : isSignUp ? (
-              "Register"
-            ) : (
-              "Sign In"
             )}
-          </button>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 rounded-lg text-sm cursor-pointer font-medium transition-colors mt-6 flex items-center justify-center ${
+                isSignUp
+                  ? "bg-yellow-400 hover:bg-yellow-500 text-gray-800"
+                  : "bg-blue-500 hover:bg-blue-600 text-white"
+              } ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
+            >
+              {loading ? (
+                <>
+                  <svg
+                    className="animate-spin h-4 w-4 mr-2 text-current"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    ></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : isSignUp ? (
+                "Register"
+              ) : (
+                "Sign In"
+              )}
+            </button>
+          </form>
 
           <div className="mt-4 text-center">
             <button
+              type="button"
               onClick={handleToggle}
               className="text-blue-600 text-sm hover:underline cursor-pointer"
             >
-              {isSignUp
-                ? "Sign In as Admin"
-                : "Register as Admin"}
+              {isSignUp ? "Sign In as Admin" : "Register as Admin"}
             </button>
           </div>
         </div>
 
-        {/* {isForgotPasswordOpen && (
+        {isForgotPasswordOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
               <div className="flex justify-between items-center mb-4">
@@ -404,6 +433,7 @@ const AdminAuth = () => {
                     setForgotSuccess("");
                     setForgotEmail(e.target.value);
                   }}
+                  onKeyDown={handleForgotKeyDown}
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 />
               </div>
@@ -447,10 +477,10 @@ const AdminAuth = () => {
               </button>
             </div>
           </div>
-        )} */}
-        
+        )}
       </div>
     </div>
   );
 };
+
 export default AdminAuth;

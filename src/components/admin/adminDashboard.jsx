@@ -203,7 +203,7 @@ const AdminDashboard = () => {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 container mx-auto">
         {/* Full-screen loader during logout */}
         {isLoggingOutInternal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">

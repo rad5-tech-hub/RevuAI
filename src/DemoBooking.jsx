@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { CheckCircle, Sparkles, Star, Calendar, MessageSquare, TrendingUp } from 'lucide-react';
-import emailjs from '@emailjs/browser';
+import { useForm, ValidationError } from '@formspree/react';
 
 const DemoBooking = () => {
+  const [state, handleSubmit] = useForm("xgvnvzeq");
   const [formData, setFormData] = useState({
     businessName: '',
     yourName: '',
@@ -14,20 +15,21 @@ const DemoBooking = () => {
     biggestChallenge: '',
   });
   const [errors, setErrors] = useState({});
-  const [submitted, setSubmitted] = useState(false);
-  const [focusedField, setFocusedField] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const formRef = useRef(null);
 
-  const handleChange = (e) => {
+  // Handle input changes
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear error for the field when user starts typing
     if (errors[name]) {
-      setErrors({ ...errors, [name]: '' });
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
+  // Validate form before submission
   const validateForm = () => {
-    let tempErrors = {};
+    const tempErrors = {};
     if (!formData.businessName) tempErrors.businessName = 'Business Name is required';
     if (!formData.yourName) tempErrors.yourName = 'Your Name is required';
     if (!formData.phone) tempErrors.phone = 'Phone/WhatsApp is required';
@@ -37,75 +39,71 @@ const DemoBooking = () => {
     return Object.keys(tempErrors).length === 0;
   };
 
-  const emailID = import.meta.env.EMAILJS_SERVICE_ID;
-  const emailTemp = import.meta.env.EMAILJS_TEMPLATE_ID;
-  const emailPublic = import.meta.env.EMAILJS_PUBLIC_KEY;
+  const url = import.meta.env.VITE_GOOGLE_SHEETS_WEB_URL;
 
-  const sendEmail = async () => {
+  // Function to append form data to Google Sheet
+  const appendToGoogleSheet = async () => {
     try {
-      const templateParams = {
-        to_email: 'info@scanrevuai.com',
-        from_name: formData.yourName,
-        business_name: formData.businessName,
-        phone: formData.phone,
-        email: formData.email,
-        business_type: formData.businessType,
-        location: formData.location,
-        review_count: formData.reviewCount,
-        biggest_challenge: formData.biggestChallenge,
-      };
+      const response = await fetch(url, {
+        method: "POST",
+        mode: "no-cors", // important for Google Apps Script
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
 
-      await emailjs.send(
-        emailID, // Replace with your EmailJS service ID
-        emailTemp, // Replace with your EmailJS template ID
-        templateParams,
-        emailPublic // Replace with your EmailJS public key
-      );
+      console.log("Data sent to Google Sheet successfully");
+      return true;
     } catch (error) {
-      console.error('Email sending failed:', error);
-      throw new Error('Failed to send email');
+      console.error("Failed to save to Google Sheet:", error);
+      return false;
     }
   };
 
-  // const appendToGoogleSheet = async () => {
-  //   try {
-  //     const response = await fetch('YOUR_GOOGLE_SHEETS_API_ENDPOINT', { // Replace with your Google Apps Script Web App URL
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({
-  //         ...formData,
-  //         timestamp: new Date().toISOString(),
-  //       }),
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error('Failed to append to Google Sheet');
-  //     }
-  //   } catch (error) {
-  //     console.error('Google Sheet append failed:', error);
-  //     throw error;
-  //   }
-  // };
-
-  const handleSubmit = async (e) => {
+  // Custom form submission handler
+  const onSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-      setIsSubmitting(true);
       try {
-        await Promise.all([sendEmail()]);
-        setSubmitted(true);
+        // Submit to Formspree and Google Sheet in parallel
+        await Promise.all([handleSubmit(formData), appendToGoogleSheet()]);
       } catch (error) {
-        console.error('Submission error:', error);
-        setErrors({ submit: 'Failed to submit form. Please try again.' });
-      } finally {
-        setIsSubmitting(false);
+        console.log('Submission failed. Please try again.');
       }
+    } else {
+      console.log('Please fill out all required fields.');
     }
   };
 
-  if (submitted) {
+  // Reset form after successful submission and handle redirect
+  useEffect(() => {
+    if (state.succeeded) {
+      setFormData({
+        businessName: '',
+        yourName: '',
+        phone: '',
+        email: '',
+        businessType: 'Hotel',
+        location: '',
+        reviewCount: 'Less than 50',
+        biggestChallenge: '',
+      });
+      if (formRef.current) {
+        formRef.current.reset();
+      }
+
+      // Redirect to landing page after 3 seconds
+      const redirectTimer = setTimeout(() => {
+        window.location.href = '/'; // Change this to your landing page route
+      }, 5000);
+
+      // Cleanup timer if component unmounts
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [state.succeeded]);
+
+  if (state.succeeded) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-400 flex items-center justify-center px-4 py-12 sm:p-6">
         <div className="bg-white/70 backdrop-blur-xl p-6 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl shadow-lg md:shadow-2xl border border-blue-600 max-w-xs sm:max-w-sm md:max-w-md w-full text-center animate-pulse">
@@ -113,10 +111,10 @@ const DemoBooking = () => {
             <CheckCircle className="w-8 sm:w-10 h-8 sm:h-10 text-white" />
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-2 sm:mb-4">Thank You!</h2>
-          <p className="text-blue-700 text-base sm:text-lg mb-4 sm:mb-6">Your demo request has been submitted successfully.</p>
+          <p className="text-blue-700 text-base sm:text-lg mb-4 sm:mb-6">Your demo request has been submitted successfully, you have been added to the wait list.</p>
           <div className="flex items-center justify-center space-x-1 sm:space-x-2 text-blue-600">
             <Sparkles className="w-4 sm:w-5 h-4 sm:h-5 animate-spin" />
-            <span className="text-sm sm:text-base">Redirecting to confirmation...</span>
+            <span className="text-sm sm:text-base">Redirecting.....</span>
           </div>
         </div>
       </div>
@@ -142,22 +140,26 @@ const DemoBooking = () => {
               <p className="text-blue-600 text-base sm:text-lg font-medium">See ScanRevuAI Transform Your Business</p>
             </div>
 
-            <div className="space-y-4 sm:space-y-5">
+            <form className="space-y-4 sm:space-y-5" onSubmit={onSubmit} ref={formRef}>
               <div className="group">
                 <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Business Name *</label>
                 <input
                   type="text"
                   name="businessName"
+                  id="businessName"
                   value={formData.businessName}
-                  onChange={handleChange}
-                  onFocus={() => setFocusedField('businessName')}
-                  onBlur={() => setFocusedField('')}
+                  onChange={handleInputChange}
                   className={`w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 bg-white/50 backdrop-blur-sm
                     ${errors.businessName 
                       ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100' 
                       : 'border-blue-500 focus:border-blue-600 focus:ring-4 focus:ring-blue-100'
                     } focus:outline-none placeholder-blue-600`}
                   placeholder="Enter your business name"
+                />
+                <ValidationError 
+                  prefix="Business Name" 
+                  field="businessName"
+                  errors={state.errors}
                 />
                 {errors.businessName && (
                   <p className="text-red-500 text-xs sm:text-sm mt-1 sm:mt-2 animate-pulse">{errors.businessName}</p>
@@ -169,16 +171,20 @@ const DemoBooking = () => {
                 <input
                   type="text"
                   name="yourName"
+                  id="yourName"
                   value={formData.yourName}
-                  onChange={handleChange}
-                  onFocus={() => setFocusedField('yourName')}
-                  onBlur={() => setFocusedField('')}
+                  onChange={handleInputChange}
                   className={`w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 bg-white/50 backdrop-blur-sm
                     ${errors.yourName 
                       ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100' 
                       : 'border-blue-500 focus:border-blue-600 focus:ring-4 focus:ring-blue-100'
                     } focus:outline-none placeholder-blue-600`}
                   placeholder="Enter your full name"
+                />
+                <ValidationError 
+                  prefix="Your Name" 
+                  field="yourName"
+                  errors={state.errors}
                 />
                 {errors.yourName && (
                   <p className="text-red-500 text-xs sm:text-sm mt-1 sm:mt-2 animate-pulse">{errors.yourName}</p>
@@ -191,14 +197,20 @@ const DemoBooking = () => {
                   <input
                     type="tel"
                     name="phone"
+                    id="phone"
                     value={formData.phone}
-                    onChange={handleChange}
+                    onChange={handleInputChange}
                     className={`w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 bg-white/50 backdrop-blur-sm
                       ${errors.phone 
                         ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100' 
                         : 'border-blue-500 focus:border-blue-600 focus:ring-4 focus:ring-blue-100'
                       } focus:outline-none placeholder-blue-500`}
                     placeholder="+234 xxx xxx xxxx"
+                  />
+                  <ValidationError 
+                    prefix="Phone" 
+                    field="phone"
+                    errors={state.errors}
                   />
                   {errors.phone && (
                     <p className="text-red-500 text-xs sm:text-sm mt-1 sm:mt-2 animate-pulse">{errors.phone}</p>
@@ -209,14 +221,20 @@ const DemoBooking = () => {
                   <input
                     type="email"
                     name="email"
+                    id="email"
                     value={formData.email}
-                    onChange={handleChange}
+                    onChange={handleInputChange}
                     className={`w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 bg-white/50 backdrop-blur-sm
                       ${errors.email 
                         ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100' 
                         : 'border-blue-500 focus:border-blue-600 focus:ring-4 focus:ring-blue-100'
                       } focus:outline-none placeholder-blue-500`}
                     placeholder="your@email.com"
+                  />
+                  <ValidationError 
+                    prefix="Email" 
+                    field="email"
+                    errors={state.errors}
                   />
                   {errors.email && (
                     <p className="text-red-500 text-xs sm:text-sm mt-1 sm:mt-2 animate-pulse">{errors.email}</p>
@@ -230,27 +248,38 @@ const DemoBooking = () => {
                   <select
                     name="businessType"
                     value={formData.businessType}
-                    onChange={handleChange}
+                    onChange={handleInputChange}
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 border-blue-500 focus:border-blue-700 focus:ring-4 focus:ring-blue-100 transition-all duration-300 bg-white/50 backdrop-blur-sm focus:outline-none text-blue-800"
                   >
                     <option value="Hotel">Hotel</option>
                     <option value="Restaurant">Restaurant</option>
                     <option value="Other">Other</option>
                   </select>
+                  <ValidationError 
+                    prefix="Business Type" 
+                    field="businessType"
+                    errors={state.errors}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Location *</label>
                   <input
                     type="text"
                     name="location"
+                    id="location"
                     value={formData.location}
-                    onChange={handleChange}
+                    onChange={handleInputChange}
                     className={`w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 bg-white/50 backdrop-blur-sm
                       ${errors.location 
                         ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100' 
                         : 'border-blue-500 focus:border-blue-600 focus:ring-4 focus:ring-blue-100'
                       } focus:outline-none placeholder-blue-500`}
                     placeholder="City, Country"
+                  />
+                  <ValidationError 
+                    prefix="Location" 
+                    field="location"
+                    errors={state.errors}
                   />
                   {errors.location && (
                     <p className="text-red-500 text-xs sm:text-sm mt-1 sm:mt-2 animate-pulse">{errors.location}</p>
@@ -259,11 +288,12 @@ const DemoBooking = () => {
               </div>
 
               <div>
-                <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Monthly Reviews</label>
+                <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Current Monthly Reviews</label>
                 <select
                   name="reviewCount"
+                  id='reviewCount'
                   value={formData.reviewCount}
-                  onChange={handleChange}
+                  onChange={handleInputChange}
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 border-blue-500 focus:border-blue-700 focus:ring-4 focus:ring-blue-100 transition-all duration-300 bg-white/50 backdrop-blur-sm focus:outline-none text-blue-800"
                 >
                   <option value="Less than 50">Less than 50</option>
@@ -271,17 +301,28 @@ const DemoBooking = () => {
                   <option value="200-500">200-500</option>
                   <option value="500+">500+</option>
                 </select>
+                <ValidationError 
+                  prefix="Monthly Reviews" 
+                  field="reviewCount"
+                  errors={state.errors}
+                />
               </div>
 
               <div>
                 <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Biggest Review Challenge</label>
                 <textarea
                   name="biggestChallenge"
+                  id="biggestChallenge"
                   value={formData.biggestChallenge}
-                  onChange={handleChange}
+                  onChange={handleInputChange}
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 border-blue-500 focus:border-blue-700 focus:ring-4 focus:ring-blue-100 transition-all duration-300 bg-white/50 backdrop-blur-sm focus:outline-none placeholder-blue-700 resize-none"
                   rows="3 sm:rows-4"
                   placeholder="Tell us about your biggest challenge with reviews..."
+                />
+                <ValidationError 
+                  prefix="Biggest Challenge" 
+                  field="biggestChallenge"
+                  errors={state.errors}
                 />
               </div>
 
@@ -291,17 +332,16 @@ const DemoBooking = () => {
 
               <button
                 type="submit"
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className={`w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-2 sm:py-3 md:py-4 px-4 sm:px-6 md:px-8 rounded-lg sm:rounded-xl shadow-md md:shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 text-base sm:text-lg group ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={state.submitting}
+                className={`w-full bg-gradient-to-r cursor-pointer from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-2 sm:py-3 md:py-4 px-4 sm:px-6 md:px-8 rounded-lg sm:rounded-xl shadow-md md:shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 text-base sm:text-lg group ${state.submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <span className="flex items-center justify-center space-x-1 sm:space-x-2">
                   <Calendar className="w-4 sm:w-5 h-4 sm:h-5 group-hover:animate-pulse" />
-                  <span>{isSubmitting ? 'Submitting...' : 'Book My FREE Demo'}</span>
+                  <span>{state.submitting ? 'Submitting...' : 'Book My FREE Demo'}</span>
                   <Sparkles className="w-4 sm:w-5 h-4 sm:h-5 group-hover:animate-spin" />
                 </span>
               </button>
-            </div>
+            </form>
           </div>
 
           <div className="space-y-4 sm:space-y-6">

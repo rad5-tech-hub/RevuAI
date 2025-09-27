@@ -20,9 +20,9 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div className="text-center p-6 bg-red-50 border border-red-200 rounded-lg">
-        <h2 className="text-lg font-semibold text-red-600">Something went wrong</h2>
-        <p className="text-gray-600">{this.state.error.message}</p>
-      </div>
+          <h2 className="text-lg font-semibold text-red-600">Something went wrong</h2>
+          <p className="text-gray-600">{this.state.error.message}</p>
+        </div>
       );
     }
     return this.props.children;
@@ -50,8 +50,8 @@ const UserAccount = () => {
   const [showAllBusinesses, setShowAllBusinesses] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false); // New state for logout modal
-  const [isLoggingOutInternal, setIsLoggingOutInternal] = useState(false); // New state for logout process
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOutInternal, setIsLoggingOutInternal] = useState(false);
   const navigate = useNavigate();
   const { state } = useLocation();
   const BASE_URL = import.meta.env.VITE_API_URL;
@@ -62,8 +62,8 @@ const UserAccount = () => {
   // Debug location.state and token
   useEffect(() => {
     const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-    // console.log('UserAccount Location State:', state);
-    // console.log('Auth token:', token || 'No token');
+    console.log('UserAccount Location State:', state);
+    console.log('Auth token:', token || 'No token');
   }, [state]);
 
   // Fetch user dashboard data
@@ -101,13 +101,33 @@ const UserAccount = () => {
         }
 
         const data = await response.json();
-        // console.log('Dashboard API Response:', JSON.stringify(data, null, 2));
+        console.log('Dashboard API Response:', JSON.stringify(data, null, 2));
+
+        // Deduplicate businessesReviewed based on business.id or business.name
+        const businessesReviewed = Array.isArray(data.businesses_reviewed) ? data.businesses_reviewed : [];
+        const uniqueBusinesses = [];
+        const seenIds = new Set();
+        const seenNames = new Set(); // Fallback for deduplication by name
+
+        businessesReviewed.forEach((business) => {
+          const identifier = business.id || business.name;
+          if (business.id && !seenIds.has(business.id)) {
+            seenIds.add(business.id);
+            uniqueBusinesses.push(business);
+          } else if (!business.id && business.name && !seenNames.has(business.name)) {
+            seenNames.add(business.name);
+            uniqueBusinesses.push(business);
+            console.warn(`Business ${business.name} has no id; deduplicated by name`);
+          }
+        });
+
+        console.log('Unique Businesses:', uniqueBusinesses);
 
         setUserStats({
           fullName: data.fullname || "User",
           totalFeedbacks: data.total_feedbacks || 0,
-          totalBusinessesReviewed: data.total_businesses_reviewed || 0,
-          businessesReviewed: Array.isArray(data.businesses_reviewed) ? data.businesses_reviewed : [],
+          totalBusinessesReviewed: uniqueBusinesses.length,
+          businessesReviewed: uniqueBusinesses,
         });
 
         if (Array.isArray(data.recent_feedbacks)) {
@@ -123,7 +143,7 @@ const UserAccount = () => {
           }));
           setRecentFeedback(parsedFeedbacks);
           parsedFeedbacks.forEach((feedback, index) => {
-            // console.log(`Feedback ${index} qrcode_tags:`, feedback.qrcode_tags, 'Type:', typeof feedback.qrcode_tags);
+            console.log(`Feedback ${index} qrcode_tags:`, feedback.qrcode_tags, 'Type:', typeof feedback.qrcode_tags);
           });
         } else {
           console.warn("recent_feedbacks is not an array:", data.recent_feedbacks);
@@ -152,7 +172,7 @@ const UserAccount = () => {
   };
 
   const handleLogout = () => {
-    setIsLogoutModalOpen(true); // Show confirmation modal
+    setIsLogoutModalOpen(true);
   };
 
   const confirmLogout = async () => {
@@ -200,7 +220,7 @@ const UserAccount = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center container mx-auto">
         <div className="text-center max-w-md mx-auto px-4">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
@@ -280,20 +300,22 @@ const UserAccount = () => {
           </div>
         )}
         <ToastContainer />
-        <div className="bg-white flex items-center px-4 py-2 shadow-sm justify-between">
-          <button
-            onClick={handleLogoClick}
-            className="cursor-pointer rounded-full p-2 border border-blue-600 mr-2"
-          >
-            <img src={logo} alt="ScanRevuAI Logo" className="h-8 w-auto rounded-full" />
-          </button>
-          <button
-            onClick={handleLogout}
-            className="cursor-pointer rounded-md p-2 border border-red-600 text-red-600 hover:bg-red-50 transition-colors"
-            disabled={isLoggingOutInternal}
-          >
-            {isLoggingOutInternal ? "Logging out..." : "Logout"}
-          </button>
+        <div className="bg-white shadow-sm">
+          <div className="max-w-4xl mx-auto flex items-center px-4 py-2 justify-between">
+            <button
+              onClick={handleLogoClick}
+              className="cursor-pointer p-2 mr-2"
+            >
+              <img src={logo} alt="ScanRevuAI Logo" className="h-8 w-auto" />
+            </button>
+            <button
+              onClick={handleLogout}
+              className="cursor-pointer rounded-md p-1 border border-red-600 text-red-600 hover:bg-red-200 transition-colors"
+              disabled={isLoggingOutInternal}
+            >
+              {isLoggingOutInternal ? "Logging out..." : "Logout"}
+            </button>
+          </div>
         </div>
 
         <div className="w-full max-w-4xl mx-auto px-4 py-6">
@@ -340,7 +362,7 @@ const UserAccount = () => {
               <div className="space-y-2">
                 {displayedBusinesses.map((business, index) => (
                   <div
-                    key={business.id || `business-${uuidv4()}-${index}`}
+                    key={business.id || `business-${business.name}-${index}`}
                     className="flex items-center justify-between bg-gray-50 rounded-sm px-4 py-3 border-b border-gray-100 last:border-b-0"
                   >
                     <div className="text-sm text-gray-800">
