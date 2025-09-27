@@ -5,16 +5,18 @@ import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import QRCode from "qrcode";
 import { QrCode, Download, Share2, Printer, Eye, Plus, X, Check, Loader2 } from "lucide-react";
-import { HeaderSection } from "../components/headerSection";
+import { HeaderSection } from "../components/HeaderSection";
 import { Tabs } from "../components/Tabs";
 import { TypeCard } from "../components/TypeCard";
-import { QRModal } from "../components/QrModal";
+import { QRModal } from "../components/QRModal";
+// import BusinessHeader from "../components/headerComponents";
 import BusinessHeader from "../components/headerComponents";
-import LoadingState from "../components/LoadingStates";
+import LoadingState from "../components/LoadingState";
 import { PreviewSection } from "../components/Preview";
 import { CreateTab } from "../components/CreateTab";
 import { ManageTab } from "../components/ManageTab";
 import { UsageTips } from "../components/UsageTips";
+import { ShareModal } from "../components/ShareModal";
 
 // Main QRGenerator Component
 export default function QRGenerator() {
@@ -37,6 +39,7 @@ export default function QRGenerator() {
   const [copied, setCopied] = useState(false);
   const [generatedQrData, setGeneratedQrData] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [qrCodeIds, setQrCodeIds] = useState(() => {
     const saved = localStorage.getItem("qrCodeIds");
     return saved ? JSON.parse(saved) : [];
@@ -187,8 +190,6 @@ export default function QRGenerator() {
           date: qr.createdAt?.split("T")[0] || new Date().toISOString().split("T")[0],
           url: `${import.meta.env.VITE_SCAN_URL}/qr/${businessId}/${qr.id}`,
           businessName: response.data.business.business_name || "Unknown Business",
-          categoryName: qr.category?.name || "Unknown Category",
-          categoryId: qr.category?.id || "",
           description: qr.description || "",
           tags: Array.isArray(qr.qrcode_tags) ? qr.qrcode_tags : [],
         }));
@@ -276,7 +277,6 @@ export default function QRGenerator() {
       return;
     }
     try {
-      // Try using the Clipboard API
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(generatedUrl);
         setCopied(true);
@@ -286,10 +286,9 @@ export default function QRGenerator() {
         });
         setTimeout(() => setCopied(false), 1600);
       } else {
-        // Fallback to document.execCommand
         const textarea = document.createElement("textarea");
         textarea.value = generatedUrl;
-        textarea.style.position = "fixed"; // Avoid scrolling to bottom
+        textarea.style.position = "fixed";
         document.body.appendChild(textarea);
         textarea.focus();
         textarea.select();
@@ -355,55 +354,23 @@ export default function QRGenerator() {
       link.click();
     });
   };
+// Updated shareQR function to replace in your main component
+const shareQR = (url, title, color) => {
+  if (!url || !title) {
+    toast.error("No QR code available to share.", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    return;
+  }
 
-  const shareQR = async (url, title) => {
-    if (!url || !title) {
-      toast.error("No QR code available to share.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Share Feedback: ${title}`,
-          text: `Scan this QR code to provide feedback for ${title}`,
-          url,
-        });
-        toast.success("QR code shared successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } catch (error) {
-        try {
-          await navigator.clipboard.writeText(url);
-          toast.success("Share not supported. URL copied to clipboard!", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-        } catch (copyError) {
-          toast.error("Failed to share or copy URL. Please try again.", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-        }
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(url);
-        toast.success("Share not supported. URL copied to clipboard!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } catch (error) {
-        toast.error("Failed to copy URL. Please try again.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      }
-    }
-  };
+  // Set the QR code data for the share modal (similar to viewQR)
+  setGeneratedQrData({ scan_url: url, label: title });
+  
+  // Open the share modal - it will handle all sharing logic internally
+  setIsShareModalOpen(true);
+  setPrimaryColor(color || "#0E5FD8");
+};
 
   const printQR = () => {
     if (!generatedQrData?.scan_url) {
@@ -449,8 +416,8 @@ export default function QRGenerator() {
   const viewQR = (code) => {
     if (!code?.url || !code?.title) {
       toast.error("Invalid QR code data for viewing.", {
-      position: "top-right",
-      autoClose: 3000,
+        position: "top-right",
+        autoClose: 3000,
       });
       return;
     }
@@ -547,7 +514,6 @@ export default function QRGenerator() {
       let payload;
       let qrData;
       if (editingId) {
-        // Payload for updating QR code (excluding productOrServiceId and categoryId)
         payload = {
           label: qrName.trim(),
           type: apiType,
@@ -571,7 +537,6 @@ export default function QRGenerator() {
           autoClose: 3000,
         });
       } else {
-        // Payload for creating QR code (including productOrServiceId and categoryId)
         payload = {
           label: qrName.trim(),
           type: apiType,
@@ -735,6 +700,13 @@ export default function QRGenerator() {
         setShowModal={setShowModal}
         modalCanvasRef={modalCanvasRef}
         generatedQrData={generatedQrData}
+        primaryColor={primaryColor}
+      />
+      <ShareModal
+        isOpen={isShareModalOpen}
+        setIsOpen={setIsShareModalOpen}
+        url={generatedQrData?.scan_url || ""}
+        title={generatedQrData?.label || "QR Code"}
         primaryColor={primaryColor}
       />
     </div>

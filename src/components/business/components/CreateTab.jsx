@@ -58,13 +58,26 @@ export const CreateTab = ({
   const removeTag = (value) => setTags((prev) => prev.filter((t) => t !== value));
 
   const onTagKeyDown = (e) => {
-    // Handle Enter (key code 13) and comma (key code 188 or character ',')
-    if (e.key === "Enter" || e.key === "," || e.keyCode === 13 || e.keyCode === 188) {
+    if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
       const value = tagInput.replace(/,$/, "").trim();
       if (value) {
         addTag(value);
       }
+    }
+  };
+
+  const handleTagBlur = () => {
+    const value = tagInput.replace(/,$/, "").trim();
+    if (value) {
+      addTag(value);
+    }
+  };
+
+  const handleAddTagClick = () => {
+    const value = tagInput.replace(/,$/, "").trim();
+    if (value) {
+      addTag(value);
     }
   };
 
@@ -129,50 +142,63 @@ export const CreateTab = ({
             rows={3}
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
           />
-          <label className="mt-4 block text-[13px] font-medium text-slate-600">Tags customers should review (Press Enter or Comma)</label>
-          <div className="mt-1">
+          <label className="mt-4 block text-[13px] font-medium text-slate-600">
+            Tags customers should review
+          </label>
+          <div className="mt-1 flex flex-col sm:flex-row gap-2">
             <input
               ref={tagInputRef}
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={onTagKeyDown}
+              onBlur={handleTagBlur}
               placeholder="e.g., Food Quality, Cleanliness, Speed, Friendliness"
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+              className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
               disabled={isTagsLoading}
+              inputMode="text"
+              autoCapitalize="words"
             />
-            {isTagsLoading && (
-              <div className="mt-1.5 text-[12px] text-slate-500 flex items-center gap-2">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Loading tags...
-              </div>
-            )}
-            {!isTagsLoading && (
-              <div className="mt-1.5 text-[12px] text-slate-500 flex items-center gap-2">
-                <Plus className="h-3.5 w-3.5" />
-                Type a tag then press Enter or comma.
-              </div>
-            )}
-            {!!tags.length && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {tags.map((t) => (
-                  <span
-                    key={t}
-                    className="group inline-flex items-center gap-1 rounded-full border border-slate-300 bg-slate-50 px-2.5 py-1 text-[12px] text-slate-700"
-                  >
-                    {t}
-                    <button
-                      type="button"
-                      onClick={() => removeTag(t)}
-                      className="rounded-full p-0.5 hover:bg-slate-200"
-                      aria-label={`Remove ${t}`}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
+            <button
+              onClick={handleAddTagClick}
+              className="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 transition"
+              aria-label="Add Tag"
+              disabled={isTagsLoading || !tagInput.trim()}
+            >
+              <Plus className="h-4 w-4" /> Add
+            </button>
           </div>
+          {isTagsLoading && (
+            <div className="mt-1.5 text-[12px] text-slate-500 flex items-center gap-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Loading tags...
+            </div>
+          )}
+          {!isTagsLoading && (
+            <div className="mt-1.5 text-[12px] text-slate-500 flex items-center gap-2">
+              <Plus className="h-3.5 w-3.5" />
+              Type a tag then press Enter, comma, or Add button.
+            </div>
+          )}
+          {!!tags.length && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {tags.map((t) => (
+                <span
+                  key={t}
+                  className="group inline-flex items-center gap-1 rounded-full border border-slate-300 bg-slate-50 px-2.5 py-1 text-[12px] text-slate-700"
+                >
+                  {t}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(t)}
+                    className="rounded-full p-0.5 hover:bg-slate-200"
+                    aria-label={`Remove ${t}`}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </section>
         <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
           <div className="text-sm font-semibold text-slate-700">3. Customization</div>

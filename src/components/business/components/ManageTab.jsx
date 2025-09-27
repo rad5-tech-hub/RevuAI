@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import axios from "axios";
 import QRCode from "qrcode";
-import { MessageCircle, Star, User, Calendar, Award, Settings, QrCode, X, Share2, Download, Printer , Plus,Loader2} from "lucide-react";
+import { MessageCircle, Star, User, Calendar, Award, Settings, QrCode, X, Share2, Download, Printer, Plus, Loader2 } from "lucide-react";
 
 export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, shareQR, filterType, setFilterType, viewQR }) => {
   const navigate = useNavigate();
@@ -313,7 +313,7 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                 </div>
               </div>
               <div className="mt-2 text-sm sm:text-base text-slate-600 truncate">
-                {code.businessName} • {code.categoryName || "General"} • {code.feedback} Feedback • Created {code.date}
+                {code.businessName} • {code.feedback} Feedback • Created {code.date}
               </div>
               <div className="mt-4 flex flex-wrap gap-2 sm:gap-4">
                 <button
@@ -338,7 +338,7 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                   <Settings className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Edit
                 </button>
                 <button
-                  onClick={() => shareQR && shareQR(code.url, code.title)}
+                  onClick={() => shareQR(code.url, code.title, "#0E5FD8")}
                   className="inline-flex items-center gap-1 sm:gap-2 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm hover:bg-slate-50 transition"
                   aria-label={`Share QR code for ${code.title}`}
                 >
@@ -497,7 +497,7 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
         </div>
       )}
       {isQrModalOpen && currentQrCode && (
-        <div className="fixed inset-0 backdrop-blur-sm  flex items-center justify-center z-50" role="dialog" aria-labelledby="qrModalTitle" ref={modalRef} tabIndex={-1}>
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50" role="dialog" aria-labelledby="qrModalTitle" ref={modalRef} tabIndex={-1}>
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full">
             <div className="flex justify-between items-center mb-4">
               <h2 id="qrModalTitle" className="text-lg font-medium text-gray-900">QR Code Preview</h2>
@@ -515,7 +515,7 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
               <div className="mt-1 text-[13px] text-slate-500 text-center w-full truncate">{currentQrCode.url}</div>
               <div className="mt-4 flex gap-3">
                 <button
-                  onClick={() => shareQR(currentQrCode.url, currentQrCode.title)}
+                  onClick={() => shareQR(currentQrCode.url, currentQrCode.title, "#0E5FD8")}
                   className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 transition"
                   aria-label={`Share QR code for ${currentQrCode.title}`}
                 >
