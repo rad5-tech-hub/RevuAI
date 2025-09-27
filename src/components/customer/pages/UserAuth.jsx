@@ -1,4 +1,4 @@
-import { User, Mail, Lock, X, CheckCircle, AlertCircle } from "lucide-react";
+import { User, Mail, Lock, X, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
@@ -10,6 +10,7 @@ const UserAuth = () => {
   const [forgotError, setForgotError] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState("");
   const [success, setSuccess] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // New state for password visibility
   const navigate = useNavigate();
   const location = useLocation();
   const [formData, setFormData] = useState({
@@ -58,7 +59,6 @@ const UserAuth = () => {
               });
               localStorage.setItem("userData", userData);
             }
-            // Navigate based on QR context
             if (hasQrContext) {
               if (businessId && qrcodeId) {
                 navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
@@ -92,6 +92,7 @@ const UserAuth = () => {
       email: "",
       password: "",
     });
+    setShowPassword(false); // Reset password visibility
   };
 
   const handleInputChange = (field, value) => {
@@ -127,7 +128,8 @@ const UserAuth = () => {
     return true;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault(); // Prevent form submission from reloading page
     if (!validateForm()) return;
 
     setLoading(true);
@@ -196,7 +198,6 @@ const UserAuth = () => {
         };
         localStorage.setItem("userData", JSON.stringify(userData));
 
-        // Navigate based on QR context
         setTimeout(() => {
           if (hasQrContext) {
             if (businessId && qrcodeId) {
@@ -209,7 +210,7 @@ const UserAuth = () => {
           } else {
             navigate("/userAccount");
           }
-        }, 1500); // Delay to show success message
+        }, 1500);
       } else {
         setSuccess("Please verify your email to continue");
         setFormData({
@@ -217,6 +218,7 @@ const UserAuth = () => {
           email: "",
           password: "",
         });
+        setShowPassword(false);
       }
     } catch (error) {
       setError(error.message || "An unexpected error occurred");
@@ -225,32 +227,9 @@ const UserAuth = () => {
     }
   };
 
-  const handleSkip = () => {
-    if (hasQrContext) {
-      localStorage.removeItem("userData");
-      if (businessId && qrcodeId) {
-        navigate(`/feedbackForm/${businessId}/${qrcodeId}`);
-      } else {
-        navigate(
-          `/feedbackForm/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`
-        );
-      }
-    } else {
-      navigate("/businessAuth");
-    }
-  };
-
-  const handleBack = () => {
-    if (hasQrContext) {
-      if (businessId && qrcodeId) {
-        navigate(`/qr/${businessId}/${qrcodeId}`);
-      } else {
-        navigate(
-          `/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`
-        );
-      }
-    } else {
-      navigate(-1); // Go back to previous page
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleSubmit();
     }
   };
 
@@ -290,11 +269,17 @@ const UserAuth = () => {
       setTimeout(() => {
         setIsForgotPasswordOpen(false);
         setForgotEmail("");
-      }, 1500); // Delay to show success message
+      }, 1500);
     } catch (error) {
       setForgotError(error.message || "An unexpected error occurred");
     } finally {
       setForgotLoading(false);
+    }
+  };
+
+  const handleForgotKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleForgotPassword();
     }
   };
 
@@ -306,40 +291,52 @@ const UserAuth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 container">
-      {/* Header */}
-      <div className="bg-white flex items-center justify-between px-4 py-4 shadow-sm">
-        <button
-          onClick={handleBack}
-          className="text-black hover:text-blue-700 cursor-pointer hover:bg-blue-100 px-2 py-1 rounded flex items-center text-sm"
-        >
-          <svg
-            className="w-4 h-4 mr-1"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            />
-          </svg>
-          Back
-        </button>
-        {!hasQrContext && (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white shadow-sm">
+        <div className="flex items-center justify-between px-4 py-4 max-w-4xl mx-auto">
           <button
-            onClick={handleSkip}
-            className="text-black hover:text-blue-800 cursor-pointer hover:bg-blue-100 px-2 py-1 rounded text-sm transition-colors"
+            onClick={() => {
+              if (hasQrContext) {
+                if (businessId && qrcodeId) {
+                  navigate(`/qr/${businessId}/${qrcodeId}`);
+                } else {
+                  navigate(
+                    `/qr/${storedQrContext.businessId}/${storedQrContext.qrcodeId}`
+                  );
+                }
+              } else {
+                navigate(-1);
+              }
+            }}
+            className="text-black hover:text-blue-700 cursor-pointer hover:bg-blue-100 px-2 py-1 rounded flex items-center text-sm"
           >
-            Continue as Business
+            <svg
+              className="w-4 h-4 mr-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
+            </svg>
+            Back
           </button>
-        )}
+          {!hasQrContext && (
+            <button
+              onClick={() => navigate("/businessAuth")}
+              className="text-black hover:text-blue-800 cursor-pointer hover:bg-blue-100 px-2 py-1 rounded text-sm transition-colors"
+            >
+              Continue as Business
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="w-full max-w-md mx-auto px-4 py-12">
-        {/* Header Section */}
+      <div className="w-full max-w-3xl mx-auto px-4 py-12">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <User className="w-8 h-8 text-white" />
@@ -352,16 +349,14 @@ const UserAuth = () => {
           </p>
         </div>
 
-        {/* Auth Form Card */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          {/* Tab Navigation */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-6 max-w-lg mx-auto">
           <div className="flex mb-6">
             <button
               onClick={() => handleTabChange("signin")}
               className={`flex-1 py-2 px-4 text-sm font-medium cursor-pointer rounded-l-lg transition-colors ${
                 activeTab === "signin"
-                  ? "bg-blue-100 text-blue-700 border border-blue-200"
-                  : "bg-gray-50 text-gray-600 border border-gray-200 hover:bg-blue-100"
+                  ? "bg-blue-400 text-white border-blue-200"
+                  : "bg-gray-100 text-black border border-gray-200 hover:bg-blue-100"
               }`}
             >
               Sign In
@@ -370,15 +365,14 @@ const UserAuth = () => {
               onClick={() => handleTabChange("signup")}
               className={`flex-1 py-2 px-4 text-sm font-medium cursor-pointer rounded-r-lg transition-colors ${
                 activeTab === "signup"
-                  ? "bg-blue-100 text-blue-700 border border-blue-200"
-                  : "bg-gray-50 text-gray-600 border border-gray-200 hover:bg-blue-100"
+                  ? "bg-blue-400 text-white border border-blue-200"
+                  : "bg-gray-100 text-black border border-gray-200 hover:bg-blue-100"
               }`}
             >
               Sign Up
             </button>
           </div>
 
-          {/* Success Message */}
           {success && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 flex items-center">
               <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
@@ -386,7 +380,6 @@ const UserAuth = () => {
             </div>
           )}
 
-          {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center">
               <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
@@ -394,8 +387,7 @@ const UserAuth = () => {
             </div>
           )}
 
-          {/* Form Fields */}
-          <div className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {activeTab === "signup" && (
               <div className="relative">
                 <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -404,6 +396,7 @@ const UserAuth = () => {
                   placeholder="Full name"
                   value={formData.fullname}
                   onChange={(e) => handleInputChange("fullname", e.target.value)}
+                  onKeyDown={handleKeyDown}
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 />
               </div>
@@ -416,6 +409,7 @@ const UserAuth = () => {
                 placeholder="Email address"
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               />
             </div>
@@ -423,17 +417,31 @@ const UserAuth = () => {
             <div className="relative">
               <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder={activeTab === "signin" ? "Password" : "Create password"}
                 value={formData.password}
                 onChange={(e) => handleInputChange("password", e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                onKeyDown={handleKeyDown}
+                className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4 cursor-pointer" />
+                ) : (
+                  <Eye className="w-4 h-4 cursor-pointer" />
+                )}
+              </button>
             </div>
 
             {activeTab === "signin" && (
               <div className="text-right">
                 <button
+                  type="button"
                   onClick={() => setIsForgotPasswordOpen(true)}
                   className="text-blue-600 text-xs hover:underline cursor-pointer"
                 >
@@ -441,54 +449,52 @@ const UserAuth = () => {
                 </button>
               </div>
             )}
-          </div>
 
-          {/* Submit Button */}
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className={`w-full py-3 rounded-lg text-sm cursor-pointer font-medium transition-colors mt-6 flex items-center justify-center ${
-              activeTab === "signin"
-                ? "bg-blue-500 hover:bg-blue-600 text-white"
-                : "bg-yellow-400 hover:bg-yellow-500 text-gray-800"
-            } ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
-          >
-            {loading ? (
-              <>
-                <svg
-                  className="animate-spin h-4 w-4 mr-2 text-current"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                  ></path>
-                </svg>
-                Processing...
-              </>
-            ) : activeTab === "signin" ? (
-              "Sign In"
-            ) : (
-              "Create Account"
-            )}
-          </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 rounded-lg text-sm cursor-pointer font-medium transition-colors mt-6 flex items-center justify-center ${
+                activeTab === "signin"
+                  ? "bg-blue-500 hover:bg-blue-600 text-white"
+                  : "bg-blue-400 hover:bg-blue-500 text-white"
+              } ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
+            >
+              {loading ? (
+                <>
+                  <svg
+                    className="animate-spin h-4 w-4 mr-2 text-current"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    ></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : activeTab === "signin" ? (
+                "Sign In"
+              ) : (
+                "Create Account"
+              )}
+            </button>
+          </form>
 
-          {/* Additional Info */}
           <div className="mt-4 text-center">
             {activeTab === "signin" ? (
               <p className="text-gray-500 text-xs">
-                Demo: Use any email and password to continue
+                Demo: Use your verified email and password to log in!
               </p>
             ) : (
               <p className="text-gray-500 text-xs">
@@ -498,7 +504,6 @@ const UserAuth = () => {
           </div>
         </div>
 
-        {/* Forgot Password Modal */}
         {isForgotPasswordOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
@@ -537,6 +542,7 @@ const UserAuth = () => {
                     setForgotSuccess("");
                     setForgotEmail(e.target.value);
                   }}
+                  onKeyDown={handleForgotKeyDown}
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 />
               </div>
