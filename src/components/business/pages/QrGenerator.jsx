@@ -476,142 +476,154 @@ const shareQR = (url, title, color) => {
   };
 
   const handleCreateQR = async () => {
-    if (!qrName || qrName.trim() === "") {
-      toast.error("QR Code Name is required.", {
+  if (!qrName || qrName.trim() === "") {
+    toast.error("QR Code Name is required.", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    return;
+  }
+  if (!tags.length || tags.some((tag) => tag.trim() === "")) {
+    toast.error("At least one valid tag is required.", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    return;
+  }
+  if (!categoryId || !isValidUUID(categoryId)) {
+    toast.error("Invalid category. Please contact support.", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    return;
+  }
+  setIsLoading(true);
+  try {
+    const token = localStorage.getItem("authToken");
+    const businessId = localStorage.getItem("authBusinessId");
+    if (!token || !businessId) {
+      toast.error("Please log in to create a QR code.", {
         position: "top-right",
         autoClose: 3000,
       });
+      navigate("/businessAuth");
       return;
     }
-    if (!tags.length || tags.some((tag) => tag.trim() === "")) {
-      toast.error("At least one valid tag is required.", {
+    const apiType = (qrType === "general" || qrType === "product" || qrType === "location") ? "Product" : "Service";
+    const productOrServiceId = `${qrName.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`;
+    let payload;
+    let qrData;
+    if (editingId) {
+      payload = {
+        label: qrName.trim(),
+        type: apiType,
+        qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
+        description: description?.trim() || undefined,
+      };
+      const response = await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/v1/qrcode/edit-qrcode/${editingId}`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      qrData = response.data.data || {};
+      setEditingId(null);
+      toast.success("QR code updated successfully!", {
         position: "top-right",
         autoClose: 3000,
       });
-      return;
-    }
-    if (!categoryId || !isValidUUID(categoryId)) {
-      toast.error("Invalid category. Please contact support.", {
+      
+      // For updates, redirect to manage tab after a short delay
+      setTimeout(() => {
+        setActiveTab("manage");
+      }, 1500);
+    } else {
+      payload = {
+        label: qrName.trim(),
+        type: apiType,
+        productOrServiceId,
+        qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
+        description: description?.trim() || undefined,
+        categoryId,
+      };
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/v1/qrcode/generate`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      qrData = response.data.data || {};
+      setQrCodeIds((prev) => [...new Set([...prev, qrData.id])]);
+      const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
+      qrTypeMap[qrData.id] = qrType;
+      localStorage.setItem("qrTypeMap", JSON.stringify(qrTypeMap));
+      toast.success("QR code generated successfully!", {
         position: "top-right",
         autoClose: 3000,
       });
-      return;
+      
+      // For new QR codes, redirect to manage tab after a short delay
+      setTimeout(() => {
+        setActiveTab("manage");
+      }, 2000);
     }
-    setIsLoading(true);
-    try {
-      const token = localStorage.getItem("authToken");
-      const businessId = localStorage.getItem("authBusinessId");
-      if (!token || !businessId) {
-        toast.error("Please log in to create a QR code.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        navigate("/businessAuth");
-        return;
-      }
-      const apiType = (qrType === "general" || qrType === "product" || qrType === "location") ? "Product" : "Service";
-      const productOrServiceId = `${qrName.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`;
-      let payload;
-      let qrData;
-      if (editingId) {
-        payload = {
-          label: qrName.trim(),
-          type: apiType,
-          qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
-          description: description?.trim() || undefined,
-        };
-        const response = await axios.put(
-          `${import.meta.env.VITE_API_URL}/api/v1/qrcode/edit-qrcode/${editingId}`,
-          payload,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        qrData = response.data.data || {};
-        setEditingId(null);
-        toast.success("QR code updated successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } else {
-        payload = {
-          label: qrName.trim(),
-          type: apiType,
-          productOrServiceId,
-          qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
-          description: description?.trim() || undefined,
-          categoryId,
-        };
-        const response = await axios.post(
-          `${import.meta.env.VITE_API_URL}/api/v1/qrcode/generate`,
-          payload,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        qrData = response.data.data || {};
-        setQrCodeIds((prev) => [...new Set([...prev, qrData.id])]);
-        const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
-        qrTypeMap[qrData.id] = qrType;
-        localStorage.setItem("qrTypeMap", JSON.stringify(qrTypeMap));
-        toast.success("QR code generated successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      }
-      const constructedScanUrl = `${import.meta.env.VITE_SCAN_URL}/qr/${businessId || qrData.businessId}/${qrData.id}`;
-      setGeneratedQrData({
-        ...qrData,
-        scan_url: constructedScanUrl,
+    const constructedScanUrl = `${import.meta.env.VITE_SCAN_URL}/qr/${businessId || qrData.businessId}/${qrData.id}`;
+    setGeneratedQrData({
+      ...qrData,
+      scan_url: constructedScanUrl,
+    });
+    
+    // Reset form fields
+    setQrName("");
+    setDescription("");
+    setTags([]);
+  } catch (error) {
+    console.error("QR Code operation error:", {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
+    if (error.response?.status === 400) {
+      toast.error(error.response?.data?.message || "Invalid request data. Please check the input fields and try again.", {
+        position: "top-right",
+        autoClose: 3000,
       });
-      setQrName("");
-      setDescription("");
-      setTags([]);
-    } catch (error) {
-      console.error("QR Code operation error:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message,
+    } else if (error.response?.status === 401) {
+      toast.error("Session expired or invalid token. Please log in again.", {
+        position: "top-right",
+        autoClose: 3000,
       });
-      if (error.response?.status === 400) {
-        toast.error(error.response?.data?.message || "Invalid request data. Please check the input fields and try again.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } else if (error.response?.status === 401) {
-        toast.error("Session expired or invalid token. Please log in again.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        localStorage.removeItem("authToken");
-        navigate("/businessAuth");
-      } else if (error.response?.status === 404) {
-        toast.error("QR code not found or endpoint unavailable. Please verify the QR code ID or contact support.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } else if (error.response?.status === 409) {
-        toast.error("A QR code with this name or ID already exists. Please choose a different name.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } else {
-        const errorMessage = error.response?.data?.message || "Failed to process QR code. Please try again.";
-        toast.error(errorMessage, {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      }
-    } finally {
-      setIsLoading(false);
+      localStorage.removeItem("authToken");
+      navigate("/businessAuth");
+    } else if (error.response?.status === 404) {
+      toast.error("QR code not found or endpoint unavailable. Please verify the QR code ID or contact support.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } else if (error.response?.status === 409) {
+      toast.error("A QR code with this name or ID already exists. Please choose a different name.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } else {
+      const errorMessage = error.response?.data?.message || "Failed to process QR code. Please try again.";
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 3000,
+      });
     }
-  };
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const filteredQrCodes = filterType === "all" ? qrCodes : qrCodes.filter((code) => code.type === filterType);
 

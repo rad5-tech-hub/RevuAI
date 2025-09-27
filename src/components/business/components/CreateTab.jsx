@@ -200,7 +200,7 @@ export const CreateTab = ({
             </div>
           )}
         </section>
-        <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 mt-3">
           <div className="text-sm font-semibold text-slate-700">3. Customization</div>
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-[auto_1fr] items-center gap-3">
             <div className="text-[13px] font-medium text-slate-600">QR Code Color</div>
@@ -221,17 +221,17 @@ export const CreateTab = ({
               />
             </div>
           </div>
-          <label className="mt-4 flex items-center gap-2 text-[13px]">
-            <input
+          {/* <label className="mt-4 flex items-center gap-2 text-[13px]"> */}
+            {/* <input
               type="checkbox"
               checked={allowImages}
               onChange={(e) => setAllowImages(e.target.checked)}
               className="h-4 w-4 rounded border-slate-300"
-            />
-            <span className="text-slate-700">Allow image uploads in feedback</span>
-          </label>
+            /> */}
+            {/* <span className="text-slate-700">Allow image uploads in feedback</span> */}
+          {/* </label> */}
         </section>
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 mt-4 sm:mt-5">
           <button
             onClick={handleCreateQR}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-4 my-3 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed"
