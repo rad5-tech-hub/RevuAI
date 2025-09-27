@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, } from 'react-router-dom';
-import { QrCode, Settings, Menu, X, Loader2 } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { QrCode, Settings, Menu, X, Loader2, Pencil } from 'lucide-react';
 import axios from 'axios';
 
 const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
   const location = useLocation();
-  // const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLogoDropdownOpen, setIsLogoDropdownOpen] = useState(false);
@@ -58,7 +57,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
     setIsUploading(true);
     setError(null);
     setIsLogoDropdownOpen(false);
-    setIsMobileMenuOpen(false); // Close mobile menu
+    setIsMobileMenuOpen(false);
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
@@ -97,7 +96,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
 
   const handleLogout = async () => {
     setIsLogoutModalOpen(true);
-    setIsMobileMenuOpen(false); // Close mobile menu
+    setIsMobileMenuOpen(false);
   };
 
   const confirmLogout = async () => {
@@ -162,7 +161,6 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
 
   return (
     <>
-      {/* Full-screen loader during logout */}
       {isLoggingOutInternal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
           <div className="bg-white bg-opacity-90 rounded-xl shadow-lg p-8 flex flex-col items-center space-y-4 max-w-sm w-full">
@@ -176,7 +174,6 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
           </div>
         </div>
       )}
-      {/* Logout confirmation modal */}
       {isLogoutModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm pointer-events-auto">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative pointer-events-auto">
@@ -184,7 +181,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
               onClick={() => {
                 setIsLogoutModalOpen(false);
-                setIsMobileMenuOpen(false); // Close mobile menu
+                setIsMobileMenuOpen(false);
               }}
               aria-label="Close modal"
             >
@@ -203,7 +200,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                 <button
                   onClick={() => {
                     setIsLogoutModalOpen(false);
-                    setIsMobileMenuOpen(false); // Close mobile menu
+                    setIsMobileMenuOpen(false);
                   }}
                   className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors duration-300"
                 >
@@ -230,66 +227,84 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
               onClick={() => {
                 setIsModalOpen(false);
-                setIsMobileMenuOpen(false); // Close mobile menu
+                setIsMobileMenuOpen(false);
               }}
               aria-label="Close modal"
             >
               <X className="h-6 w-6" />
             </button>
-            <div className="flex justify-center">
-              {businessLogo ? (
-                <img
-                  src={businessLogo}
-                  alt={`${businessName || 'Business'} Logo`}
-                  className="w-64 h-64 object-contain rounded-lg"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.nextSibling.style.display = 'flex';
-                  }}
-                />
-              ) : (
-                <div className="w-64 h-64 bg-blue-600 rounded-lg flex items-center justify-center text-white text-6xl font-bold">
-                  {businessName ? businessName.charAt(0).toUpperCase() : 'B'}
+            <div className="flex justify-center relative group">
+              <div className="relative">
+                {businessLogo ? (
+                  <img
+                    src={businessLogo}
+                    alt={`${businessName || 'Business'} Logo`}
+                    className="w-64 h-64 object-contain rounded-lg group-hover:brightness-75 transition-all duration-300 cursor-pointer"
+                    onClick={() => fileInputRef.current.click()}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                ) : (
+                  <div className="w-64 h-64 bg-blue-600 rounded-lg flex items-center justify-center text-white text-6xl font-bold group-hover:brightness-75 transition-all duration-300 cursor-pointer"
+                    onClick={() => fileInputRef.current.click()}
+                  >
+                    {businessName ? businessName.charAt(0).toUpperCase() : 'B'}
+                  </div>
+                )}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <Pencil className="w-12 h-12 text-white" />
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
       )}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 ">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
-              <div className="relative">
+              <div className="relative group">
                 <button
                   onClick={toggleLogoDropdown}
-                  className="flex items-center space-x-2 focus:outline-none"
+                  className="flex items-center space-x-2 focus:outline-none relative"
                   aria-label="Logo options"
                   disabled={isLoadingData || isUploading}
                 >
                   {isLoadingData || isUploading ? (
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center ">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center">
                       <LoadingSpinner />
                     </div>
                   ) : (
                     <>
                       {businessLogo ? (
-                        <img
-                          src={businessLogo}
-                          alt={`${businessName || 'Business'} Logo`}
-                          className="w-10 h-10 rounded-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                      ) : null}
-                      <div
-                        className="w-10 h-10 text-white rounded-full flex items-center justify-center"
-                        style={{ display: businessLogo ? 'none' : 'flex' }}
-                      >
-                        <LogoFallback />
-                      </div>
+                        <div className="relative">
+                          <img
+                            src={businessLogo}
+                            alt={`${businessName || 'Business'} Logo`}
+                            className="w-10 h-10 rounded-full object-cover group-hover:brightness-75 transition-all duration-300 cursor-pointer"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <Pencil className="w-6 h-6 text-white" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <div
+                            className="w-10 h-10 text-white bg-blue-500 rounded-full flex items-center justify-center group-hover:brightness-75 transition-all duration-300 cursor-pointer"
+                          >
+                            <LogoFallback />
+                          </div>
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <Pencil className="w-6 h-6 text-white" />
+                          </div>
+                        </div>
+                      )}
                     </>
                   )}
                 </button>
@@ -299,7 +314,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                       onClick={() => {
                         setIsModalOpen(true);
                         setIsLogoDropdownOpen(false);
-                        setIsMobileMenuOpen(false); // Close mobile menu
+                        setIsMobileMenuOpen(false);
                       }}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
@@ -308,7 +323,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                     <button
                       onClick={() => {
                         fileInputRef.current.click();
-                        setIsMobileMenuOpen(false); // Close mobile menu
+                        setIsMobileMenuOpen(false);
                       }}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
@@ -328,7 +343,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                 <span className="text-xl font-bold text-black">
                   {isLoadingData ? 'Loading...' : (businessName || 'Business Name')}
                 </span>
-                <span className="text-xs sm:text-sm font-bold text-gray-500 ">Business Portal</span>
+                <span className="text-xs sm:text-sm font-bold text-gray-500">Business Portal</span>
               </Link>
             </div>
             <nav className="hidden lg:flex items-center space-x-8">
@@ -358,7 +373,7 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => {
                         setIsSettingsOpen(false);
-                        setIsMobileMenuOpen(false); // Close mobile menu
+                        setIsMobileMenuOpen(false);
                       }}
                     >
                       Profile
