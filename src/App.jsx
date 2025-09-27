@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
+import ScrollToTop from "./Scroll.jsx";
 import Homepage from "./Homepage.jsx";
 import LandingPage from "./LandingPage.jsx";
 import DemoBooking from "./DemoBooking.jsx";
@@ -87,6 +88,7 @@ function App() {
     <div>
       <ToastContainer />
       <Router basename="/">
+      <ScrollToTop />
         <Routes>
           {/* Public routes */}
           <Route path="/qr/:businessId/:qrcodeId" element={<LandingPage />} />
