@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { Link } from 'react-router-dom';
-import { Facebook, X, Instagram, Linkedin, Mail, MapPin, Phone } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Mail, MapPin, Phone } from 'lucide-react';
+import { FaXTwitter } from "react-icons/fa6";
 import  { ToastContainer } from 'react-toastify';
 import "./Homepage.css";
 
@@ -451,7 +452,7 @@ const Homepage = () => {
                   <Facebook className="w-6 h-6" />
                 </a> */}
                 <a href="https://x.com/Revu_Ai" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
-                  <X className="w-6 h-6" />
+                  <FaXTwitter className="w-6 h-6" />
                 </a>
                 {/* <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
                   <Instagram className="w-6 h-6" />

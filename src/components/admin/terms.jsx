@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Facebook, X, Instagram, Linkedin, Mail, MapPin, Phone } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Mail, MapPin, Phone } from 'lucide-react';
 import { useState } from 'react';
+import { FaXTwitter } from "react-icons/fa6";
 
 const Terms = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -180,7 +181,7 @@ const Terms = () => {
                   <Facebook className="w-6 h-6" />
                 </a> */}
                 <a href="https://x.com/Revu_Ai" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
-                  <X className="w-6 h-6" />
+                  <FaXTwitter className="w-6 h-6" />
                 </a>
                 {/* <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
                   <Instagram className="w-6 h-6" />
