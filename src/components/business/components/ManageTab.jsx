@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import axios from "axios";
 import QRCode from "qrcode";
-import { MessageCircle, Star, User, Calendar, Award, Settings, QrCode, X, Share2, Download, Printer, Plus, Loader2 } from "lucide-react";
+import { MessageCircle, Star, User, Calendar, Award, Settings, QrCode, X, Share2, Download, Printer, Plus, Loader2, Check, Copy } from "lucide-react";
 
 export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, shareQR, filterType, setFilterType, viewQR }) => {
   const navigate = useNavigate();
@@ -19,6 +19,7 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
   );
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [currentQrCode, setCurrentQrCode] = useState(null);
+  const [copied, setCopied] = useState(false);
   const qrModalCanvasRef = useRef(null);
   const modalRef = useRef(null);
 
@@ -41,8 +42,8 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
   useEffect(() => {
     if (isQrModalOpen && qrModalCanvasRef.current && currentQrCode?.url) {
       QRCode.toCanvas(qrModalCanvasRef.current, currentQrCode.url, {
-        width: 300,
-        height: 300,
+        width: 160,
+        height: 160,
         color: { dark: "#0E5FD8", light: "#ffffff" },
         errorCorrectionLevel: "H",
       }, (error) => {
@@ -61,6 +62,7 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && isQrModalOpen) {
         setIsQrModalOpen(false);
+        setCopied(false);
       }
     };
     document.addEventListener("keydown", handleKeyDown);
@@ -72,6 +74,144 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
       modalRef.current.focus();
     }
   }, [isQrModalOpen]);
+
+  const copyUrl = async () => {
+    const generatedUrl = currentQrCode?.url || "";
+    if (!generatedUrl) {
+      toast.error("No URL available to copy.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(generatedUrl);
+        setCopied(true);
+        toast.success("URL copied to clipboard!", {
+          position: "top-right",
+          autoClose: 1600,
+        });
+        setTimeout(() => setCopied(false), 1600);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = generatedUrl;
+        textarea.style.position = "fixed";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        try {
+          const successful = document.execCommand("copy");
+          if (successful) {
+            setCopied(true);
+            toast.success("URL copied to clipboard!", {
+              position: "top-right",
+              autoClose: 1600,
+            });
+            setTimeout(() => setCopied(false), 1600);
+          } else {
+            throw new Error("document.execCommand failed");
+          }
+        } catch (err) {
+          throw new Error("Fallback copy failed");
+        } finally {
+          document.body.removeChild(textarea);
+        }
+      }
+    } catch (error) {
+      console.error("Copy URL error:", {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+      });
+      toast.error(
+        "Failed to copy URL automatically. Please select and copy the URL manually from the input field.",
+        {
+          position: "top-right",
+          autoClose: 5000,
+        }
+      );
+    }
+  };
+
+  const handleViewQrCode = (code) => {
+    setCurrentQrCode(code);
+    setIsQrModalOpen(true);
+  };
+
+  const downloadPNG = (code) => {
+    if (!code?.url) {
+      toast.error("No QR code available to download.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    QRCode.toDataURL(code.url, {
+      width: 160,
+      height: 160,
+      color: { dark: "#0E5FD8", light: "#ffffff" },
+      errorCorrectionLevel: "H",
+    }, (error, url) => {
+      if (error) {
+        console.error("QRCode download error:", error);
+        toast.error("Failed to download QR code.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `qr_${code.title || "code"}.png`;
+      link.click();
+      toast.success("QR code downloaded as PNG!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    });
+  };
+
+  const printQR = (code) => {
+    if (!code?.url) {
+      toast.error("No QR code available to print.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    QRCode.toDataURL(code.url, {
+      width: 160,
+      height: 160,
+      color: { dark: "#0E5FD8", light: "#ffffff" },
+      errorCorrectionLevel: "H",
+    }, (error, url) => {
+      if (error) {
+        console.error("QRCode print error:", error);
+        toast.error("Failed to print QR code.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        return;
+      }
+      const printWindow = window.open("");
+      if (!printWindow) {
+        toast.error("Failed to open print window. Please check your browser settings.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        return;
+      }
+      printWindow.document.write(`
+        <html>
+          <body>
+            <img src="${url}" onload="window.print();window.close()" alt="${code.title || "QR Code"}" />
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    });
+  };
 
   const handleViewFeedbacks = async (code) => {
     const token = localStorage.getItem("authToken");
@@ -135,85 +275,6 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
         autoClose: 3000,
       });
     }
-  };
-
-  const handleViewQrCode = (code) => {
-    setCurrentQrCode(code);
-    setIsQrModalOpen(true);
-  };
-
-  const downloadPNG = (code) => {
-    if (!code?.url) {
-      toast.error("No QR code available to download.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    QRCode.toDataURL(code.url, {
-      width: 300,
-      height: 300,
-      color: { dark: "#0E5FD8", light: "#ffffff" },
-      errorCorrectionLevel: "H",
-    }, (error, url) => {
-      if (error) {
-        console.error("QRCode download error:", error);
-        toast.error("Failed to download QR code.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        return;
-      }
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `qr_${code.title || "code"}.png`;
-      link.click();
-      toast.success("QR code downloaded as PNG!", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-    });
-  };
-
-  const printQR = (code) => {
-    if (!code?.url) {
-      toast.error("No QR code available to print.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    QRCode.toDataURL(code.url, {
-      width: 300,
-      height: 300,
-      color: { dark: "#0E5FD8", light: "#ffffff" },
-      errorCorrectionLevel: "H",
-    }, (error, url) => {
-      if (error) {
-        console.error("QRCode print error:", error);
-        toast.error("Failed to print QR code.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        return;
-      }
-      const printWindow = window.open("");
-      if (!printWindow) {
-        toast.error("Failed to open print window. Please check your browser settings.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        return;
-      }
-      printWindow.document.write(`
-        <html>
-          <body>
-            <img src="${url}" onload="window.print();window.close()" alt="${code.title || "QR Code"}" />
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    });
   };
 
   const renderStarRating = (rating) => {
@@ -497,43 +558,88 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
         </div>
       )}
       {isQrModalOpen && currentQrCode && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50" role="dialog" aria-labelledby="qrModalTitle" ref={modalRef} tabIndex={-1}>
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full">
+        <div
+          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"
+          role="dialog"
+          aria-labelledby="qrModalTitle"
+          ref={modalRef}
+          tabIndex={-1}
+        >
+          <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 lg:p-5 max-w-lg w-full">
             <div className="flex justify-between items-center mb-4">
-              <h2 id="qrModalTitle" className="text-lg font-medium text-gray-900">QR Code Preview</h2>
+              <h2 id="qrModalTitle" className="text-sm sm:text-base font-semibold text-slate-700">Preview</h2>
               <button
-                onClick={() => setIsQrModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
+                onClick={() => {
+                  setIsQrModalOpen(false);
+                  setCopied(false);
+                }}
+                className="text-gray-500 hover:text-gray-700 p-1 rounded-lg hover:bg-slate-100"
                 aria-label="Close QR code modal"
               >
-                <X size={20} />
+                <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="flex flex-col items-center">
-              <canvas ref={qrModalCanvasRef} className="rounded-2xl border border-slate-200" style={{ width: 300, height: 300 }} />
-              <div className="mt-3 text-sm font-medium text-slate-600">{currentQrCode.title}</div>
-              <div className="mt-1 text-[13px] text-slate-500 text-center w-full truncate">{currentQrCode.url}</div>
-              <div className="mt-4 flex gap-3">
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 sm:p-6 min-h-[200px] sm:min-h-[250px] flex items-center justify-center">
+              <div className="flex flex-col items-center">
+                <canvas
+                  ref={qrModalCanvasRef}
+                  className="rounded-2xl border border-slate-200"
+                  style={{
+                    width: 160,
+                    height: 160,
+                    background: "white",
+                    boxShadow: "0 1px 0 rgba(0,0,0,0.02)",
+                  }}
+                />
+                <div className="mt-2 sm:mt-3 text-[13px] sm:text-sm font-medium text-slate-600">QR Code Preview</div>
+                <div className="mt-1 text-[12px] sm:text-[13px] text-slate-500 text-center max-w-[40%] sm:w-[40%] truncate sm:text-sm overflow-hidden">
+                  {currentQrCode.url ? currentQrCode.url : "No URL available"}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 sm:mt-4">
+              <div className="text-[13px] sm:text-sm font-medium text-slate-700">Generated URL:</div>
+              <div className="mt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+                <input
+                  readOnly
+                  value={currentQrCode.url || ""}
+                  placeholder="No URL generated yet"
+                  className="flex-1 min-w-0 truncate rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-2 text-[12px] sm:text-sm overflow-hidden"
+                />
                 <button
-                  onClick={() => shareQR(currentQrCode.url, currentQrCode.title, "#0E5FD8")}
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 transition"
-                  aria-label={`Share QR code for ${currentQrCode.title}`}
+                  onClick={copyUrl}
+                  disabled={!currentQrCode.url}
+                  className="inline-flex items-center justify-center gap-1 sm:gap-2 rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-2 text-[12px] sm:text-sm hover:bg-slate-50 disabled:opacity-50 transition"
+                  aria-label={copied ? "URL Copied" : "Copy URL"}
                 >
-                  <Share2 className="h-4 w-4" /> Share
+                  {copied ? <Check className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> : <Copy className="h-3.5 sm:h-4 w-3.5 sm:w-4" />}
+                  {copied ? "Copied" : "Copy"}
                 </button>
+              </div>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                 <button
                   onClick={() => downloadPNG(currentQrCode)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 transition"
+                  disabled={!currentQrCode.url}
+                  className="inline-flex items-center justify-center gap-1 sm:gap-2 rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-2 text-[12px] sm:text-sm hover:bg-slate-50 disabled:opacity-50 transition"
                   aria-label={`Download QR code for ${currentQrCode.title}`}
                 >
-                  <Download className="h-4 w-4" /> Download
+                  <Download className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> PNG
                 </button>
                 <button
                   onClick={() => printQR(currentQrCode)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 transition"
+                  disabled={!currentQrCode.url}
+                  className="inline-flex items-center justify-center gap-1 sm:gap-2 rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-2 text-[12px] sm:text-sm hover:bg-slate-50 disabled:opacity-50 transition"
                   aria-label={`Print QR code for ${currentQrCode.title}`}
                 >
-                  <Printer className="h-4 w-4" /> Print
+                  <Printer className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Print
+                </button>
+                <button
+                  onClick={() => shareQR(currentQrCode.url, currentQrCode.title, "#0E5FD8")}
+                  disabled={!currentQrCode.url}
+                  className="inline-flex items-center justify-center gap-1 sm:gap-2 rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-2 text-[12px] sm:text-sm hover:bg-slate-50 disabled:opacity-50 transition"
+                  aria-label={`Share QR code for ${currentQrCode.title}`}
+                >
+                  <Share2 className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Share
                 </button>
               </div>
             </div>

@@ -212,13 +212,13 @@ const FeedbackCard = ({ feedback, onDownloadCSV, onDownloadPDF, onShare }) => {
             </button>
           </div>
         </div>
-        <button
+        {/* <button
           onClick={onShare}
           className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 cursor-pointer"
           aria-label="Share Feedback"
         >
           <Share2 size={18} />
-        </button>
+        </button> */}
       </div>
     </div>
   );

@@ -167,92 +167,76 @@ const FeedbackExplorer = () => {
   };
 
   // Handle share modal actions
-  const handleShareOption = async (option, feedback) => {
-    const shareData = {
-      title: `Feedback for ${feedback.qrcode_url || "Business"}`,
-      text: `Rating: ${feedback.rating} Stars\nComment: ${feedback.comment || "No comment"}`,
-      url: feedback.qrcode_url || "Business Feedback",
-    };
+  // const handleShareOption = async (option, feedback) => {
+  //   const shareData = {
+  //     title: `Feedback for ${feedback.qrcode_url || "Business"}`,
+  //     text: `Rating: ${feedback.rating} Stars\nComment: ${feedback.comment || "No comment"}`,
+  //     url: feedback.qrcode_url || "Business Feedback",
+  //   };
 
-    try {
-      switch (option) {
-        case "email":
-          const mailtoLink = `mailto:?subject=${encodeURIComponent(shareData.title)}&body=${encodeURIComponent(
-            `${shareData.text}\nQR Code: ${shareData.url}`
-          )}`;
-          window.location.href = mailtoLink;
-          toast.success("Opening email client to share feedback!", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-          break;
-        case "twitter":
-          const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-            `${shareData.text}\nQR Code: ${shareData.url}`
-          )}`;
-          window.open(twitterUrl, "_blank");
-          toast.success("Opening Twitter to share feedback!", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-          break;
-        case "linkedin":
-          const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-            shareData.url
-          )}&title=${encodeURIComponent(shareData.title)}&summary=${encodeURIComponent(shareData.text)}`;
-          window.open(linkedinUrl, "_blank");
-          toast.success("Opening LinkedIn to share feedback!", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-          break;
-        case "whatsapp":
-          const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
-            `${shareData.text}\nQR Code: ${shareData.url}`
-          )}`;
-          window.open(whatsappUrl, "_blank");
-          toast.success("Opening WhatsApp to share feedback!", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-          break;
-        case "copy":
-          await navigator.clipboard.writeText(shareData.url);
-          toast.success("QR code URL copied to clipboard!", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-          break;
-        default:
-          throw new Error("Unknown share option");
-      }
-    } catch (error) {
-      console.error("Share error:", error);
-      toast.error(`Failed to share via ${option}.`, {
-        position: "top-right",
-        autoClose: 3000,
-      });
-    }
-    setIsShareModalOpen(false); // Close modal after action
-  };
+  //   try {
+  //     switch (option) {
+  //       case "email":
+  //         const mailtoLink = `mailto:?subject=${encodeURIComponent(shareData.title)}&body=${encodeURIComponent(
+  //           `${shareData.text}\nQR Code: ${shareData.url}`
+  //         )}`;
+  //         window.location.href = mailtoLink;
+  //         toast.success("Opening email client to share feedback!", {
+  //           position: "top-right",
+  //           autoClose: 3000,
+  //         });
+  //         break;
+  //       case "twitter":
+  //         const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+  //           `${shareData.text}\nQR Code: ${shareData.url}`
+  //         )}`;
+  //         window.open(twitterUrl, "_blank");
+  //         toast.success("Opening Twitter to share feedback!", {
+  //           position: "top-right",
+  //           autoClose: 3000,
+  //         });
+  //         break;
+  //       case "linkedin":
+  //         const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+  //           shareData.url
+  //         )}&title=${encodeURIComponent(shareData.title)}&summary=${encodeURIComponent(shareData.text)}`;
+  //         window.open(linkedinUrl, "_blank");
+  //         toast.success("Opening LinkedIn to share feedback!", {
+  //           position: "top-right",
+  //           autoClose: 3000,
+  //         });
+  //         break;
+  //       case "whatsapp":
+  //         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
+  //           `${shareData.text}\nQR Code: ${shareData.url}`
+  //         )}`;
+  //         window.open(whatsappUrl, "_blank");
+  //         toast.success("Opening WhatsApp to share feedback!", {
+  //           position: "top-right",
+  //           autoClose: 3000,
+  //         });
+  //         break;
+  //       case "copy":
+  //         await navigator.clipboard.writeText(shareData.url);
+  //         toast.success("QR code URL copied to clipboard!", {
+  //           position: "top-right",
+  //           autoClose: 3000,
+  //         });
+  //         break;
+  //       default:
+  //         throw new Error("Unknown share option");
+  //     }
+  //   } catch (error) {
+  //     console.error("Share error:", error);
+  //     toast.error(`Failed to share via ${option}.`, {
+  //       position: "top-right",
+  //       autoClose: 3000,
+  //     });
+  //   }
+  //   setIsShareModalOpen(false); // Close modal after action
+  // };
 
-  // Close modal on Escape key
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape" && isShareModalOpen) {
-        setIsShareModalOpen(false);
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isShareModalOpen]);
-
-  // Focus management for modal
-  useEffect(() => {
-    if (isShareModalOpen && modalRef.current) {
-      modalRef.current.focus();
-    }
-  }, [isShareModalOpen]);
+  
 
   // Apply client-side filtering for search, sentiment, and date
   const filteredFeedback = feedback.filter((fb) => {
