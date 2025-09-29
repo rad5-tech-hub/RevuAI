@@ -250,7 +250,7 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
             ? {
                 ...qr,
                 feedbacks: reviews || [],
-                feedbackSummary: { totalReviews, ratingSummary },
+                feedbackSummary: { totalReviews: totalReviews || 0, ratingSummary: ratingSummary || {} },
                 feedbackLoading: false,
                 feedbackError: null,
               }
@@ -270,10 +270,10 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
             : qr
         )
       );
-      toast.error(error.response?.data?.message || "Failed to fetch feedbacks.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      // toast.error(error.response?.data?.message || "Failed to fetch feedbacks.", {
+      //   position: "top-right",
+      //   autoClose: 3000,
+      // });
     }
   };
 
@@ -416,7 +416,7 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                   ) : code.feedbackError ? (
                     <div className="p-6 text-center">
                       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <p className="text-red-600 text-sm font-medium">Error Loading Feedback</p>
+                        {/* <p className="text-red-600 text-sm font-medium">Error Loading Feedback</p> */}
                         <p className="text-red-500 text-xs mt-1">{code.feedbackError}</p>
                       </div>
                     </div>

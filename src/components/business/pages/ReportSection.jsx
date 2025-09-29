@@ -32,7 +32,6 @@ const ReportSection = () => {
   const [metrics, setMetrics] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState("This Week");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // New state for no feedback message
   const [noFeedbackMessage, setNoFeedbackMessage] = useState("");
   const navigate = useNavigate();
   const BASE_URL = import.meta.env.VITE_API_URL;
@@ -43,12 +42,14 @@ const ReportSection = () => {
 
   const fetchData = async () => {
     setIsLoading(true);
-    setNoFeedbackMessage(""); // Reset message
+    setError("");
+    setNoFeedbackMessage("");
     try {
       const token = localStorage.getItem("authToken");
       const businessId = localStorage.getItem("authBusinessId");
-      if (!token || !businessId) throw new Error("No authentication token or business ID found");
-
+      if (!token || !businessId) {
+        throw new Error("No authentication token or business ID found");
+      }
       const [dashboardResponse, analyticsResponse] = await Promise.all([
         axios.get(`${BASE_URL}/api/v1/business/business-dashboard`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -57,17 +58,14 @@ const ReportSection = () => {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
-
       // Set dashboard data
       setMetrics(dashboardResponse.data || null);
       const feedbackData = dashboardResponse.data.recent_feedbacks || [];
       setDynamicFeedbackData(feedbackData);
-
       // Set no feedback message if applicable
       if (feedbackData.length === 0) {
         setNoFeedbackMessage("No feedbacks yet");
       }
-
       // Combine top issues and positive highlights for keywords
       const keywords = [
         ...(analyticsResponse.data.aiAnalysis.topIssues || []).map((issue) => ({
@@ -85,7 +83,7 @@ const ReportSection = () => {
       setRecommendations(analyticsResponse.data.aiAnalysis.recommendations || []);
       setError("");
     } catch (err) {
-      setError("Failed to load data.");
+      setError("Failed to load data. Please try again.");
       console.error("Data fetch error:", err);
     } finally {
       setIsLoading(false);
@@ -95,14 +93,16 @@ const ReportSection = () => {
   const handleGenerateReport = () => {
     if (dynamicFeedbackData.length === 0) {
       setNoFeedbackMessage("No feedbacks yet");
-    } else {
-      fetchData(); // Only fetch data if feedback exists
+      return;
     }
+    fetchData(); // Fetch data only if feedback exists
   };
 
   const handleLogout = async () => {
     const token = localStorage.getItem("authToken");
     if (!token) {
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("authBusinessId");
       navigate("/");
       return;
     }
@@ -138,7 +138,10 @@ const ReportSection = () => {
     : [];
 
   const downloadCSV = (data, filename) => {
-    if (data.length === 0) return;
+    if (data.length === 0) {
+      setNoFeedbackMessage("No feedbacks yet");
+      return;
+    }
     const csv = "Name,Count\n" + data.map((row) => `${row.name},${row.count}`).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -150,6 +153,10 @@ const ReportSection = () => {
   };
 
   const shareContent = async () => {
+    if (dynamicFeedbackData.length === 0) {
+      setNoFeedbackMessage("No feedbacks yet");
+      return;
+    }
     if (navigator.share) {
       try {
         await navigator.share({
@@ -159,14 +166,18 @@ const ReportSection = () => {
         });
       } catch (err) {
         console.error("Share failed:", err);
+        setError("Failed to share content. Please try again.");
       }
     } else {
-      alert("Sharing is not supported in this browser.");
+      setError("Sharing is not supported in this browser.");
     }
   };
 
   const emailReports = () => {
-    if (dynamicFeedbackData.length === 0) return;
+    if (dynamicFeedbackData.length === 0) {
+      setNoFeedbackMessage("No feedbacks yet");
+      return;
+    }
     const subject = "Generated Reports";
     const body = dynamicFeedbackData
       .map(
@@ -182,20 +193,28 @@ const ReportSection = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <BusinessHeader onLogout={handleLogout} isLoggingOut={isLoading} />
+      <BusinessHeader onLogout={handleLogout} isLoading={isLoading} />
       {error && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="bg-red-50 text-red-700 p-4 rounded-lg flex items-center gap-2">
             <AlertTriangle className="w-5 h-5" />
-            <span className="text-sm">{error}</span> {/* Adjusted font size */}
+            <span className="text-sm">{error}</span>
           </div>
         </div>
       )}
       {noFeedbackMessage && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="bg-yellow-50 text-yellow-700 p-4 rounded-lg flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
-            <span className="text-sm">{noFeedbackMessage}</span> {/* Adjusted font size */}
+            <MessageSquare className="w-5 h-5" />
+            <span className="text-sm">{noFeedbackMessage}</span>
+            <Link
+              to="/businessQrpage"
+              className="ml-4 text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+              aria-label="Share QR codes"
+            >
+              <QrCode className="w-4 h-4" />
+              Share QR codes to get feedback
+            </Link>
           </div>
         </div>
       )}
@@ -203,8 +222,8 @@ const ReportSection = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-0 items-center justify-between py-6">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Reports & Insights</h1> {/* Reduced from text-3xl */}
-              <p className="text-sm text-gray-500 mt-1"> {/* Reduced from text-base */}
+              <h1 className="text-2xl font-semibold text-gray-900">Reports & Insights</h1>
+              <p className="text-sm text-gray-500 mt-1">
                 AI-powered analysis and automated reporting for {metrics?.business_name || "your business"}
               </p>
             </div>
@@ -212,7 +231,7 @@ const ReportSection = () => {
               <select
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="bg-white cursor-pointer outline-blue-600 rounded-lg px-3 py-2 pr-8 appearance-none relative border border-gray-200 text-sm" 
+                className="bg-white cursor-pointer outline-blue-600 rounded-lg px-3 py-2 pr-8 appearance-none relative border border-gray-200 text-sm"
                 style={{
                   backgroundImage:
                     'url("data:image/svg+xml;utf8,<svg fill=\'%230055aa\' height=\'20\' viewBox=\'0 0 24 24\' width=\'20\' xmlns=\'http://www.w3.org/2000/svg\'><path d=\'M7 10l5 5 5-5z\'/></svg>")',
@@ -229,8 +248,8 @@ const ReportSection = () => {
                 <option>This Year</option>
               </select>
               <button
-                onClick={handleGenerateReport} // Updated to use new handler
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium flex items-center" 
+                onClick={handleGenerateReport}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium flex items-center"
               >
                 <span className="mr-2">✨</span>
                 Generate Report
@@ -251,8 +270,8 @@ const ReportSection = () => {
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Total Feedback</p> {/* Adjusted font size */}
-                    <p className="text-2xl font-semibold text-gray-900"> {/* Reduced from text-3xl */}
+                    <p className="text-sm text-gray-600">Total Feedback</p>
+                    <p className="text-2xl font-semibold text-gray-900">
                       {metrics?.total_feedbacks ?? "Nothing here yet"}
                     </p>
                   </div>
@@ -262,8 +281,8 @@ const ReportSection = () => {
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Avg Rating</p> {/* Adjusted font size */}
-                    <p className="text-2xl font-semibold text-gray-900"> {/* Reduced from text-3xl */}
+                    <p className="text-sm text-gray-600">Avg Rating</p>
+                    <p className="text-2xl font-semibold text-gray-900">
                       {metrics?.average_rating ? `${metrics.average_rating}/5` : "Nothing here yet"}
                     </p>
                   </div>
@@ -273,8 +292,8 @@ const ReportSection = () => {
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Response Rate</p> {/* Adjusted font size */}
-                    <p className="text-2xl font-semibold text-gray-900">N/A</p> {/* Reduced from text-3xl */}
+                    <p className="text-sm text-gray-600">Response Rate</p>
+                    <p className="text-2xl font-semibold text-gray-900">N/A</p>
                   </div>
                   <TrendingDown className="w-10 h-10 text-green-500" />
                 </div>
@@ -282,8 +301,8 @@ const ReportSection = () => {
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Growth</p> {/* Adjusted font size */}
-                    <p className="text-2xl font-semibold text-gray-900">N/A</p> {/* Reduced from text-3xl */}
+                    <p className="text-sm text-gray-600">Growth</p>
+                    <p className="text-2xl font-semibold text-gray-900">N/A</p>
                   </div>
                   <TrendingUp className="w-10 h-10 text-green-500" />
                 </div>
@@ -295,7 +314,7 @@ const ReportSection = () => {
               <div className="bg-white rounded-lg shadow-sm">
                 <div className="p-6 border-b border-gray-200">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-gray-900">Feedback Trends</h3> {/* Reduced from text-xl */}
+                    <h3 className="text-lg font-medium text-gray-900">Feedback Trends</h3>
                     <div className="flex gap-2">
                       <button
                         className="p-1 hover:bg-gray-100 rounded"
@@ -322,7 +341,7 @@ const ReportSection = () => {
                     </ResponsiveContainer>
                   ) : (
                     <div className="h-80 flex items-center justify-center">
-                      <p className="text-sm text-gray-500">No feedback data available yet</p> {/* Adjusted font size */}
+                      <p className="text-sm text-gray-500">No feedback data available yet</p>
                     </div>
                   )}
                 </div>
@@ -330,23 +349,23 @@ const ReportSection = () => {
               {/* Top Keywords */}
               <div className="bg-white rounded-lg shadow-sm">
                 <div className="p-6 border-b border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-900">Top Keywords</h3> {/* Reduced from text-xl */}
+                  <h3 className="text-lg font-medium text-gray-900">Top Keywords</h3>
                 </div>
                 <div className="p-6">
                   <div className="space-y-4">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-gray-500">Keyword</span> {/* Adjusted font size */}
-                      <span className="text-sm font-medium text-gray-500">Frequency</span> {/* Adjusted font size */}
+                      <span className="text-sm font-medium text-gray-500">Keyword</span>
+                      <span className="text-sm font-medium text-gray-500">Frequency</span>
                     </div>
                     {dynamicKeywordData.length > 0 ? (
                       dynamicKeywordData.map((keyword, index) => (
                         <div key={index} className="flex justify-between items-center">
-                          <span className="text-sm text-gray-900">{keyword.name}</span> {/* Adjusted font size */}
-                          <span className="text-sm text-gray-900">{keyword.frequency}</span> {/* Adjusted font size */}
+                          <span className="text-sm text-gray-900">{keyword.name}</span>
+                          <span className="text-sm text-gray-900">{keyword.frequency}</span>
                         </div>
                       ))
                     ) : (
-                      <div className="text-center text-sm text-gray-500"> {/* Adjusted font size */}
+                      <div className="text-center text-sm text-gray-500">
                         No keywords available yet
                       </div>
                     )}
@@ -358,8 +377,8 @@ const ReportSection = () => {
             <div className="mt-8">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-medium text-gray-900">AI-Powered Insights</h2> {/* Reduced from text-xl */}
-                  <button className="text-sm cursor-pointer text-blue-600 hover:text-blue-700" onClick={openModal}> {/* Adjusted font size */}
+                  <h2 className="text-lg font-medium text-gray-900">AI-Powered Insights</h2>
+                  <button className="text-sm cursor-pointer text-blue-600 hover:text-blue-700" onClick={openModal}>
                     View All
                   </button>
                 </div>
@@ -368,10 +387,10 @@ const ReportSection = () => {
                     <div className="space-y-6">
                       {recommendations.length > 0 && (
                         <div>
-                          <h4 className="text-sm font-medium text-gray-700 mb-2">Recommendations</h4> {/* Adjusted font size */}
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">Recommendations</h4>
                           <ul className="space-y-2">
                             {recommendations.slice(0, 3).map((rec, index) => (
-                              <li key={index} className="text-sm text-gray-600"> {/* Adjusted font size */}
+                              <li key={index} className="text-sm text-gray-600">
                                 - {rec}
                               </li>
                             ))}
@@ -398,36 +417,42 @@ const ReportSection = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
           <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-medium text-gray-900">All AI-Powered Insights</h2> {/* Reduced from text-xl */}
+              <h2 className="text-lg font-medium text-gray-900">All AI-Powered Insights</h2>
               <button onClick={closeModal} className="text-gray-500 hover:text-gray-700">
                 <X className="w-6 h-6" />
               </button>
             </div>
             <div className="space-y-6">
               <ul className="space-y-4">
-                {dynamicKeywordData.map((item, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <Lightbulb
-                      className={`w-6 h-6 ${item.type === "issue" ? "text-red-500" : "text-green-500"}`}
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{item.name}</p> {/* Adjusted font size */}
-                      <p className="text-sm text-gray-500">Mentions: {item.frequency}</p> {/* Adjusted font size */}
-                    </div>
-                  </li>
-                ))}
+                {dynamicKeywordData.length > 0 ? (
+                  dynamicKeywordData.map((item, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <Lightbulb
+                        className={`w-6 h-6 ${item.type === "issue" ? "text-red-500" : "text-green-500"}`}
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{item.name}</p>
+                        <p className="text-sm text-gray-500">Mentions: {item.frequency}</p>
+                      </div>
+                    </li>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">No keywords available yet</p>
+                )}
               </ul>
-              {recommendations.length > 0 && (
+              {recommendations.length > 0 ? (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Recommendations</h4> {/* Adjusted font size */}
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Recommendations</h4>
                   <ul className="space-y-2">
                     {recommendations.map((rec, index) => (
-                      <li key={index} className="text-sm text-gray-600"> {/* Adjusted font size */}
+                      <li key={index} className="text-sm text-gray-600">
                         - {rec}
                       </li>
                     ))}
                   </ul>
                 </div>
+              ) : (
+                <p className="text-sm text-gray-500">No recommendations available yet</p>
               )}
             </div>
           </div>

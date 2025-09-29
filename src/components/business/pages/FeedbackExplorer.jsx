@@ -17,10 +17,10 @@ const FeedbackExplorer = () => {
   const [ratingFilter, setRatingFilter] = useState("All Ratings");
   const [sentimentFilter, setSentimentFilter] = useState("All Sentiments");
   const [dateFilter, setDateFilter] = useState("All Time");
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false); // State for share modal
-  const [currentFeedback, setCurrentFeedback] = useState(null); // Store feedback for sharing
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [currentFeedback, setCurrentFeedback] = useState(null);
   const navigate = useNavigate();
-  const modalRef = useRef(null); // Ref for modal focus management
+  const modalRef = useRef(null);
   const { feedback, loading, error, page, meta, ratingSummary, averageRating, setPage } = useFetchReviews({
     search,
     ratingFilter,
@@ -148,7 +148,6 @@ const FeedbackExplorer = () => {
       text: `Rating: ${feedback.rating} Stars\nComment: ${feedback.comment || "No comment"}`,
       url: feedback.qrcode_url || "Business Feedback",
     };
-
     if (navigator.share) {
       try {
         await navigator.share(shareData);
@@ -158,85 +157,81 @@ const FeedbackExplorer = () => {
         });
       } catch (error) {
         setCurrentFeedback(feedback);
-        setIsShareModalOpen(true); // Open modal if Web Share API fails
+        setIsShareModalOpen(true);
       }
     } else {
       setCurrentFeedback(feedback);
-      setIsShareModalOpen(true); // Open modal if Web Share API is unavailable
+      setIsShareModalOpen(true);
     }
   };
 
-  // Handle share modal actions
-  // const handleShareOption = async (option, feedback) => {
-  //   const shareData = {
-  //     title: `Feedback for ${feedback.qrcode_url || "Business"}`,
-  //     text: `Rating: ${feedback.rating} Stars\nComment: ${feedback.comment || "No comment"}`,
-  //     url: feedback.qrcode_url || "Business Feedback",
-  //   };
-
-  //   try {
-  //     switch (option) {
-  //       case "email":
-  //         const mailtoLink = `mailto:?subject=${encodeURIComponent(shareData.title)}&body=${encodeURIComponent(
-  //           `${shareData.text}\nQR Code: ${shareData.url}`
-  //         )}`;
-  //         window.location.href = mailtoLink;
-  //         toast.success("Opening email client to share feedback!", {
-  //           position: "top-right",
-  //           autoClose: 3000,
-  //         });
-  //         break;
-  //       case "twitter":
-  //         const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-  //           `${shareData.text}\nQR Code: ${shareData.url}`
-  //         )}`;
-  //         window.open(twitterUrl, "_blank");
-  //         toast.success("Opening Twitter to share feedback!", {
-  //           position: "top-right",
-  //           autoClose: 3000,
-  //         });
-  //         break;
-  //       case "linkedin":
-  //         const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-  //           shareData.url
-  //         )}&title=${encodeURIComponent(shareData.title)}&summary=${encodeURIComponent(shareData.text)}`;
-  //         window.open(linkedinUrl, "_blank");
-  //         toast.success("Opening LinkedIn to share feedback!", {
-  //           position: "top-right",
-  //           autoClose: 3000,
-  //         });
-  //         break;
-  //       case "whatsapp":
-  //         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
-  //           `${shareData.text}\nQR Code: ${shareData.url}`
-  //         )}`;
-  //         window.open(whatsappUrl, "_blank");
-  //         toast.success("Opening WhatsApp to share feedback!", {
-  //           position: "top-right",
-  //           autoClose: 3000,
-  //         });
-  //         break;
-  //       case "copy":
-  //         await navigator.clipboard.writeText(shareData.url);
-  //         toast.success("QR code URL copied to clipboard!", {
-  //           position: "top-right",
-  //           autoClose: 3000,
-  //         });
-  //         break;
-  //       default:
-  //         throw new Error("Unknown share option");
-  //     }
-  //   } catch (error) {
-  //     console.error("Share error:", error);
-  //     toast.error(`Failed to share via ${option}.`, {
-  //       position: "top-right",
-  //       autoClose: 3000,
-  //     });
-  //   }
-  //   setIsShareModalOpen(false); // Close modal after action
-  // };
-
-  
+  const handleShareOption = async (option, feedback) => {
+    const shareData = {
+      title: `Feedback for ${feedback.qrcode_url || "Business"}`,
+      text: `Rating: ${feedback.rating} Stars\nComment: ${feedback.comment || "No comment"}`,
+      url: feedback.qrcode_url || "Business Feedback",
+    };
+    try {
+      switch (option) {
+        case "email":
+          const mailtoLink = `mailto:?subject=${encodeURIComponent(shareData.title)}&body=${encodeURIComponent(
+            `${shareData.text}\nQR Code: ${shareData.url}`
+          )}`;
+          window.location.href = mailtoLink;
+          toast.success("Opening email client to share feedback!", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          break;
+        case "twitter":
+          const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+            `${shareData.text}\nQR Code: ${shareData.url}`
+          )}`;
+          window.open(twitterUrl, "_blank");
+          toast.success("Opening Twitter to share feedback!", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          break;
+        case "linkedin":
+          const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+            shareData.url
+          )}&title=${encodeURIComponent(shareData.title)}&summary=${encodeURIComponent(shareData.text)}`;
+          window.open(linkedinUrl, "_blank");
+          toast.success("Opening LinkedIn to share feedback!", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          break;
+        case "whatsapp":
+          const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
+            `${shareData.text}\nQR Code: ${shareData.url}`
+          )}`;
+          window.open(whatsappUrl, "_blank");
+          toast.success("Opening WhatsApp to share feedback!", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          break;
+        case "copy":
+          await navigator.clipboard.writeText(shareData.url);
+          toast.success("QR code URL copied to clipboard!", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          break;
+        default:
+          throw new Error("Unknown share option");
+      }
+    } catch (error) {
+      console.error("Share error:", error);
+      toast.error(`Failed to share via ${option}.`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    }
+    setIsShareModalOpen(false);
+  };
 
   // Apply client-side filtering for search, sentiment, and date
   const filteredFeedback = feedback.filter((fb) => {
@@ -276,10 +271,11 @@ const FeedbackExplorer = () => {
   });
 
   // Treat "No reviews found for this business" as a non-error state
-  const isNoReviews = error === "No reviews found for thisಸ0for this business";
+  const isNoReviews = error === "No reviews found for this business";
   const showError = error && !isNoReviews;
 
-  if (loading && !error) {
+  // Show full page skeleton only during initial load and no data
+  if (loading && feedback.length === 0 && !isNoReviews) {
     return <FullPageSkeleton />;
   }
 
@@ -309,7 +305,7 @@ const FeedbackExplorer = () => {
         ) : (
           <>
             <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              {loading ? (
+              {loading && feedback.length === 0 ? (
                 Array(5).fill().map((_, index) => (
                   <StatsCardSkeleton key={index} />
                 ))
@@ -347,11 +343,11 @@ const FeedbackExplorer = () => {
                 onKeyDown={handleKeyDown}
                 onSubmit={(e) => e.preventDefault()}
               />
-              <FilterDropdown
+              {/* <FilterDropdown
                 value={ratingFilter}
                 onChange={setRatingFilter}
                 options={["All Ratings", "5 Stars", "4 Stars", "3 Stars", "2 Stars", "1 Star"]}
-              />
+              /> */}
               <FilterDropdown
                 value={sentimentFilter}
                 onChange={setSentimentFilter}
@@ -364,11 +360,7 @@ const FeedbackExplorer = () => {
               />
             </div>
             <div className="mt-6 space-y-4 pb-10">
-              {(loading && filteredFeedback.length === 0 && !isNoReviews) ? (
-                Array(3).fill().map((_, index) => (
-                  <FeedbackCardSkeleton key={index} />
-                ))
-              ) : (filteredFeedback.length === 0 || isNoReviews) ? (
+              {filteredFeedback.length === 0 || isNoReviews ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                     <MessageSquare className="w-6 h-6 text-gray-400" />
@@ -428,13 +420,19 @@ const FeedbackExplorer = () => {
         )}
       </main>
       {isShareModalOpen && (
-        <div className="fixed inset-0 backdrop-blur-sm  flex items-center justify-center z-50" role="dialog" aria-labelledby="shareModalTitle" ref={modalRef} tabIndex={-1}>
+        <div
+          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"
+          role="dialog"
+          aria-labelledby="shareModalTitle"
+          ref={modalRef}
+          tabIndex={-1}
+        >
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
             <div className="flex justify-between items-center mb-4">
               <h2 id="shareModalTitle" className="text-lg font-medium text-gray-900">Share Feedback</h2>
               <button
                 onClick={() => setIsShareModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700  cursor-pointer"
+                className="text-gray-500 hover:text-gray-700 cursor-pointer"
                 aria-label="Close share modal"
               >
                 <X size={20} />
