@@ -132,18 +132,18 @@ const Homepage = () => {
       {/* Hero Section */}
       <section className="bg text-white text-center py-16 md:py-24 px-6 h-[90vh] flex items-center">
         <div className="container mx-auto">
-          <h1 className="text-4xl md:text-5xl max-w-5xl mx-auto font-bold tracking-tight mb-4">
+          <h1 className="text-3xl md:text-5xl max-w-5xl mx-auto font-bold tracking-tight mb-4">
             Nigeria’s #1 AI-Powered Feedback Intelligence Platform for Hotels & Restaurants. 
           </h1>
-          <p className="max-w-2xl mx-auto text-lg md:text-xl mb-6 font-bold">
+          <p className="max-w-2xl mx-auto text-md md:text-xl mb-6 font-bold">
             Turn thousands of customer reviews into clear action plans that boost your ratings and increase revenue.
           </p>
-          <p className="max-w-xl mx-auto text-md md:text-lg mb-10 font-bold">
+          <p className="max-w-xl mx-auto text-xs md:text-lg mb-10 font-bold">
             Stop drowning in reviews. Start growing from them!
           </p>
           <Link
             to="/demoBooking"
-            className="max-w-fit px-6 py-3 bg-white text-blue-700 cursor-pointer rounded-lg hover:bg-blue-200 transition-all font-semibold"
+            className="max-w-fit px-4 lg:px-6 py-3 bg-white text-blue-700 cursor-pointer rounded-lg hover:bg-blue-200 transition-all font-semibold"
           >
             Book Your FREE Demo Today
           </Link>
@@ -153,29 +153,29 @@ const Homepage = () => {
       {/* Problem Section */}
       <section id="problem" className="container mx-auto px-6 py-16 md:py-32 flex flex-col items-center justify-center">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-black">The Challenge Nigerian Hospitality Businesses Face</h2>
+          <h2 className="text-2xl lg:text-4xl font-bold text-black">The Challenge Nigerian Hospitality Businesses Face!</h2>
           <p className="max-w-2xl mx-auto mt-4 text-black">
             Are you spending hours reading customer reviews without knowing what to fix?
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.2s' }}>
+          <div className="card animate-fade-in text-center bg-white p-4 lg:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-full lg:w-80" style={{ animationDelay: '0.2s' }}>
             <h3 className="text-xl font-semibold mb-2 text-blue-700">Scattered Feedback</h3>
             <p className="text-black">Feedback across multiple platforms you can't control.</p>
           </div>
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.1s' }}>
+          <div className="card animate-fade-in text-center bg-white p-4 lg:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-full lg:w-80" style={{ animationDelay: '0.1s' }}>
             <h3 className="text-xl font-semibold mb-2 text-blue-700">Delayed Responses</h3>
             <p className="text-black">Finding out about problems too late.</p>
           </div>
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.4s' }}>
+          <div className="card animate-fade-in text-center bg-white p-4 lg:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-full lg:w-80" style={{ animationDelay: '0.4s' }}>
               <h3 className="text-xl font-semibold mb-2 text-blue-700">Reactive Approach</h3>
               <p className="text-black">Only hearing complaints after customers leave unhappy.</p>
             </div>
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.3s' }}>
+          <div className="card animate-fade-in text-center bg-white p-4 lg:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-full lg:w-80" style={{ animationDelay: '0.3s' }}>
               <h3 className="text-xl font-semibold mb-2 text-blue-700">No Direct Channel</h3>
               <p className="text-black">Customers leave without telling you what went wrong.</p>
             </div>
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.2s' }}>
+          <div className="card animate-fade-in text-center bg-white p-4 lg:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-full lg:w-80" style={{ animationDelay: '0.2s' }}>
             <h3 className="text-xl font-semibold mb-2 text-blue-700">No Real-Time Insights</h3>
             <p className="text-black">Missing insights while customers are still in your business.</p>
           </div>
@@ -185,7 +185,7 @@ const Homepage = () => {
       {/* Solution Section */}
       <section id="solution" className="bg-blue-50 py-16 md:py-32 px-6">
         <div className="container mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-black mb-6">How ScanRevuAI Solves This</h2>
+          <h2 className="text-2xl md:text-4xl font-bold text-black mb-6">How ScanRevuAI Solves This</h2>
           <p className="max-w-2xl mx-auto text-black mb-10">
             ScanRevuAI captures customer feedback instantly and tells you exactly what guests loved, the top issues, and specific actions to improve service quality.
           </p>
@@ -233,7 +233,7 @@ const Homepage = () => {
       {/* Features Section */}
       <section id="features" className="container mx-auto px-6 py-16 md:py-32">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-black">What Powers ScanRevuAI</h2>
+          <h2 className="text-2xl md:text-4xl font-bold text-black">What Powers ScanRevuAI</h2>
           <p className="max-w-2xl mx-auto mt-4 text-black">
             Discover the key features that make ScanRevuAI simple, smart, and effective — from QR code feedback collection to analytics that drive improvement.
           </p>
@@ -316,7 +316,7 @@ const Homepage = () => {
       {/* Dashboard Demo Section */}
       <section id="dashboard-demo" className="py-16 md:py-32 bg-white p-6 md:p-10 rounded-lg">
         <div className="text-center mb-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-black">Interactive Dashboard Demo</h2>
+          <h2 className="text-2xl md:text-4xl font-bold text-black">Interactive Dashboard Demo</h2>
           <p className="max-w-3xl mx-auto mt-4 text-black">
             This simulation shows how ScanRevuAI categorizes and quantifies feedback. Use filters to explore trends over time.
           </p>
@@ -351,26 +351,26 @@ const Homepage = () => {
       {/* Benefits Section */}
       <section id="benefits" className="container mx-auto flex flex-col items-center justify-center px-6 py-16 md:py-32">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-black">What You Get</h2>
+          <h2 className="text-2xl md:text-4xl font-bold text-black">What You Get</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 justify-center items-center">
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80">
+          <div className="card animate-fade-in text-center bg-white p-4 lg:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-full lg:w-80">
             <h3 className="text-xl font-semibold mb-2 text-blue-700">Instant Feedback!</h3>
             <p className="text-black">Get insights while customers are still in your business.</p>
           </div>
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg        transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.4s' }}>
+          <div className="card animate-fade-in text-center bg-white p-4 lg:p-6 rounded-lg shadow-md hover:shadow-lg        transition-shadow duration-300 h-40 w-full lg:w-80" style={{ animationDelay: '0.4s' }}>
             <h3 className="text-xl font-semibold mb-2 text-blue-700">Actionable Insights!</h3>
             <p className="text-black">AI guides you on improvements and strengths.</p>
           </div>
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.1s' }}>
+          <div className="card animate-fade-in text-center bg-white p-4 lg:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-full lg:w-80" style={{ animationDelay: '0.1s' }}>
             <h3 className="text-xl font-semibold mb-2 text-blue-700">Real-Time Alerts!</h3>
             <p className="text-black">Know immediately when issues arise.</p>
           </div>
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.3s' }}>
+          <div className="card animate-fade-in text-center bg-white p-4 lg:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-full lg:w-80" style={{ animationDelay: '0.3s' }}>
               <h3 className="text-xl font-semibold mb-2 text-blue-700">Direct Channel!</h3>
               <p className="text-black">Easy feedback collection from customers.</p>
             </div>
-          <div className="card animate-fade-in text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-80" style={{ animationDelay: '0.2s' }}>
+          <div className="card animate-fade-in text-center bg-white p-4 lg:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-40 w-full lg:w-80" style={{ animationDelay: '0.2s' }}>
             <h3 className="text-xl font-semibold mb-2 text-blue-700">Prevent Lost Customers!</h3>
             <p className="text-black">Address problems before bad reviews.</p>
           </div>
@@ -380,7 +380,7 @@ const Homepage = () => {
       {/* Social Proof Section */}
       <section id="social-proof" className="bg-blue-50 py-16 md:py-32 px-6">
         <div className="container mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-black mb-12">Why Nigerian Hospitality Businesses Choose ScanRevuAI</h2>
+          <h2 className="text-2xl md:text-4xl font-bold text-black mb-12">Why Nigerian Hospitality Businesses Choose ScanRevuAI</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <div className="card animate-fade-in bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
               <p className="text-black italic mb-4">"ScanRevuAI gave us a direct line to our customers. We now catch issues immediately and fix them before they become bigger problems."</p>
