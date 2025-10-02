@@ -460,6 +460,5 @@ const ReportSection = () => {
       )}
     </div>
   );
-};
-
+};  
 export default ReportSection;
