@@ -15,6 +15,7 @@
     "@tailwindcss/vite": "^4.1.11",
     "axios": "^1.11.0",
     "chart.js": "^4.5.0",
+    "commitwhiz": "^0.0.4",
     "date-fns": "^4.1.0",
     "jspdf": "^3.0.2",
     "jwt-decode": "^4.0.0",

@@ -13,17 +13,25 @@ const DemoBooking = () => {
     location: '',
     reviewCount: 'Less than 50',
     biggestChallenge: '',
+    otherChallenge: '', // New field for custom input when "Other" is selected
   });
   const [errors, setErrors] = useState({});
   const formRef = useRef(null);
 
-  // Handle input changes
+  // Handle input changes for text inputs and selects
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error for the field when user starts typing
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  // Handle radio button changes for biggestChallenge
+  const handleChallengeChange = (value) => {
+    setFormData((prev) => ({ ...prev, biggestChallenge: value }));
+    if (errors.biggestChallenge) {
+      setErrors((prev) => ({ ...prev, biggestChallenge: '' }));
     }
   };
 
@@ -35,6 +43,10 @@ const DemoBooking = () => {
     if (!formData.phone) tempErrors.phone = 'Phone/WhatsApp is required';
     if (!formData.email) tempErrors.email = 'Email is required';
     if (!formData.location) tempErrors.location = 'Location is required';
+    if (!formData.biggestChallenge) tempErrors.biggestChallenge = 'Please select a challenge';
+    if (formData.biggestChallenge === 'Other' && !formData.otherChallenge.trim()) {
+      tempErrors.otherChallenge = 'Please specify your challenge';
+    }
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
   };
@@ -44,15 +56,18 @@ const DemoBooking = () => {
   // Function to append form data to Google Sheet
   const appendToGoogleSheet = async () => {
     try {
+      const submissionData = {
+        ...formData,
+        biggestChallenge: formData.biggestChallenge === 'Other' ? formData.otherChallenge : formData.biggestChallenge,
+      };
       const response = await fetch(url, {
         method: "POST",
-        mode: "no-cors", // important for Google Apps Script
+        mode: "no-cors",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submissionData),
       });
-
       console.log("Data sent to Google Sheet successfully");
       return true;
     } catch (error) {
@@ -66,8 +81,11 @@ const DemoBooking = () => {
     e.preventDefault();
     if (validateForm()) {
       try {
-        // Submit to Formspree and Google Sheet in parallel
-        await Promise.all([handleSubmit(formData), appendToGoogleSheet()]);
+        const submissionData = {
+          ...formData,
+          biggestChallenge: formData.biggestChallenge === 'Other' ? formData.otherChallenge : formData.biggestChallenge,
+        };
+        await Promise.all([handleSubmit(submissionData), appendToGoogleSheet()]);
       } catch (error) {
         console.log('Submission failed. Please try again.');
       }
@@ -88,20 +106,29 @@ const DemoBooking = () => {
         location: '',
         reviewCount: 'Less than 50',
         biggestChallenge: '',
+        otherChallenge: '',
       });
+      setErrors({});
       if (formRef.current) {
         formRef.current.reset();
       }
 
-      // Redirect to landing page after 3 seconds
       const redirectTimer = setTimeout(() => {
-        window.location.href = '/'; // Change this to your landing page route
+        window.location.href = '/';
       }, 5000);
 
-      // Cleanup timer if component unmounts
       return () => clearTimeout(redirectTimer);
     }
   }, [state.succeeded]);
+
+  const challengeOptions = [
+    'We rarely get direct feedback from customers',
+    'We find out about problems too late (in online reviews)',
+    'Guests leave without telling us what went wrong or what they enjoyed',
+    'We don\'t have time to read through all the feedback',
+    'We get feedback but don\'t know what to fix first',
+    'Other',
+  ];
 
   if (state.succeeded) {
     return (
@@ -309,21 +336,50 @@ const DemoBooking = () => {
               </div>
 
               <div>
-                <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Biggest Review Challenge</label>
-                <textarea
-                  name="biggestChallenge"
-                  id="biggestChallenge"
-                  value={formData.biggestChallenge}
-                  onChange={handleInputChange}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 border-blue-500 focus:border-blue-700 focus:ring-4 focus:ring-blue-100 transition-all duration-300 bg-white/50 backdrop-blur-sm focus:outline-none placeholder-blue-700 resize-none"
-                  rows="3 sm:rows-4"
-                  placeholder="Tell us about your biggest challenge with reviews..."
-                />
+                <label className="block text-sm sm:text-base font-semibold text-blue-900 mb-2 sm:mb-3">What's your biggest challenge with customer feedback? *</label>
+                <div className="space-y-2 sm:space-y-3">
+                  {challengeOptions.map((option) => (
+                    <label key={option} className="flex items-center space-x-2 sm:space-x-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="biggestChallenge"
+                        value={option}
+                        checked={formData.biggestChallenge === option}
+                        onChange={() => handleChallengeChange(option)}
+                        className="w-4 sm:w-5 h-4 sm:h-5 text-blue-600 border-blue-500 focus:ring-blue-500"
+                      />
+                      <span className="text-blue-900 text-sm sm:text-base">{option}</span>
+                    </label>
+                  ))}
+                </div>
                 <ValidationError 
                   prefix="Biggest Challenge" 
                   field="biggestChallenge"
                   errors={state.errors}
                 />
+                {errors.biggestChallenge && (
+                  <p className="text-red-500 text-xs sm:text-sm mt-2 animate-pulse">{errors.biggestChallenge}</p>
+                )}
+                {formData.biggestChallenge === 'Other' && (
+                  <div className="mt-3 sm:mt-4">
+                    <textarea
+                      name="otherChallenge"
+                      id="otherChallenge"
+                      value={formData.otherChallenge}
+                      onChange={handleInputChange}
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 md:py-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 bg-white/50 backdrop-blur-sm
+                        ${errors.otherChallenge 
+                          ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100' 
+                          : 'border-blue-500 focus:border-blue-700 focus:ring-4 focus:ring-blue-100'
+                        } focus:outline-none placeholder-blue-700 resize-none`}
+                      rows="3 sm:rows-4"
+                      placeholder="Please specify your challenge..."
+                    />
+                    {errors.otherChallenge && (
+                      <p className="text-red-500 text-xs sm:text-sm mt-1 sm:mt-2 animate-pulse">{errors.otherChallenge}</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {errors.submit && (
