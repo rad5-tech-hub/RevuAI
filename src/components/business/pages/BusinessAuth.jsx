@@ -776,7 +776,7 @@ const BusinessAuth = () => {
                               )}
                             </button>
                             <p className="text-center text-base text-gray-500 mt-4">
-                              14-day free trial • No credit card required
+                              30-day free trial • No credit card required
                             </p>
                           </>
                         ) : (
