@@ -106,7 +106,7 @@ const Homepage = () => {
               className="px-4 py-2 rounded-md cursor-pointer bg-blue-600 text-white hover:bg-blue-700 transition-colors"
               onClick={handleNavLinkClick}
             >
-              Sign up
+              Sign In
             </Link>
           </div>
           <button
@@ -124,7 +124,7 @@ const Homepage = () => {
             className="block px-4 py-2 rounded-md bg-blue-600 cursor-pointer text-white hover:bg-blue-700 transition-colors"
             onClick={handleNavLinkClick}
           >
-            Sign up
+            Sign In
           </Link>
         </div>
       </header>
