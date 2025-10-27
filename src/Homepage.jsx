@@ -102,11 +102,11 @@ const Homepage = () => {
           <Link className="text-xl lg:text-2xl font-bold text-blue-700">ScanRevuAI</Link>
           <div className="hidden md:flex items-center space-x-2">
             <Link
-              to="/demoBooking"
+              to="/businessAuth"
               className="px-4 py-2 rounded-md cursor-pointer bg-blue-600 text-white hover:bg-blue-700 transition-colors"
               onClick={handleNavLinkClick}
             >
-              Book Demo
+              Sign up
             </Link>
           </div>
           <button
@@ -120,11 +120,11 @@ const Homepage = () => {
         </nav>
         <div className={`md:hidden px-4 pt-2 pb-4 space-y-2 ${isMobileMenuOpen ? 'block' : 'hidden'}`}>
           <Link
-            to="/demoBooking"
+            to="/businessAuth"
             className="block px-4 py-2 rounded-md bg-blue-600 cursor-pointer text-white hover:bg-blue-700 transition-colors"
             onClick={handleNavLinkClick}
           >
-            Book Demo
+            Sign up
           </Link>
         </div>
       </header>
@@ -448,9 +448,9 @@ const Homepage = () => {
             <div>
               <h4 className="text-lg font-semibold mb-4">Follow Us</h4>
               <div className="flex space-x-4">
-                {/* <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
+                <a href="https://www.facebook.com/profile.php?id=61582786711070" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
                   <Facebook className="w-6 h-6" />
-                </a> */}
+                </a>
                 <a href="https://x.com/Revu_Ai" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
                   <FaXTwitter className="w-6 h-6" />
                 </a>
