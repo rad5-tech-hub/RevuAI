@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -461,8 +462,8 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                               key={feedback.id}
                               className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow"
                             >
-                              <div className="flex justify-between items-start mb-3">
-                                <div className="flex items-center gap-3">
+                              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 gap-2 sm:gap-0">
+                                <div className="flex items-center gap-3 flex-1 sm:flex-none">
                                   <div className="flex-shrink-0">
                                     {feedback.user && !feedback.isAnonymous ? (
                                       <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
@@ -476,14 +477,14 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                                       </div>
                                     )}
                                   </div>
-                                  <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <p className="font-semibold text-slate-800">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                      <p className="font-semibold text-slate-800 truncate">
                                         {feedback.user && !feedback.isAnonymous
                                           ? feedback.user.fullname
                                           : "Anonymous Customer"}
                                       </p>
-                                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRatingColor(feedback.rating)}`}>
+                                      <span className={`flex-shrink-0 px-2 py-1 rounded-full text-xs font-medium border ${getRatingColor(feedback.rating)}`}>
                                         {feedback.ratingLabel}
                                       </span>
                                     </div>
@@ -493,13 +494,15 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
                                     </div>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-xs text-slate-500">
-                                  <Calendar className="h-3 w-3" />
-                                  {new Date(feedback.createdAt).toLocaleDateString("en-US", {
-                                    year: "numeric",
-                                    month: "short",
-                                    day: "numeric",
-                                  })}
+                                <div className="flex items-center gap-2 text-xs text-slate-500 sm:ml-auto">
+                                  <Calendar className="h-3 w-3 flex-shrink-0" />
+                                  <span className="truncate">
+                                    {new Date(feedback.createdAt).toLocaleDateString("en-US", {
+                                      year: "numeric",
+                                      month: "short",
+                                      day: "numeric",
+                                    })}
+                                  </span>
                                 </div>
                               </div>
                               <div className="mb-3">
