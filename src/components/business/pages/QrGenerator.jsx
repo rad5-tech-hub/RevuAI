@@ -951,7 +951,7 @@ const handleCreateQR = async () => {
                     setEndRange={setEndRange}
                   />
                 </div>
-                <div className="flex-1 min-w-0 space-y-4">
+                <div className="flex-1 space-y-4">
                   <PreviewSection
                     generatedQrData={generatedQrData}
                     qrRef={qrRef}

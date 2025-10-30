@@ -6,6 +6,39 @@ import axios from "axios";
 import QRCode from "qrcode";
 import { MessageCircle, Star, User, Calendar, Award, Settings, QrCode, X, Share2, Download, Printer, Plus, Loader2, Check, Copy } from "lucide-react";
 
+const TEMPLATES = {
+  room: {
+    title: "Room",
+    description:
+      "We’d love to know how your stay has been so far.\nPlease share your feedback on your overall comfort and experience — it helps us make your next visit even better.",
+  },
+  restaurant: {
+    title: "Restaurant",
+    description:
+      "Dining with us at [Hotel Name]?\nTell us how your meal and dining experience went.\nYour honest feedback helps us make every bite better!",
+  },
+  bar: {
+    title: "Bar",
+    description:
+      "Hi there!\nWe'd love your thoughts on our drinks and bar service.\nScan to share your quick feedback and help us improve.",
+  },
+  lounge: {
+    title: "Lounge",
+    description:
+      "Relaxing at [Hotel Name] Lounge?\nWe'd love to hear about your ambience and service experience.\nTell us what you enjoyed or what could be better.",
+  },
+  reception: {
+    title: "Reception",
+    description:
+      "Welcome to [Hotel Name]!\nPlease rate your check-in and front desk experience — your feedback helps us keep improving.",
+  },
+  general: {
+    title: "General",
+    description:
+      "We'd love to know about your experience.\nPlease share your feedback — it helps us make your next visit even better.",
+  },
+};
+
 export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, shareQR, filterType, setFilterType, viewQR }) => {
   const navigate = useNavigate();
   const [qrCodesWithFeedback, setQrCodesWithFeedback] = useState(
@@ -43,8 +76,8 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
   useEffect(() => {
     if (isQrModalOpen && qrModalCanvasRef.current && currentQrCode?.url) {
       QRCode.toCanvas(qrModalCanvasRef.current, currentQrCode.url, {
-        width: 160,
-        height: 160,
+        width: 250,
+        height: 250,
         color: { dark: "#0E5FD8", light: "#ffffff" },
         errorCorrectionLevel: "H",
       }, (error) => {
@@ -562,87 +595,159 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
       )}
       {isQrModalOpen && currentQrCode && (
         <div
-          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"
+          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           role="dialog"
           aria-labelledby="qrModalTitle"
           ref={modalRef}
           tabIndex={-1}
         >
-          <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 lg:p-5 max-w-lg w-full">
+          <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 lg:p-5 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 id="qrModalTitle" className="text-sm sm:text-base font-semibold text-slate-700">Preview</h2>
+              <h2 id="qrModalTitle" className="text-sm sm:text-base font-semibold text-slate-700">
+                QR Code Preview
+              </h2>
               <button
                 onClick={() => {
                   setIsQrModalOpen(false);
                   setCopied(false);
                 }}
-                className="text-gray-500 hover:text-gray-700 p-1 rounded-lg hover:bg-slate-100"
+                className="text-gray-500 hover:text-gray-700 p-1 rounded-lg hover:bg-slate-100 transition"
                 aria-label="Close QR code modal"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 sm:p-6 min-h-[200px] sm:min-h-[250px] flex items-center justify-center">
-              <div className="flex flex-col items-center">
-                <canvas
-                  ref={qrModalCanvasRef}
-                  className="rounded-2xl border border-slate-200"
+
+            {/* ==== RESPONSIVE A5 CARD ==== */}
+            <div className="overflow-x-auto">
+              <div
+                className="relative mx-auto border border-gray-300 bg-white text-black overflow-hidden shadow-mdw-[min(100%,148mm)] max-w-full h-[calc(min(100vw,148mm)*1.414)] p-[clamp(8px,2.5vw,12mm)] box-border font-sans overflow-y-auto"
+              >
+                {/* Dotted Background */}
+                <div
+                  className="absolute inset-0 opacity-10 pointer-events-none"
                   style={{
-                    width: 160,
-                    height: 160,
-                    background: "white",
-                    boxShadow: "0 1px 0 rgba(0,0,0,0.02)",
+                    backgroundImage: "radial-gradient(circle, #000 1px, transparent 1px)",
+                    backgroundSize: "18px 18px",
                   }}
                 />
-                <div className="mt-2 sm:mt-3 text-[13px] sm:text-sm font-medium text-slate-600">QR Code Preview</div>
-                <div className="mt-1 text-[12px] sm:text-[13px] text-slate-500 text-center max-w-[40%] sm:w-[40%] truncate sm:text-sm overflow-hidden">
-                  {currentQrCode.url ? currentQrCode.url : "No URL available"}
+
+                {/* Decorative X */}
+                <div className="absolute top-1/2 right-[10mm] flex flex-col gap-1 opacity-10 -translate-y-1/2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="text-2xl font-bold">×</div>
+                  ))}
                 </div>
+
+                {/* Main Content */}
+                <div className="relative z-10 flex flex-col items-center justify-between h-full text-center md:px-4">
+                  {/* Business Name */}
+                  <h1 className="text-3xl font-bold text-black tracking-wide">
+                    {currentQrCode.businessName || "Your Business"}
+                  </h1>
+
+                  {/* Dynamic Welcome + Description */}
+                  {(() => {
+                    const template = TEMPLATES[currentQrCode.type] || TEMPLATES.general;
+                    const description = template.description.replace(
+                      /\[Hotel Name\]/g,
+                      currentQrCode.businessName || "Your Business"
+                    );
+                    return (
+                      <p className="text-sm leading-relaxed whitespace-pre-line max-w-[75%] mt-5 md:mt-0 ">
+                       <span className="font-bold text-base">Welcome to {currentQrCode.businessName || "Your Business"}!{"\n"}</span>
+                        {description}
+                      </p>
+                    );
+                  })()}
+
+                  {/* QR Code - Responsive */}
+                  <div
+                    className="flex items-center justify-center rounded-lg bg-white"
+                  >
+                    <canvas
+                      ref={qrModalCanvasRef}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+
+                  {/* How to Use */}
+                  <div className="w-full border-t border-gray-300 pt-4 mx-auto max-w-[75%]" >
+                    <h3 className="text-[clamp(1rem,4vw,1.125rem)] font-bold mb-3">How to Use</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 md:gap-3 text-[clamp(0.75rem,2.8vw,0.875rem)]">
+                      <div className="space-y-1 text-left">
+                        <p><span className="font-bold">1.</span> Open your camera or Google Lens</p>
+                        <p><span className="font-bold">2.</span> Scan the code</p>
+                        <p><span className="font-bold">3.</span> Give your feedback</p>
+                      </div>
+                      <div className="space-y-1 text-left">
+                        <p><span className="font-bold">4.</span> Sign up to get a reply</p>
+                        <p><span className="font-bold">5.</span> And you’re done!</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="mt-4 mb-5 md:mb-0 pt-3 border-t border-gray-300 text-[clamp(0.65rem,2.5vw,0.75rem)] text-gray-600">
+                    Powered by <span className="font-semibold text-black">ScanRevuAI.com</span>
+                  </div>
+                </div>
+
+                {/* Corner Dots */}
+                {["top-6 left-6", "top-6 right-6", "bottom-6 left-6", "bottom-6 right-6"].map((pos) => (
+                  <div key={pos} className={`absolute ${pos} flex gap-1`}>
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="w-[clamp(0.35rem,1vw,0.375rem)] h-[clamp(0.35rem,1vw,0.375rem)] rounded-full bg-gray-400 opacity-50"
+                      />
+                    ))}
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="mt-3 sm:mt-4">
-              <div className="text-[13px] sm:text-sm font-medium text-slate-700">Generated URL:</div>
-              <div className="mt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+
+            {/* URL & Actions */}
+            <div className="mt-5 space-y-3">
+              <div className="text-xs font-medium text-black mb-1">Generated URL:</div>
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   readOnly
                   value={currentQrCode.url || ""}
                   placeholder="No URL generated yet"
-                  className="flex-1 min-w-0 truncate rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-2 text-[12px] sm:text-sm overflow-hidden"
+                  className="flex-1 rounded border border-gray-400 bg-gray-50 px-3 py-2 text-xs text-black"
                 />
                 <button
                   onClick={copyUrl}
                   disabled={!currentQrCode.url}
-                  className="inline-flex items-center justify-center gap-1 sm:gap-2 rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-2 text-[12px] sm:text-sm hover:bg-slate-50 disabled:opacity-50 transition"
-                  aria-label={copied ? "URL Copied" : "Copy URL"}
+                  className="flex items-center justify-center gap-1.5 border border-gray-400 px-3 py-2 rounded text-xs font-medium text-black hover:bg-gray-50 disabled:opacity-50 transition"
                 >
-                  {copied ? <Check className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> : <Copy className="h-3.5 sm:h-4 w-3.5 sm:w-4" />}
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   {copied ? "Copied" : "Copy"}
                 </button>
               </div>
-              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => downloadPNG(currentQrCode)}
                   disabled={!currentQrCode.url}
-                  className="inline-flex items-center justify-center gap-1 sm:gap-2 rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-2 text-[12px] sm:text-sm hover:bg-slate-50 disabled:opacity-50 transition"
-                  aria-label={`Download QR code for ${currentQrCode.title}`}
+                  className="flex items-center justify-center gap-1.5 border border-gray-400 px-2 py-2 rounded text-xs font-medium text-black hover:bg-gray-50 disabled:opacity-50 transition"
                 >
-                  <Download className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> PNG
+                  <Download className="w-4 h-4" /> PNG
                 </button>
                 <button
                   onClick={() => printQR(currentQrCode)}
                   disabled={!currentQrCode.url}
-                  className="inline-flex items-center justify-center gap-1 sm:gap-2 rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-2 text-[12px] sm:text-sm hover:bg-slate-50 disabled:opacity-50 transition"
-                  aria-label={`Print QR code for ${currentQrCode.title}`}
+                  className="flex items-center justify-center gap-1.5 border border-gray-400 px-2 py-2 rounded text-xs font-medium text-black hover:bg-gray-50 disabled:opacity-50 transition"
                 >
-                  <Printer className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Print
+                  <Printer className="w-4 h-4" /> Print
                 </button>
                 <button
                   onClick={() => shareQR(currentQrCode.url, currentQrCode.title, "#0E5FD8")}
                   disabled={!currentQrCode.url}
-                  className="inline-flex items-center justify-center gap-1 sm:gap-2 rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-2 text-[12px] sm:text-sm hover:bg-slate-50 disabled:opacity-50 transition"
-                  aria-label={`Share QR code for ${currentQrCode.title}`}
+                  className="flex items-center justify-center gap-1.5 border border-gray-400 px-2 py-2 rounded text-xs font-medium text-black hover:bg-gray-50 disabled:opacity-50 transition"
                 >
-                  <Share2 className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Share
+                  <Share2 className="w-4 h-4" /> Share
                 </button>
               </div>
             </div>
