@@ -30,6 +30,9 @@ export default function QRGenerator() {
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState([]);
   const [categoryId, setCategoryId] = useState("");
+  const [businessCategory, setBusinessCategory] = useState("");
+  const [startRange, setStartRange] = useState("");
+  const [endRange, setEndRange] = useState("");
   const [isTagsLoading, setIsTagsLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCategoryLoading, setIsCategoryLoading] = useState(true);
@@ -50,9 +53,71 @@ export default function QRGenerator() {
     return uuidRegex.test(str);
   };
 
+  const hasHotelRoomKeywords = (label) => {
+    if (!label || typeof label !== 'string') return false;
+    const keywords = ["room", "suite", "bed", "cabin", "villa", "apartment", "unit"];
+    const lowerLabel = label.toLowerCase();
+    return keywords.some((keyword) => lowerLabel.includes(keyword));
+  };
+
   useEffect(() => {
     localStorage.setItem("qrCodeIds", JSON.stringify(qrCodeIds));
   }, [qrCodeIds]);
+
+  // Fetch business profile to get category
+ // Fetch business profile to get category
+useEffect(() => {
+  const fetchBusinessProfile = async () => {
+    const token = localStorage.getItem("authToken");
+    const businessId = localStorage.getItem("authBusinessId");
+    
+    // console.log("=== FETCHING BUSINESS PROFILE ===");
+    // console.log("Token exists:", !!token);
+    // console.log("Business ID:", businessId);
+    
+    // if (!token || !businessId) {
+    //   console.log("Missing token or businessId, skipping profile fetch");
+    //   return;
+    // }
+    
+    try {
+      // console.log("Making request to:", `${import.meta.env.VITE_API_URL}/api/v1/business/profile`);
+      
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/business/profile`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      
+      // console.log("Full API Response:", response.data);
+      // console.log("Profile object:", response.data.profile);
+      // console.log("Category value:", response.data.profile?.category);
+      
+      const category = response.data.profile?.category || "";
+      // console.log("Setting category to:", category);
+      setBusinessCategory(category);
+      
+      // Verify it was set
+      setTimeout(() => {
+        // console.log("Category after setState:", category);
+      }, 100);
+      
+    } catch (err) {
+      // // console.error("=== BUSINESS PROFILE FETCH ERROR ===");
+      // console.error("Error:", err);
+      // console.error("Response Status:", err.response?.status);
+      // console.error("Response Data:", err.response?.data);
+      // console.error("Error Message:", err.message);
+      
+      toast.error("Failed to load business category. Room range feature may not work.", {
+        position: "top-right",
+        autoClose: 5000,
+      });
+    }
+  };
+  fetchBusinessProfile();
+}, []);
 
   useEffect(() => {
     const fetchBusinessCategory = async () => {
@@ -373,11 +438,9 @@ export default function QRGenerator() {
         });
       } catch (error) {
         console.error("Web Share API error:", error);
-        // Fallback to clipboard copy
         await copyUrl();
       }
     } else {
-      // Fallback for browsers without Web Share API (e.g., Firefox)
       try {
         await copyUrl();
         toast.info(
@@ -476,6 +539,8 @@ export default function QRGenerator() {
       setQrName(qrData.label || "");
       setDescription(qrData.description || "");
       setTags(Array.isArray(qrData.qrcode_tags) ? qrData.qrcode_tags : []);
+      setStartRange(qrData.room_start || "");
+      setEndRange(qrData.room_end || "");
       setEditingId(code.id);
       const constructedScanUrl = `${import.meta.env.VITE_SCAN_URL}/qr/${businessId}/${code.id}`;
       setGeneratedQrData({
@@ -502,150 +567,332 @@ export default function QRGenerator() {
       setIsLoading(false);
     }
   };
+const handleCreateQR = async () => {
+  if (!qrName || qrName.trim() === "") {
+    toast.error("QR Code Name is required.", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    return;
+  }
+  if (!tags.length || tags.some((tag) => tag.trim() === "")) {
+    toast.error("At least one valid tag is required.", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    return;
+  }
+  if (!categoryId || !isValidUUID(categoryId)) {
+    toast.error("Invalid category. Please contact support.", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    return;
+  }
 
-  const handleCreateQR = async () => {
-    if (!qrName || qrName.trim() === "") {
-      toast.error("QR Code Name is required.", {
+  const isHotel = businessCategory && (
+    businessCategory.toLowerCase() === "hotel" || 
+    businessCategory.toLowerCase() === "hotels"
+  );
+  const hasRoomKeywords = hasHotelRoomKeywords(qrName);
+  const shouldIncludeRoomRange = isHotel && hasRoomKeywords;
+
+  // Validate room range if provided
+  if (shouldIncludeRoomRange && (startRange.trim() || endRange.trim())) {
+    const start = parseInt(startRange.trim());
+    const end = parseInt(endRange.trim());
+    
+    if (!startRange.trim() || !endRange.trim()) {
+      toast.error("Please provide both start and end room numbers.", {
         position: "top-right",
         autoClose: 3000,
       });
       return;
     }
-    if (!tags.length || tags.some((tag) => tag.trim() === "")) {
-      toast.error("At least one valid tag is required.", {
+    
+    if (isNaN(start) || isNaN(end)) {
+      toast.error("Room numbers must be valid numbers.", {
         position: "top-right",
         autoClose: 3000,
       });
       return;
     }
-    if (!categoryId || !isValidUUID(categoryId)) {
-      toast.error("Invalid category. Please contact support.", {
+    
+    if (start > end) {
+      toast.error("Start room number must be less than or equal to end room number.", {
         position: "top-right",
         autoClose: 3000,
       });
       return;
     }
-    setIsLoading(true);
-    try {
-      const token = localStorage.getItem("authToken");
-      const businessId = localStorage.getItem("authBusinessId");
-      if (!token || !businessId) {
-        toast.error("Please log in to create a QR code.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        navigate("/businessAuth");
-        return;
+    
+    const totalRooms = end - start + 1;
+    if (totalRooms > 100) {
+      toast.error("Maximum 100 rooms can be generated at once. Please reduce the range.", {
+        position: "top-right",
+        autoClose: 5000,
+      });
+      return;
+    }
+  }
+
+  setIsLoading(true);
+  
+  try {
+    const token = localStorage.getItem("authToken");
+    const businessId = localStorage.getItem("authBusinessId");
+    if (!token || !businessId) {
+      toast.error("Please log in to create a QR code.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      navigate("/businessAuth");
+      return;
+    }
+
+    const apiType = (qrType === "general" || qrType === "product" || qrType === "location") ? "Product" : "Service";
+
+    // Check if this is a bulk room generation
+    const isBulkGeneration = shouldIncludeRoomRange && startRange.trim() && endRange.trim();
+
+    if (editingId) {
+      // EDITING MODE - Single QR code update
+      const payload = {
+        label: qrName.trim(),
+        type: apiType,
+        qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
+        description: description?.trim() || undefined,
+      };
+      
+      if (shouldIncludeRoomRange) {
+        if (startRange.trim()) payload.room_start = startRange.trim();
+        if (endRange.trim()) payload.room_end = endRange.trim();
       }
-      const apiType = (qrType === "general" || qrType === "product" || qrType === "location") ? "Product" : "Service";
-      const productOrServiceId = `${qrName.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`;
-      let payload;
-      let qrData;
-      if (editingId) {
-        payload = {
-          label: qrName.trim(),
-          type: apiType,
-          qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
-          description: description?.trim() || undefined,
-        };
-        const response = await axios.put(
-          `${import.meta.env.VITE_API_URL}/api/v1/qrcode/edit-qrcode/${editingId}`,
-          payload,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        qrData = response.data.data || {};
-        setEditingId(null);
-        toast.success("QR code updated successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        setTimeout(() => {
-          setActiveTab("manage");
-        }, 1500);
-      } else {
-        payload = {
-          label: qrName.trim(),
-          type: apiType,
-          productOrServiceId,
-          qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
-          description: description?.trim() || undefined,
-          categoryId,
-        };
-        const response = await axios.post(
-          `${import.meta.env.VITE_API_URL}/api/v1/qrcode/generate`,
-          payload,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        qrData = response.data.data || {};
-        setQrCodeIds((prev) => [...new Set([...prev, qrData.id])]);
-        const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
-        qrTypeMap[qrData.id] = qrType;
-        localStorage.setItem("qrTypeMap", JSON.stringify(qrTypeMap));
-        toast.success("QR code generated successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        setTimeout(() => {
-          setActiveTab("manage");
-        }, 2000);
-      }
+      
+      const response = await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/v1/qrcode/edit-qrcode/${editingId}`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      
+      const qrData = response.data.data || {};
+      setEditingId(null);
+      toast.success("QR code updated successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      
       const constructedScanUrl = `${import.meta.env.VITE_SCAN_URL}/qr/${businessId || qrData.businessId}/${qrData.id}`;
       setGeneratedQrData({
         ...qrData,
         scan_url: constructedScanUrl,
       });
-      setQrName("");
-      setDescription("");
-      setTags([]);
-    } catch (error) {
-      console.error("QR Code operation error:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message,
+      
+      setTimeout(() => {
+        setActiveTab("manage");
+      }, 1500);
+      
+    } else if (isBulkGeneration) {
+      // BULK GENERATION MODE - Multiple QR codes for room range
+      const start = parseInt(startRange.trim());
+      const end = parseInt(endRange.trim());
+      const totalRooms = end - start + 1;
+      
+      toast.info(`Generating ${totalRooms} QR codes for rooms ${start} to ${end}...`, {
+        position: "top-right",
+        autoClose: 3000,
       });
-      if (error.response?.status === 400) {
-        toast.error(error.response?.data?.message || "Invalid request data. Please check the input fields and try again.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } else if (error.response?.status === 401) {
-        toast.error("Session expired or invalid token. Please log in again.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        localStorage.removeItem("authToken");
-        navigate("/businessAuth");
-      } else if (error.response?.status === 404) {
-        toast.error("QR code not found or endpoint unavailable. Please verify the QR code ID or contact support.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } else if (error.response?.status === 409) {
-        toast.error("A QR code with this name or ID already exists. Please choose a different name.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } else {
-        const errorMessage = error.response?.data?.message || "Failed to process QR code. Please try again.";
-        toast.error(errorMessage, {
-          position: "top-right",
-          autoClose: 3000,
-        });
+      
+      const generatedQrCodes = [];
+      const failedRooms = [];
+      
+      // Generate QR codes for each room number
+      for (let roomNumber = start; roomNumber <= end; roomNumber++) {
+        try {
+          const roomLabel = qrName.replace(/\d+/g, roomNumber.toString()) || `Room ${roomNumber}`;
+          const productOrServiceId = `${roomLabel.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}-${roomNumber}`;
+          
+          const payload = {
+            label: roomLabel,
+            type: apiType,
+            productOrServiceId,
+            qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
+            description: description?.trim() ? `${description.trim()} - Room ${roomNumber}` : `Room ${roomNumber}`,
+            categoryId,
+            room_start: roomNumber.toString(),
+            room_end: roomNumber.toString(),
+          };
+          
+          const response = await axios.post(
+            `${import.meta.env.VITE_API_URL}/api/v1/qrcode/generate`,
+            payload,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          
+          const qrData = response.data.data || {};
+          generatedQrCodes.push({
+            ...qrData,
+            roomNumber,
+            scan_url: `${import.meta.env.VITE_SCAN_URL}/qr/${businessId}/${qrData.id}`,
+          });
+          
+          // Update qrCodeIds and qrTypeMap
+          setQrCodeIds((prev) => [...new Set([...prev, qrData.id])]);
+          const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
+          qrTypeMap[qrData.id] = qrType;
+          localStorage.setItem("qrTypeMap", JSON.stringify(qrTypeMap));
+          
+          // Small delay to avoid overwhelming the server
+          if (roomNumber < end) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+          
+        } catch (error) {
+          console.error(`Failed to generate QR for room ${roomNumber}:`, error);
+          failedRooms.push(roomNumber);
+        }
       }
-    } finally {
-      setIsLoading(false);
+      
+      // Show results
+      if (generatedQrCodes.length > 0) {
+        toast.success(
+          `Successfully generated ${generatedQrCodes.length} QR code${generatedQrCodes.length !== 1 ? 's' : ''}!${
+            failedRooms.length > 0 ? ` (${failedRooms.length} failed)` : ''
+          }`,
+          {
+            position: "top-right",
+            autoClose: 5000,
+          }
+        );
+        
+        // Set the first generated QR as preview
+        if (generatedQrCodes[0]) {
+          setGeneratedQrData(generatedQrCodes[0]);
+        }
+        
+        setTimeout(() => {
+          setActiveTab("manage");
+        }, 2000);
+      }
+      
+      if (failedRooms.length > 0) {
+        toast.error(
+          `Failed to generate QR codes for rooms: ${failedRooms.join(', ')}`,
+          {
+            position: "top-right",
+            autoClose: 5000,
+          }
+        );
+      }
+      
+    } else {
+      // SINGLE GENERATION MODE - One QR code
+      const productOrServiceId = `${qrName.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`;
+      
+      const payload = {
+        label: qrName.trim(),
+        type: apiType,
+        productOrServiceId,
+        qrcode_tags: tags.map((tag) => tag.trim()).filter((tag) => tag !== ""),
+        description: description?.trim() || undefined,
+        categoryId,
+      };
+      
+      if (shouldIncludeRoomRange) {
+        if (startRange.trim()) payload.room_start = startRange.trim();
+        if (endRange.trim()) payload.room_end = endRange.trim();
+      }
+      
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/v1/qrcode/generate`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      
+      const qrData = response.data.data || {};
+      setQrCodeIds((prev) => [...new Set([...prev, qrData.id])]);
+      const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
+      qrTypeMap[qrData.id] = qrType;
+      localStorage.setItem("qrTypeMap", JSON.stringify(qrTypeMap));
+      
+      toast.success("QR code generated successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      
+      const constructedScanUrl = `${import.meta.env.VITE_SCAN_URL}/qr/${businessId || qrData.businessId}/${qrData.id}`;
+      setGeneratedQrData({
+        ...qrData,
+        scan_url: constructedScanUrl,
+      });
+      
+      setTimeout(() => {
+        setActiveTab("manage");
+      }, 2000);
     }
-  };
+    
+    // Reset form
+    setQrName("");
+    setDescription("");
+    setTags([]);
+    setStartRange("");
+    setEndRange("");
+    
+  } catch (error) {
+    console.error("QR Code operation error:", {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
+    
+    if (error.response?.status === 400) {
+      toast.error(error.response?.data?.message || "Invalid request data. Please check the input fields and try again.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } else if (error.response?.status === 401) {
+      toast.error("Session expired or invalid token. Please log in again.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      localStorage.removeItem("authToken");
+      navigate("/businessAuth");
+    } else if (error.response?.status === 404) {
+      toast.error("QR code not found or endpoint unavailable. Please verify the QR code ID or contact support.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } else if (error.response?.status === 409) {
+      toast.error("A QR code with this name or ID already exists. Please choose a different name.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } else {
+      const errorMessage = error.response?.data?.message || "Failed to process QR code. Please try again.";
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const filteredQrCodes = filterType === "all" ? qrCodes : qrCodes.filter((code) => code.type === filterType);
 
@@ -696,6 +943,12 @@ export default function QRGenerator() {
                     handleCreateQR={handleCreateQR}
                     tagInputRef={tagInputRef}
                     editingId={editingId}
+                    businessCategory={businessCategory}
+                    hasHotelRoomKeywords={hasHotelRoomKeywords}
+                    startRange={startRange}
+                    setStartRange={setStartRange}
+                    endRange={endRange}
+                    setEndRange={setEndRange}
                   />
                 </div>
                 <div className="flex-1 min-w-0 space-y-4">

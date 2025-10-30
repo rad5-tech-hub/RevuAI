@@ -20,10 +20,10 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
   const fileInputRef = useRef(null);
 
   const navigationItems = [
-    { path: '/businessDashboard', label: '📊 Dashboard', icon: '📊' },
-    { path: '/businessFeedback', label: '💬 Feedback', icon: '💬' },
-    { path: '/businessQrpage', label: '📱 QR Codes', icon: '📱' },
-    { path: '/businessReports', label: '📈 AI Reports', icon: '📈' },
+    { path: '/businessDashboard', label: 'Dashboard', icon: '' },
+    { path: '/businessFeedback', label: ' Feedback', icon: '' },
+    { path: '/businessQrpage', label: ' QR Codes', icon: '' },
+    { path: '/businessReports', label: ' AI Reports', icon: '' },
   ];
 
   // Fetch business data
@@ -485,3 +485,4 @@ const BusinessHeader = ({ onLogout, isLoggingOut = false }) => {
 };
 
 export default BusinessHeader;
+
