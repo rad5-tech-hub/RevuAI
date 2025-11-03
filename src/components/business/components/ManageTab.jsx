@@ -1,11 +1,31 @@
-
+// src/components/business/components/ManageTab.jsx
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import axios from "axios";
 import QRCode from "qrcode";
-import { MessageCircle, Star, User, Calendar, Award, Settings, QrCode, X, Share2, Download, Printer, Plus, Loader2, Check, Copy } from "lucide-react";
+import domtoimage from "dom-to-image";
+import {
+  MessageCircle,
+  Star,
+  User,
+  Calendar,
+  Award,
+  Settings,
+  QrCode,
+  X,
+  Share2,
+  Download,
+  Printer,
+  Plus,
+  Loader2,
+  Check,
+  Copy,
+} from "lucide-react";
 
+/**
+ * In-file templates (kept as you asked — no external import)
+ */
 const TEMPLATES = {
   room: {
     title: "Room",
@@ -39,10 +59,21 @@ const TEMPLATES = {
   },
 };
 
-export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, shareQR, filterType, setFilterType, viewQR }) => {
+export const ManageTab = ({
+  filteredQrCodes = [],
+  isFetching = false,
+  setActiveTab,
+  editQR,
+  shareQR,
+  filterType,
+  setFilterType,
+  viewQR, // <- restored to match parent usage
+}) => {
   const navigate = useNavigate();
+
+  // Map filtered QR codes to an internal state with feedback metadata
   const [qrCodesWithFeedback, setQrCodesWithFeedback] = useState(
-    filteredQrCodes.map((code) => ({
+    (filteredQrCodes || []).map((code) => ({
       ...code,
       showFeedback: false,
       feedbacks: [],
@@ -51,16 +82,22 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
       feedbackSummary: null,
     }))
   );
+
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [currentQrCode, setCurrentQrCode] = useState(null);
   const [copied, setCopied] = useState(false);
-  const qrModalCanvasRef = useRef(null);
-  const modalRef = useRef(null);
 
+  const qrModalCanvasRef = useRef(null); // canvas inside modal for QR
+  const modalRef = useRef(null); // modal wrapper for focus
+  const designRef = useRef(null); // full A5 preview for domtoimage
+
+  // Keep sync when parent provides new filtered list
   useEffect(() => {
-    setQrCodesWithFeedback(
-      filteredQrCodes.map((code) => {
-        const existing = qrCodesWithFeedback.find((c) => c.id === code.id);
+    // Build a stable list by preserving any feedback display state from previous state
+    setQrCodesWithFeedback((prev) => {
+      const prevMap = new Map(prev.map((p) => [p.id, p]));
+      return filteredQrCodes.map((code) => {
+        const existing = prevMap.get(code.id);
         return {
           ...code,
           showFeedback: existing?.showFeedback || false,
@@ -69,40 +106,51 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
           feedbackError: existing?.feedbackError || null,
           feedbackSummary: existing?.feedbackSummary || null,
         };
-      })
-    );
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredQrCodes]);
 
+  // Render QR onto canvas when modal opens or currentQrCode changes
   useEffect(() => {
     if (isQrModalOpen && qrModalCanvasRef.current && currentQrCode?.url) {
-      QRCode.toCanvas(qrModalCanvasRef.current, currentQrCode.url, {
-        width: 250,
-        height: 250,
-        color: { dark: "#0E5FD8", light: "#ffffff" },
-        errorCorrectionLevel: "H",
-      }, (error) => {
-        if (error) {
-          console.error("Modal QRCode error:", error);
-          toast.error("Failed to generate QR code in modal.", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-        }
-      });
+      try {
+        QRCode.toCanvas(
+          qrModalCanvasRef.current,
+          currentQrCode.url,
+          {
+            width: 240,
+            height: 240,
+            color: { dark: "#0E5FD8", light: "#ffffff" },
+            errorCorrectionLevel: "H",
+          },
+          (error) => {
+            if (error) {
+              console.error("Modal QRCode error:", error);
+              toast.error("Failed to generate QR in modal.");
+            }
+          }
+        );
+      } catch (err) {
+        console.error("QRCode.toCanvas threw:", err);
+        toast.error("Failed to generate QR image in modal.");
+      }
     }
   }, [isQrModalOpen, currentQrCode]);
 
+  // Escape closes modal
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handler = (e) => {
       if (e.key === "Escape" && isQrModalOpen) {
         setIsQrModalOpen(false);
         setCopied(false);
       }
     };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
   }, [isQrModalOpen]);
 
+  // autofocus modal container for accessibility
   useEffect(() => {
     if (isQrModalOpen && modalRef.current) {
       modalRef.current.focus();
@@ -110,221 +158,142 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
   }, [isQrModalOpen]);
 
   const copyUrl = async () => {
-    const generatedUrl = currentQrCode?.url || "";
-    if (!generatedUrl) {
-      toast.error("No URL available to copy.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+    const url = currentQrCode?.url || "";
+    if (!url) {
+      toast.error("No URL to copy.");
       return;
     }
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(generatedUrl);
-        setCopied(true);
-        toast.success("URL copied to clipboard!", {
-          position: "top-right",
-          autoClose: 1600,
-        });
-        setTimeout(() => setCopied(false), 1600);
-      } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = generatedUrl;
-        textarea.style.position = "fixed";
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        try {
-          const successful = document.execCommand("copy");
-          if (successful) {
-            setCopied(true);
-            toast.success("URL copied to clipboard!", {
-              position: "top-right",
-              autoClose: 1600,
-            });
-            setTimeout(() => setCopied(false), 1600);
-          } else {
-            throw new Error("document.execCommand failed");
-          }
-        } catch (err) {
-          throw new Error("Fallback copy failed");
-        } finally {
-          document.body.removeChild(textarea);
-        }
-      }
-    } catch (error) {
-      console.error("Copy URL error:", {
-        message: error.message,
-        name: error.name,
-        stack: error.stack,
-      });
-      toast.error(
-        "Failed to copy URL automatically. Please select and copy the URL manually from the input field.",
-        {
-          position: "top-right",
-          autoClose: 5000,
-        }
-      );
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("Copied!");
+      setTimeout(() => setCopied(false), 1600);
+    } catch (err) {
+      console.error("Clipboard copy failed:", err);
+      toast.error("Failed to copy URL. Try manual copy.");
     }
   };
 
   const handleViewQrCode = (code) => {
-    setCurrentQrCode(code);
+    const templateType = code.templateType || code.type || "general";
+    setCurrentQrCode({ ...code, templateType });
     setIsQrModalOpen(true);
   };
 
-  const downloadPNG = (code) => {
-    if (!code?.url) {
-      toast.error("No QR code available to download.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
+  const downloadPNG = async (code) => {
+    if (!designRef.current) {
+      return toast.error("Design not ready.");
     }
-    QRCode.toDataURL(code.url, {
-      width: 160,
-      height: 160,
-      color: { dark: "#0E5FD8", light: "#ffffff" },
-      errorCorrectionLevel: "H",
-    }, (error, url) => {
-      if (error) {
-        console.error("QRCode download error:", error);
-        toast.error("Failed to download QR code.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        return;
-      }
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `qr_${code.title || "code"}.png`;
-      link.click();
-      toast.success("QR code downloaded as PNG!", {
-        position: "top-right",
-        autoClose: 3000,
+    try {
+      toast.info("Generating PNG...");
+      const dataUrl = await domtoimage.toPng(designRef.current, {
+        quality: 1,
+        bgcolor: "#ffffff",
+        width: designRef.current.offsetWidth * 2,
+        height: designRef.current.offsetHeight * 2,
+        style: { transform: "scale(2)", transformOrigin: "top left" },
       });
-    });
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      const safeName =
+        (code?.businessName || "QR_Design").replace(/\s+/g, "_").replace(/[^\w\-_.]/g, "");
+      link.download = `${safeName}_QR_Design.png`;
+      link.click();
+      toast.success("Downloaded!");
+    } catch (err) {
+      console.error("downloadPNG err:", err);
+      toast.error("Download failed.");
+    }
   };
 
-  const printQR = (code) => {
-    if (!code?.url) {
-      toast.error("No QR code available to print.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
+  const printQR = async (code) => {
+    if (!designRef.current) {
+      return toast.error("Design not ready.");
     }
-    QRCode.toDataURL(code.url, {
-      width: 160,
-      height: 160,
-      color: { dark: "#0E5FD8", light: "#ffffff" },
-      errorCorrectionLevel: "H",
-    }, (error, url) => {
-      if (error) {
-        console.error("QRCode print error:", error);
-        toast.error("Failed to print QR code.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
+    try {
+      toast.info("Preparing print...");
+      const dataUrl = await domtoimage.toPng(designRef.current, {
+        quality: 1,
+        bgcolor: "#ffffff",
+        width: designRef.current.offsetWidth * 2,
+        height: designRef.current.offsetHeight * 2,
+        style: { transform: "scale(2)", transformOrigin: "top left" },
+      });
+      const win = window.open("");
+      if (!win) {
+        toast.error("Please allow popups for printing.");
         return;
       }
-      const printWindow = window.open("");
-      if (!printWindow) {
-        toast.error("Failed to open print window. Please check your browser settings.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        return;
-      }
-      printWindow.document.write(`
+      win.document.write(`
         <html>
-          <body>
-            <img src="${url}" onload="window.print();window.close()" alt="${code.title || "QR Code"}" />
+          <head><title>Print QR</title></head>
+          <body style="margin:0;padding:0;display:flex;align-items:center;justify-content:center;">
+            <img src="${dataUrl}" style="max-width:100%;height:auto" onload="window.print();window.close()" />
           </body>
         </html>
       `);
-      printWindow.document.close();
-    });
+      win.document.close();
+    } catch (err) {
+      console.error("printQR err:", err);
+      toast.error("Print failed.");
+    }
   };
 
   const handleViewFeedbacks = async (code) => {
     const token = localStorage.getItem("authToken");
     if (!token) {
-      toast.error("Please log in to view feedbacks.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      toast.error("Login required.");
       navigate("/businessAuth");
       return;
     }
+
+    // Toggle and mark loading
     setQrCodesWithFeedback((prev) =>
       prev.map((qr) =>
         qr.id === code.id
-          ? {
-              ...qr,
-              showFeedback: !qr.showFeedback,
-              feedbackLoading: !qr.showFeedback,
-              feedbackError: null,
-              feedbacks: [],
-              feedbackSummary: null,
-            }
+          ? { ...qr, showFeedback: !qr.showFeedback, feedbackLoading: !qr.showFeedback, feedbackError: null, feedbacks: [], feedbackSummary: null }
           : { ...qr, showFeedback: false }
       )
     );
+
+    // If closing (already open), don't fetch
     if (code.showFeedback) return;
+
     try {
-      const response = await axios.get(
+      const res = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/v1/review/qrcode-reviews/${code.id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const { reviews, totalReviews, ratingSummary } = response.data;
+      const { reviews = [], totalReviews = 0, ratingSummary = {} } = res.data || {};
       setQrCodesWithFeedback((prev) =>
         prev.map((qr) =>
           qr.id === code.id
-            ? {
-                ...qr,
-                feedbacks: reviews || [],
-                feedbackSummary: { totalReviews: totalReviews || 0, ratingSummary: ratingSummary || {} },
-                feedbackLoading: false,
-                feedbackError: null,
-              }
+            ? { ...qr, feedbacks: reviews, feedbackSummary: { totalReviews, ratingSummary }, feedbackLoading: false, feedbackError: null }
             : qr
         )
       );
-    } catch (error) {
-      console.error("Fetch feedbacks error:", error);
+    } catch (err) {
+      console.error("fetch feedbacks error:", err);
       setQrCodesWithFeedback((prev) =>
         prev.map((qr) =>
           qr.id === code.id
-            ? {
-                ...qr,
-                feedbackLoading: false,
-                feedbackError: error.response?.data?.message || "Failed to fetch feedbacks. Please try again.",
-              }
+            ? { ...qr, feedbackLoading: false, feedbackError: err.response?.data?.message || "Failed to load feedback." }
             : qr
         )
       );
-      // toast.error(error.response?.data?.message || "Failed to fetch feedbacks.", {
-      //   position: "top-right",
-      //   autoClose: 3000,
-      // });
     }
   };
 
-  const renderStarRating = (rating) => {
-    return (
-      <div className="flex items-center gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`h-4 w-4 ${
-              star <= rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-            }`}
-          />
-        ))}
-      </div>
-    );
-  };
+  const renderStarRating = (rating) => (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          className={`h-4 w-4 ${star <= rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
+        />
+      ))}
+    </div>
+  );
 
   const getRatingColor = (rating) => {
     if (rating >= 4) return "text-green-600 bg-green-50 border-green-200";
@@ -332,15 +301,30 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
     return "text-red-600 bg-red-50 border-red-200";
   };
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "Unknown";
+    try {
+      return new Date(dateStr).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
           <h2 className="font-medium text-lg sm:text-xl text-slate-800">Your QR Codes ({filteredQrCodes.length})</h2>
+
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="w-full sm:w-auto rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm sm:text-base text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            aria-label="Filter QR codes by type"
+            className="w-full sm:w-auto rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
           >
             <option value="all">All Types</option>
             <option value="general">General Business</option>
@@ -349,243 +333,166 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
             <option value="service">Service Type</option>
           </select>
         </div>
+
         <button
-          onClick={() => setActiveTab("create")}
-          className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-1 text-sm sm:text-base font-medium hover:bg-blue-700 transition"
-          aria-label="Create New QR Code"
+          onClick={() => setActiveTab?.("create")}
+          className="w-full sm:w-auto bg-blue-600 cursor-pointer text-white px-4 py-2 rounded-lg flex items-center justify-center gap-1 text-sm font-medium hover:bg-blue-700 transition"
+          aria-label="Create new QR code"
         >
-          <Plus className="h-4 w-4" />
-          Create New
+          <Plus className="h-4 w-4" /> Create New
         </button>
       </div>
+
       {isFetching && filteredQrCodes.length === 0 ? (
-        <div className="space-y-4 sm:space-y-6" aria-busy="true" aria-label="Loading QR codes">
+        <div className="space-y-4" aria-busy="true">
           {[1, 2, 3].map((i) => (
-            <div
-              key={`qr-skeleton-${i}`}
-              className="bg-white shadow-sm sm:shadow-md rounded-lg sm:rounded-xl p-4 sm:p-6 space-y-4 border border-slate-200"
-            >
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <div className="h-6 sm:h-7 w-40 sm:w-48 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-5 sm:h-6 w-16 sm:w-20 bg-gray-200 rounded-full animate-pulse"></div>
-                <div className="h-5 sm:h-6 w-16 sm:w-20 bg-gray-200 rounded-full animate-pulse"></div>
-              </div>
-              <div className="h-4 sm:h-5 w-28 sm:w-32 bg-gray-200 rounded animate-pulse"></div>
-              <div className="flex flex-wrap gap-2 sm:gap-4">
-                <div className="h-8 sm:h-10 w-20 sm:w-24 bg-gray-200 rounded-lg animate-pulse"></div>
-                <div className="h-8 sm:h-10 w-20 sm:w-24 bg-gray-200 rounded-lg animate-pulse"></div>
-                <div className="h-8 sm:h-10 w-20 sm:w-24 bg-gray-200 rounded-lg animate-pulse"></div>
+            <div key={i} className="bg-white shadow-sm rounded-lg p-6 border border-slate-200 animate-pulse">
+              <div className="h-6 w-48 bg-gray-200 rounded" />
+              <div className="mt-2 h-4 w-32 bg-gray-200 rounded" />
+              <div className="mt-4 flex gap-2">
+                <div className="h-8 w-24 bg-gray-200 rounded-lg" />
+                <div className="h-8 w-24 bg-gray-200 rounded-lg" />
               </div>
             </div>
           ))}
         </div>
       ) : filteredQrCodes.length === 0 ? (
-        <div className="text-center py-8 sm:py-12 text-slate-500 text-sm sm:text-base">
-          No QR codes found for this type. Try creating a new one!
-        </div>
+        <div className="text-center py-12 text-slate-500">No QR codes found. Create one!</div>
       ) : (
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-6">
           {qrCodesWithFeedback.map((code) => (
-            <div
-              key={code.id}
-              className="bg-white shadow-sm sm:shadow-md rounded-lg sm:rounded-xl p-4 sm:p-6 border border-slate-200 min-w-0"
-            >
-              <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-3">
-                <h3 className="text-base sm:text-lg font-semibold text-slate-800 truncate">{code.title}</h3>
-                <div className="flex flex-wrap gap-2">
+            <div key={code.id} className="bg-white shadow-sm rounded-xl p-6 border border-slate-200">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <h3 className="text-lg font-semibold text-slate-800 truncate">{code.title}</h3>
+                <div className="flex gap-2">
                   <span
-                    className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-medium ${
-                      code.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                    }`}
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${code.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
                   >
-                    {code.status.charAt(0).toUpperCase() + code.status.slice(1)}
+                    {code.status}
                   </span>
-                  <span
-                    className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-medium bg-blue-100 text-blue-800"
-                  >
-                    {code.type.charAt(0).toUpperCase() + code.type.slice(1)}
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {code.type}
                   </span>
                 </div>
               </div>
-              <div className="mt-2 text-sm sm:text-base text-slate-600 truncate">
-                {code.businessName} • {code.feedback} Feedback • Created {code.date}
+
+              <div className="mt-2 text-sm text-slate-600">
+                {code.businessName} • {code.feedback} Feedback • Created {formatDate(code.date)}
               </div>
-              <div className="mt-4 flex flex-wrap gap-2 sm:gap-4">
+
+              <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   onClick={() => handleViewQrCode(code)}
-                  className="inline-flex items-center gap-1 sm:gap-2 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm hover:bg-slate-50 transition"
-                  aria-label={`View QR Code for ${code.title}`}
+                  className="flex items-center gap-2 cursor-pointer px-3 py-1.5 border border-slate-300 rounded-lg text-xs hover:bg-slate-50"
+                  aria-label={`View ${code.title}`}
                 >
-                  <QrCode className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> View QR Code
+                  <QrCode className="h-4 w-4" /> View Qr Code
                 </button>
+
                 <button
                   onClick={() => handleViewFeedbacks(code)}
-                  className="inline-flex items-center gap-1 sm:gap-2 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm hover:bg-slate-50 transition"
-                  aria-label={`View Feedbacks for ${code.title}`}
+                  className="flex items-center gap-2 px-3 cursor-pointer py-1.5 border border-slate-300  rounded-lg text-xs hover:bg-slate-50"
+                  aria-label={`Feedback for ${code.title}`}
                 >
-                  <MessageCircle className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> View Feedbacks
+                  <MessageCircle className="h-4 w-4" /> View Feedbacks
                 </button>
+
                 <button
-                  onClick={() => editQR && editQR(code)}
-                  className="inline-flex items-center gap-1 sm:gap-2 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm hover:bg-slate-50 transition"
-                  aria-label={`Edit QR code for ${code.title}`}
+                  onClick={() => editQR?.(code)}
+                  className="flex items-center gap-2 px-3 cursor-pointer py-1.5 border border-slate-300  rounded-lg text-xs hover:bg-slate-50"
+                  aria-label={`Edit ${code.title}`}
                 >
-                  <Settings className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Edit
+                  <Settings className="h-4 w-4" /> Edit
                 </button>
+
                 <button
-                  onClick={() => shareQR(code.url, code.title, "#0E5FD8")}
-                  className="inline-flex items-center gap-1 sm:gap-2 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm hover:bg-slate-50 transition"
-                  aria-label={`Share QR code for ${code.title}`}
+                  onClick={() => shareQR?.(code.url, code.title)}
+                  className="flex items-center gap-2 px-3 cursor-pointer py-1.5 border border-slate-300  rounded-lg text-xs hover:bg-slate-50"
+                  aria-label={`Share ${code.title}`}
                 >
-                  <Share2 className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Share
+                  <Share2 className="h-4 w-4" /> Share
                 </button>
               </div>
+
               {code.showFeedback && (
-                <div className="mt-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200 shadow-inner overflow-hidden">
+                <div className="mt-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200 p-4">
                   {code.feedbackLoading ? (
-                    <div className="flex flex-col justify-center items-center py-12">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
-                      <p className="text-sm text-slate-600">Loading feedback...</p>
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                     </div>
                   ) : code.feedbackError ? (
-                    <div className="p-6 text-center">
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                        {/* <p className="text-red-600 text-sm font-medium">Error Loading Feedback</p> */}
-                        <p className="text-red-500 text-xs mt-1">{code.feedbackError}</p>
-                      </div>
-                    </div>
-                  ) : code.feedbacks?.length > 0 ? (
+                    <p className="text-red-500 text-center">{code.feedbackError}</p>
+                  ) : code.feedbacks && code.feedbacks.length > 0 ? (
                     <div>
-                      <div className="bg-white border-b border-slate-200 p-4 sm:p-6">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <MessageCircle className="h-5 w-5 text-blue-600" />
-                              <h4 className="text-lg font-semibold text-slate-800">
-                                Customer Reviews ({code.feedbacks.length})
-                              </h4>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-4">
-                              <div className="bg-blue-50 rounded-lg p-3 text-center">
-                                <p className="text-2xl font-bold text-blue-600">{code.feedbackSummary?.totalReviews || 0}</p>
-                                <p className="text-xs text-blue-700 font-medium">Total Reviews</p>
-                              </div>
-                              {code.feedbackSummary?.ratingSummary &&
-                                Object.entries(code.feedbackSummary.ratingSummary).map(([label, count]) => (
-                                  <div key={label} className="bg-green-50 rounded-lg p-3 text-center">
-                                    <p className="text-2xl font-bold text-green-600">{count}</p>
-                                    <p className="text-xs text-green-700 font-medium">{label}</p>
-                                  </div>
-                                ))}
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleViewFeedbacks({ ...code, showFeedback: false })}
-                            className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-100"
-                            aria-label="Close feedback dropdown"
-                          >
+                      <div className="bg-white p-4 border-b">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-semibold flex items-center gap-2">
+                            <MessageCircle className="h-5 w-5 text-blue-600" />
+                            Reviews ({code.feedbacks.length})
+                          </h4>
+                          <button onClick={() => handleViewFeedbacks(code)} className="text-slate-400 cursor-pointer hover:text-slate-600">
                             <X className="h-5 w-5" />
                           </button>
                         </div>
                       </div>
-                      <div className="max-h-[500px] overflow-y-auto">
-                        <div className="p-4 space-y-4">
-                          {code.feedbacks.map((feedback) => (
-                            <div
-                              key={feedback.id}
-                              className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow"
-                            >
-                              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 gap-2 sm:gap-0">
-                                <div className="flex items-center gap-3 flex-1 sm:flex-none">
-                                  <div className="flex-shrink-0">
-                                    {feedback.user && !feedback.isAnonymous ? (
-                                      <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
-                                        <span className="text-white font-semibold text-sm">
-                                          {feedback.user.fullname?.charAt(0)?.toUpperCase() || "U"}
-                                        </span>
-                                      </div>
-                                    ) : (
-                                      <div className="w-10 h-10 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
-                                        <User className="h-5 w-5 text-white" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                                      <p className="font-semibold text-slate-800 truncate">
-                                        {feedback.user && !feedback.isAnonymous
-                                          ? feedback.user.fullname
-                                          : "Anonymous Customer"}
-                                      </p>
-                                      <span className={`flex-shrink-0 px-2 py-1 rounded-full text-xs font-medium border ${getRatingColor(feedback.rating)}`}>
-                                        {feedback.ratingLabel}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      {renderStarRating(feedback.rating)}
-                                      <span className="text-sm text-slate-600">({feedback.rating}/5)</span>
-                                    </div>
-                                  </div>
+
+                      <div className="max-h-96 overflow-y-auto p-4 space-y-4">
+                        {code.feedbacks.map((f) => (
+                          <div key={f.id} className="bg-white p-4 rounded-lg border">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                                  {f.user?.fullname?.[0] || "A"}
                                 </div>
-                                <div className="flex items-center gap-2 text-xs text-slate-500 sm:ml-auto">
-                                  <Calendar className="h-3 w-3 flex-shrink-0" />
-                                  <span className="truncate">
-                                    {new Date(feedback.createdAt).toLocaleDateString("en-US", {
-                                      year: "numeric",
-                                      month: "short",
-                                      day: "numeric",
-                                    })}
-                                  </span>
+                                <div>
+                                  <p className="font-semibold">{f.user?.fullname || "Anonymous"}</p>
+                                  <div className="flex items-center gap-2">
+                                    {renderStarRating(f.rating)}
+                                    <span className="text-xs text-slate-500">({f.rating}/5)</span>
+                                  </div>
                                 </div>
                               </div>
-                              <div className="mb-3">
-                                <p className="text-slate-700 leading-relaxed">{feedback.comment}</p>
-                              </div>
-                              {Array.isArray(feedback.qrcode_tags) && feedback.qrcode_tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mb-3">
-                                  {feedback.qrcode_tags.map((tag, tagIndex) => (
-                                    <span
-                                      key={tagIndex}
-                                      className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium"
-                                    >
-                                      #{tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                              {feedback.responses?.length > 0 && (
-                                <div className="mt-4 border-t border-slate-100 pt-3">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <Award className="h-4 w-4 text-blue-600" />
-                                    <p className="font-medium text-sm text-slate-700">Business Response:</p>
-                                  </div>
-                                  {feedback.responses.map((response) => (
-                                    <div key={response.id} className="bg-blue-50 rounded-lg p-3 ml-6">
-                                      <p className="text-sm text-slate-700 mb-1">{response.response}</p>
-                                      <p className="text-xs text-slate-500">
-                                        Responded on {new Date(response.createdAt).toLocaleDateString("en-US", {
-                                          year: "numeric",
-                                          month: "short",
-                                          day: "numeric",
-                                        })}
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
+
+                              <span className="text-xs text-slate-500 flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {formatDate(f.createdAt)}
+                              </span>
                             </div>
-                          ))}
-                        </div>
+
+                            <p className="text-slate-700">{f.comment}</p>
+
+                            {Array.isArray(f.qrcode_tags) && f.qrcode_tags.length > 0 && (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {f.qrcode_tags.map((tag, idx) => (
+                                  <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                    #{tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            {f.responses?.length > 0 && (
+                              <div className="mt-4 border-t pt-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Award className="h-4 w-4 text-blue-600" />
+                                  <p className="font-medium text-sm text-slate-700">Business Response:</p>
+                                </div>
+                                {f.responses.map((r) => (
+                                  <div key={r.id} className="bg-blue-50 rounded-lg p-3 ml-6 mb-2">
+                                    <p className="text-sm text-slate-700 mb-1">{r.response}</p>
+                                    <p className="text-xs text-slate-500">
+                                      Responded on {formatDate(r.createdAt)}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ) : (
-                    <div className="p-8 text-center">
-                      <MessageCircle className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                      <p className="text-slate-500 font-medium mb-1">No reviews yet</p>
-                      <p className="text-sm text-slate-400">
-                        Customer feedback will appear here once they start leaving reviews
-                      </p>
-                    </div>
+                    <p className="text-center text-slate-500 py-8">No reviews yet.</p>
                   )}
                 </div>
               )}
@@ -593,161 +500,145 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
           ))}
         </div>
       )}
+
+      {/* QR MODAL */}
       {isQrModalOpen && currentQrCode && (
         <div
-          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          role="dialog"
-          aria-labelledby="qrModalTitle"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           ref={modalRef}
           tabIndex={-1}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="qrModalTitle"
         >
-          <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 lg:p-5 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 id="qrModalTitle" className="text-sm sm:text-base font-semibold text-slate-700">
-                QR Code Preview
-              </h2>
-              <button
-                onClick={() => {
-                  setIsQrModalOpen(false);
-                  setCopied(false);
-                }}
-                className="text-gray-500 hover:text-gray-700 p-1 rounded-lg hover:bg-slate-100 transition"
-                aria-label="Close QR code modal"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <h2 id="qrModalTitle" className="text-lg font-semibold">QR Code Preview</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    // copy URL quick action
+                    if (currentQrCode?.url) {
+                      navigator.clipboard?.writeText(currentQrCode.url).then(() => {
+                        toast.success("URL copied!");
+                      }).catch(()=>{ toast.error("Copy failed"); });
+                    }
+                  }}
+                  className="p-1 rounded hover:bg-slate-100 cursor-pointer"
+                  aria-label="Copy QR url"
+                >
+                  <Copy className="h-4 w-4" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsQrModalOpen(false);
+                    setCopied(false);
+                    setCurrentQrCode(null);
+                  }}
+                  className="p-1 hover:bg-slate-100 rounded cursor-pointer"
+                  aria-label="Close modal"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
-            {/* ==== RESPONSIVE A5 CARD ==== */}
+            {/* FULL A5 DESIGN */}
             <div className="overflow-x-auto">
               <div
-                className="relative mx-auto border border-gray-300 bg-white text-black overflow-hidden shadow-mdw-[min(100%,148mm)] max-w-full h-[calc(min(100vw,148mm)*1.414)] p-[clamp(8px,2.5vw,12mm)] box-border font-sans overflow-y-auto"
+                ref={designRef}
+                className="relative mx-auto border border-gray-300 bg-white text-black w-[min(100%,148mm)] h-[calc(min(100vw,148mm)*1.414)] p-[12mm] font-sans shadow-lg"
+                style={{ minWidth: "148mm" }}
               >
-                {/* Dotted Background */}
                 <div
                   className="absolute inset-0 opacity-10 pointer-events-none"
-                  style={{
-                    backgroundImage: "radial-gradient(circle, #000 1px, transparent 1px)",
-                    backgroundSize: "18px 18px",
-                  }}
+                  style={{ background: "radial-gradient(circle, #000 1px, transparent 1px)", backgroundSize: "18px 18px" }}
                 />
 
-                {/* Decorative X */}
                 <div className="absolute top-1/2 right-[10mm] flex flex-col gap-1 opacity-10 -translate-y-1/2">
                   {[...Array(3)].map((_, i) => (
-                    <div key={i} className="text-2xl font-bold">×</div>
+                    <div key={i} className="text-2xl font-bold">X</div>
                   ))}
                 </div>
 
-                {/* Main Content */}
-                <div className="relative z-10 flex flex-col items-center justify-between h-full text-center md:px-4">
-                  {/* Business Name */}
-                  <h1 className="text-3xl font-bold text-black tracking-wide">
-                    {currentQrCode.businessName || "Your Business"}
-                  </h1>
+                <div className="relative z-10 flex flex-col items-center justify-between h-full text-center">
+                  <h1 className="text-3xl font-bold text-[#0E5FD8] tracking-wide">{currentQrCode.businessName}</h1>
 
-                  {/* Dynamic Welcome + Description */}
                   {(() => {
-                    const template = TEMPLATES[currentQrCode.type] || TEMPLATES.general;
-                    const description = template.description.replace(
-                      /\[Hotel Name\]/g,
-                      currentQrCode.businessName || "Your Business"
-                    );
+                    const template = TEMPLATES[currentQrCode.templateType] || TEMPLATES.general;
+                    const desc = (template?.description || "").replace(/\[Hotel Name\]/g, currentQrCode.businessName || "");
                     return (
-                      <p className="text-sm leading-relaxed whitespace-pre-line max-w-[75%] mt-5 md:mt-0 ">
-                       <span className="font-bold text-base">Welcome to {currentQrCode.businessName || "Your Business"}!{"\n"}</span>
-                        {description}
+                      <p className="text-sm leading-relaxed whitespace-pre-line max-w-[80%] my-6">
+                        <span className="font-bold text-base text-[#0E5FD8]">
+                          Welcome to {currentQrCode.businessName || "Your Business"}!{"\n"}
+                        </span>
+                        {desc}
                       </p>
                     );
                   })()}
 
-                  {/* QR Code - Responsive */}
-                  <div
-                    className="flex items-center justify-center rounded-lg bg-white"
-                  >
-                    <canvas
-                      ref={qrModalCanvasRef}
-                      className="w-full h-full object-contain"
-                    />
+                  <p className="font-bold mb-2">Scan Me!!</p>
+
+                  <div className="flex items-center justify-center border-2 border-black rounded-lg bg-white h-[240px] w-[240px]">
+                    <canvas ref={qrModalCanvasRef} className="w-full h-full object-contain" />
                   </div>
 
-                  {/* How to Use */}
-                  <div className="w-full border-t border-gray-300 pt-4 mx-auto max-w-[75%]" >
-                    <h3 className="text-[clamp(1rem,4vw,1.125rem)] font-bold mb-3">How to Use</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 md:gap-3 text-[clamp(0.75rem,2.8vw,0.875rem)]">
-                      <div className="space-y-1 text-left">
-                        <p><span className="font-bold">1.</span> Open your camera or Google Lens</p>
-                        <p><span className="font-bold">2.</span> Scan the code</p>
-                        <p><span className="font-bold">3.</span> Give your feedback</p>
+                  <div className="w-full border-t border-gray-300 pt-4 mt-6 max-w-[75%] mx-auto">
+                    <h3 className="text-lg font-bold mb-3">How to Use</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <div className="text-left space-y-1">
+                        <p><strong>1.</strong> Open camera or Google Lens.</p>
+                        <p><strong>2.</strong> Scan the QR code.</p>
+                        <p><strong>3.</strong> Give your feedback about the service you've received.</p>
                       </div>
-                      <div className="space-y-1 text-left">
-                        <p><span className="font-bold">4.</span> Sign up to get a reply</p>
-                        <p><span className="font-bold">5.</span> And you’re done!</p>
+                      <div className="text-left space-y-1">
+                        <p><strong>4.</strong> Sign up to get reply from management.</p>
+                        <p><strong>5.</strong> And you're done!</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Footer */}
-                  <div className="mt-4 mb-5 md:mb-0 pt-3 border-t border-gray-300 text-[clamp(0.65rem,2.5vw,0.75rem)] text-gray-600">
-                    Powered by <span className="font-semibold text-black">ScanRevuAI.com</span>
+                  <div className="mt-4 pt-3 border-t border-gray-300 text-xs text-gray-600">
+                    Powered by <span className="font-semibold text-[#0E5FD8]">ScanRevuAI.com</span>
                   </div>
                 </div>
 
-                {/* Corner Dots */}
+                {/* corner dots */}
                 {["top-6 left-6", "top-6 right-6", "bottom-6 left-6", "bottom-6 right-6"].map((pos) => (
                   <div key={pos} className={`absolute ${pos} flex gap-1`}>
                     {[...Array(3)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-[clamp(0.35rem,1vw,0.375rem)] h-[clamp(0.35rem,1vw,0.375rem)] rounded-full bg-gray-400 opacity-50"
-                      />
+                      <div key={i} className="w-1 h-1 rounded-full bg-gray-400 opacity-50" />
                     ))}
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* URL & Actions */}
             <div className="mt-5 space-y-3">
-              <div className="text-xs font-medium text-black mb-1">Generated URL:</div>
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="text-xs font-medium">Generated URL:</div>
+              <div className="flex gap-2">
                 <input
                   readOnly
                   value={currentQrCode.url || ""}
-                  placeholder="No URL generated yet"
-                  className="flex-1 rounded border border-gray-400 bg-gray-50 px-3 py-2 text-xs text-black"
+                  className="flex-1 px-3 py-2 border rounded text-xs bg-gray-50"
+                  aria-label="Generated QR url"
                 />
-                <button
-                  onClick={copyUrl}
-                  disabled={!currentQrCode.url}
-                  className="flex items-center justify-center gap-1.5 border border-gray-400 px-3 py-2 rounded text-xs font-medium text-black hover:bg-gray-50 disabled:opacity-50 transition"
-                >
-                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                <button onClick={copyUrl} className="flex items-center gap-1.5 cursor-pointer px-3 py-2 border rounded text-xs hover:bg-gray-50">
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   {copied ? "Copied" : "Copy"}
                 </button>
               </div>
 
               <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => downloadPNG(currentQrCode)}
-                  disabled={!currentQrCode.url}
-                  className="flex items-center justify-center gap-1.5 border border-gray-400 px-2 py-2 rounded text-xs font-medium text-black hover:bg-gray-50 disabled:opacity-50 transition"
-                >
-                  <Download className="w-4 h-4" /> PNG
+                <button onClick={() => downloadPNG(currentQrCode)} className="flex items-center justify-center gap-1.5 px-2 py-2 border rounded text-xs hover:bg-gray-50 cursor-pointer">
+                  <Download className="h-4 w-4" /> PNG
                 </button>
-                <button
-                  onClick={() => printQR(currentQrCode)}
-                  disabled={!currentQrCode.url}
-                  className="flex items-center justify-center gap-1.5 border border-gray-400 px-2 py-2 rounded text-xs font-medium text-black hover:bg-gray-50 disabled:opacity-50 transition"
-                >
-                  <Printer className="w-4 h-4" /> Print
+                <button onClick={() => printQR(currentQrCode)} className="flex items-center justify-center gap-1.5 px-2 py-2 border rounded text-xs hover:bg-gray-50 cursor-pointer">
+                  <Printer className="h-4 w-4" /> Print
                 </button>
-                <button
-                  onClick={() => shareQR(currentQrCode.url, currentQrCode.title, "#0E5FD8")}
-                  disabled={!currentQrCode.url}
-                  className="flex items-center justify-center gap-1.5 border border-gray-400 px-2 py-2 rounded text-xs font-medium text-black hover:bg-gray-50 disabled:opacity-50 transition"
-                >
-                  <Share2 className="w-4 h-4" /> Share
+                <button onClick={() => shareQR?.(currentQrCode.url, currentQrCode.title)} className="flex items-center justify-center gap-1.5 px-2 py-2 border rounded text-xs hover:bg-gray-50 cursor-pointer">
+                  <Share2 className="h-4 w-4" /> Share
                 </button>
               </div>
             </div>
@@ -757,3 +648,5 @@ export const ManageTab = ({ filteredQrCodes, isFetching, setActiveTab, editQR, s
     </div>
   );
 };
+
+export default ManageTab;

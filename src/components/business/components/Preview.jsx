@@ -1,38 +1,15 @@
 // components/Preview.jsx
-import React from "react"; // ← MUST BE HERE
+import React, { useEffect, useState } from "react";
+import QRCodeLib from "qrcode";
 import { QrCode, Check, Copy, Download, Printer, Share2 } from "lucide-react";
 
 const TEMPLATES = {
-  room: {
-    title: "Room",
-    description:
-      "We’d love to know how your stay has been so far.\nPlease share your feedback on your overall comfort and experience — it helps us make your next visit even better.",
-  },
-  restaurant: {
-    title: "Restaurant",
-    description:
-      "Dining with us at [Hotel Name]?\nTell us how your meal and dining experience went.\nYour honest feedback helps us make every bite better!",
-  },
-  bar: {
-    title: "Bar",
-    description:
-      "Hi there!\nWe'd love your thoughts on our drinks and bar service.\nScan to share your quick feedback and help us improve.",
-  },
-  lounge: {
-    title: "Lounge",
-    description:
-      "Relaxing at [Hotel Name] Lounge?\nWe'd love to hear about your ambience and service experience.\nTell us what you enjoyed or what could be better.",
-  },
-  reception: {
-    title: "Reception",
-    description:
-      "Welcome to [Hotel Name]!\nPlease rate your check-in and front desk experience — your feedback helps us keep improving.",
-  },
-  general: {
-    title: "General",
-    description:
-      "We'd love to know about your experience.\nPlease share your feedback — it helps us make your next visit even better.",
-  },
+  room: { title: "Room", description: "We’d love to know how your stay has been so far.\nPlease share your feedback..." },
+  restaurant: { title: "Restaurant", description: "Dining with us at [Hotel Name]?\nTell us how your meal..." },
+  bar: { title: "Bar", description: "Hi there!\nWe'd love your thoughts on our drinks and bar service..." },
+  lounge: { title: "Lounge", description: "Relaxing at [Hotel Name] Lounge?\nWe'd love to hear..." },
+  reception: { title: "Reception", description: "Welcome to [Hotel Name]!\nPlease rate your check-in..." },
+  general: { title: "General", description: "We'd love to know about your experience.\nPlease share your feedback..." },
 };
 
 export const PreviewSection = React.forwardRef(
@@ -51,8 +28,62 @@ export const PreviewSection = React.forwardRef(
     },
     ref
   ) => {
+    const [imgSrc, setImgSrc] = useState(null);
+    const [imgError, setImgError] = useState(false);
     const template = TEMPLATES[selectedTemplate] || TEMPLATES.general;
     const description = template.description.replace(/\[Hotel Name\]/g, businessName);
+
+    useEffect(() => {
+      // Helpful debug log — remove later if desired
+      console.debug("PreviewSection - generatedQrData keys:", generatedQrData && Object.keys(generatedQrData || {}).length ? generatedQrData : generatedQrData);
+
+      setImgError(false);
+      setImgSrc(null);
+
+      if (!generatedQrData) return;
+
+      // Try common possible fields that might carry an image URL from your backend
+      const possibleImageKeys = ["qr_image", "image_url", "imageUrl", "qrImage", "image", "qrImg", "qrImageUrl"];
+      let found = null;
+      for (const k of possibleImageKeys) {
+        if (generatedQrData[k]) {
+          found = generatedQrData[k];
+          break;
+        }
+      }
+
+      // If we found a direct image URL, use it
+      if (found) {
+        setImgSrc(found);
+        return;
+      }
+
+      // If there's an explicit 'scan_url' (link to the QR landing page), generate a QR image from that URL
+      const scan = generatedQrData.scan_url || generatedQrData.scanUrl || generatedQrData.scan;
+      if (scan && typeof scan === "string" && scan.trim() !== "") {
+        // Generate a data URL for the QR code encoding the scan URL
+        QRCodeLib.toDataURL(scan, { width: 350, margin: 1, errorCorrectionLevel: "H" })
+          .then((dataUrl) => {
+            setImgSrc(dataUrl);
+          })
+          .catch((err) => {
+            console.error("PreviewSection: failed to generate QR DataURL from scan_url:", err);
+            setImgError(true);
+            setImgSrc(null);
+          });
+        return;
+      }
+
+      // Nothing usable found
+      setImgSrc(null);
+    }, [generatedQrData]);
+
+    // Image onError fallback - logs the failing URL and shows placeholder
+    const handleImgError = (e) => {
+      console.error("PreviewSection: QR image failed to load:", e?.target?.src);
+      setImgError(true);
+      setImgSrc(null);
+    };
 
     return (
       <section ref={ref} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -74,13 +105,8 @@ export const PreviewSection = React.forwardRef(
             className="relative mx-auto border border-gray-300 bg-white text-black overflow-y-auto shadow-md w-[min(100%,148mm)] max-w-full h-[calc(min(100vw,148mm)*1.414)] p-[clamp(8px,2.5vw,12mm)] box-border font-sans"
             style={{ minWidth: "148mm" }}
           >
-            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, #000 1px, transparent 1px)", backgroundSize: "18px 18px" }} />
-            
-            <div className="absolute top-1/2 right-[10mm] flex flex-col gap-1 opacity-10 -translate-y-1/2">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="text-2xl font-bold">X</div>
-              ))}
-            </div>
+            <div className="absolute inset-0 opacity-10 pointer-events-none"
+                 style={{ backgroundImage: "radial-gradient(circle, #000 1px, transparent 1px)", backgroundSize: "18px 18px" }} />
 
             <div className="relative z-10 flex flex-col items-center justify-between h-full text-center">
               <h1 className="text-3xl font-bold text-[#0E5FD8] tracking-wide">{businessName}</h1>
@@ -92,13 +118,9 @@ export const PreviewSection = React.forwardRef(
 
               <p className="font-bold text-center">Scan Me!!</p>
               <div className="flex items-center justify-center border-2 border-black rounded-lg bg-white h-[240px] w-[240px]">
-                {generatedQrData?.scan_url ? (
-                  <img
-                    src={generatedQrData.scan_url}
-                    alt="QR Code"
-                    className="w-full h-full object-contain"
-                    crossOrigin="anonymous"
-                  />
+                {imgSrc && !imgError ? (
+                  // Note: no crossOrigin attr to avoid silent CORS failures
+                  <img src={imgSrc} alt="QR Code" className="w-full h-full object-contain" onError={handleImgError} />
                 ) : (
                   <QrCode className="w-20 h-20 text-gray-600" />
                 )}
@@ -127,10 +149,7 @@ export const PreviewSection = React.forwardRef(
             {["top-6 left-6", "top-6 right-6", "bottom-6 left-6", "bottom-6 right-6"].map((pos) => (
               <div key={pos} className={`absolute ${pos} flex gap-1`}>
                 {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-[clamp(0.35rem,1vw,0.375rem)] h-[clamp(0.35rem,1vw,0.375rem)] rounded-full bg-gray-400 opacity-50"
-                  />
+                  <div key={i} className="w-[clamp(0.35rem,1vw,0.375rem)] h-[clamp(0.35rem,1vw,0.375rem)] rounded-full bg-gray-400 opacity-50" />
                 ))}
               </div>
             ))}
@@ -165,3 +184,4 @@ export const PreviewSection = React.forwardRef(
 );
 
 PreviewSection.displayName = "PreviewSection";
+export default PreviewSection;
