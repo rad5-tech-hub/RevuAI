@@ -175,7 +175,8 @@ export const ManageTab = ({
   };
 
   const handleViewQrCode = (code) => {
-    const templateType = code.templateType || code.type || "general";
+    const templateMap = JSON.parse(localStorage.getItem("templateMap") || "{}");
+    const templateType = templateMap[code.id] || "general";
     setCurrentQrCode({ ...code, templateType });
     setIsQrModalOpen(true);
   };

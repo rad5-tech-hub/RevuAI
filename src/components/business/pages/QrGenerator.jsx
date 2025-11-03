@@ -213,7 +213,6 @@ export default function QRGenerator() {
     setActiveTab("create");
   };
 
-
   const editQR = async (code) => {
     setIsLoading(true);
     try {
@@ -250,7 +249,6 @@ export default function QRGenerator() {
     }
   };
 
-
   const handleCreateQR = async () => {
     if (!qrName || qrName.trim() === "") {
       toast.error("QR Code Name is required.");
@@ -266,7 +264,7 @@ export default function QRGenerator() {
     }
 
     const isHotel = businessCategory && (
-      businessCategory.toLowerCase() === "hotel" || 
+      businessCategory.toLowerCase() === "hotel" ||
       businessCategory.toLowerCase() === "hotels"
     );
     const hasRoomKeywords = hasHotelRoomKeywords(qrName);
@@ -275,7 +273,7 @@ export default function QRGenerator() {
     if (shouldIncludeRoomRange && (startRange.trim() || endRange.trim())) {
       const start = parseInt(startRange.trim());
       const end = parseInt(endRange.trim());
-      
+
       if (!startRange.trim() || !endRange.trim()) {
         toast.error("Please provide both start and end room numbers.");
         return;
@@ -304,6 +302,7 @@ export default function QRGenerator() {
     try {
       const apiType = qrType === "general" || qrType === "location" ? "Product" : "Service";
 
+      /* ---------- EDIT ---------- */
       if (editingId) {
         const payload = {
           label: qrName.trim(),
@@ -319,15 +318,20 @@ export default function QRGenerator() {
         await axios.put(`${import.meta.env.VITE_API_URL}/api/v1/qrcode/edit-qrcode/${editingId}`, payload, {
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
         });
+
+        // *** SAVE TEMPLATE FOR EDITED QR ***
         const templateMap = JSON.parse(localStorage.getItem("templateMap") || "{}");
-        templateMap[qrData.id] = selectedTemplate;
+        templateMap[editingId] = selectedTemplate;
         localStorage.setItem("templateMap", JSON.stringify(templateMap));
+
         toast.success("QR code updated!");
         setEditingId(null);
-      } else if (isBulkGeneration) {
+      }
+
+      /* ---------- BULK ---------- */
+      else if (isBulkGeneration) {
         const start = parseInt(startRange.trim());
         const end = parseInt(endRange.trim());
-        const totalRooms = end - start + 1;
 
         const bulkPayload = {
           label: qrName.trim(),
@@ -353,10 +357,11 @@ export default function QRGenerator() {
         const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
         newQrIds.forEach(id => { qrTypeMap[id] = qrType; });
         localStorage.setItem("qrTypeMap", JSON.stringify(qrTypeMap));
-        bulkData.forEach(qr => {
-        templateMap[qr.id] = selectedTemplate;
-      });
-      localStorage.setItem("templateMap", JSON.stringify(templateMap));
+
+        // *** SAVE TEMPLATE FOR EVERY BULK QR ***
+        const templateMap = JSON.parse(localStorage.getItem("templateMap") || "{}");
+        newQrIds.forEach(id => { templateMap[id] = selectedTemplate; });
+        localStorage.setItem("templateMap", JSON.stringify(templateMap));
 
         toast.success(`Generated ${bulkData.length} QR codes!`);
         if (bulkData.length > 0) {
@@ -365,7 +370,10 @@ export default function QRGenerator() {
             label: bulkData[0].label
           });
         }
-      } else {
+      }
+
+      /* ---------- SINGLE ---------- */
+      else {
         const productOrServiceId = `${qrName.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`;
         const payload = {
           label: qrName.trim(),
@@ -388,9 +396,15 @@ export default function QRGenerator() {
 
         const qrData = response.data.data;
         setQrCodeIds(prev => [...new Set([...prev, qrData.id])]);
+
         const qrTypeMap = JSON.parse(localStorage.getItem("qrTypeMap") || "{}");
         qrTypeMap[qrData.id] = qrType;
         localStorage.setItem("qrTypeMap", JSON.stringify(qrTypeMap));
+
+        // *** SAVE TEMPLATE FOR SINGLE QR ***
+        const templateMap = JSON.parse(localStorage.getItem("templateMap") || "{}");
+        templateMap[qrData.id] = selectedTemplate;
+        localStorage.setItem("templateMap", JSON.stringify(templateMap));
 
         toast.success("QR code generated!");
         setGeneratedQrData({
