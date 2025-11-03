@@ -177,9 +177,9 @@ const Terms = () => {
             <div>
               <h4 className="text-lg font-semibold mb-4">Follow Us</h4>
               <div className="flex space-x-4">
-                {/* <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
+                <a href="https://www.facebook.com/profile.php?id=61582786711070" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
                   <Facebook className="w-6 h-6" />
-                </a> */}
+                </a>
                 <a href="https://x.com/Revu_Ai" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
                   <FaXTwitter className="w-6 h-6" />
                 </a>
