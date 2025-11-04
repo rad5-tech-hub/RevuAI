@@ -21,6 +21,9 @@ import {
   Loader2,
   Check,
   Copy,
+  CheckSquare,
+  Square,
+  ChevronDown,
 } from "lucide-react";
 
 /**
@@ -67,11 +70,11 @@ export const ManageTab = ({
   shareQR,
   filterType,
   setFilterType,
-  viewQR, // <- restored to match parent usage
+  viewQR,
 }) => {
   const navigate = useNavigate();
 
-  // Map filtered QR codes to an internal state with feedback metadata
+  // === Existing State ===
   const [qrCodesWithFeedback, setQrCodesWithFeedback] = useState(
     (filteredQrCodes || []).map((code) => ({
       ...code,
@@ -87,13 +90,20 @@ export const ManageTab = ({
   const [currentQrCode, setCurrentQrCode] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  const qrModalCanvasRef = useRef(null); // canvas inside modal for QR
-  const modalRef = useRef(null); // modal wrapper for focus
-  const designRef = useRef(null); // full A5 preview for domtoimage
+  const qrModalCanvasRef = useRef(null);
+  const modalRef = useRef(null);
+  const designRef = useRef(null);
 
-  // Keep sync when parent provides new filtered list
+  // === NEW: Bulk Download Modal State ===
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [selectedQrs, setSelectedQrs] = useState(new Set());
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Sync filteredQrCodes
   useEffect(() => {
-    // Build a stable list by preserving any feedback display state from previous state
     setQrCodesWithFeedback((prev) => {
       const prevMap = new Map(prev.map((p) => [p.id, p]));
       return filteredQrCodes.map((code) => {
@@ -108,10 +118,9 @@ export const ManageTab = ({
         };
       });
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredQrCodes]);
 
-  // Render QR onto canvas when modal opens or currentQrCode changes
+  // QR Modal Canvas
   useEffect(() => {
     if (isQrModalOpen && qrModalCanvasRef.current && currentQrCode?.url) {
       try {
@@ -138,19 +147,24 @@ export const ManageTab = ({
     }
   }, [isQrModalOpen, currentQrCode]);
 
-  // Escape closes modal
+  // Escape to close modals
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === "Escape" && isQrModalOpen) {
-        setIsQrModalOpen(false);
-        setCopied(false);
+      if (e.key === "Escape") {
+        if (isQrModalOpen) {
+          setIsQrModalOpen(false);
+          setCopied(false);
+        }
+        if (isBulkModalOpen) {
+          setIsBulkModalOpen(false);
+        }
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [isQrModalOpen]);
+  }, [isQrModalOpen, isBulkModalOpen]);
 
-  // autofocus modal container for accessibility
+  // Autofocus modal
   useEffect(() => {
     if (isQrModalOpen && modalRef.current) {
       modalRef.current.focus();
@@ -159,18 +173,14 @@ export const ManageTab = ({
 
   const copyUrl = async () => {
     const url = currentQrCode?.url || "";
-    if (!url) {
-      toast.error("No URL to copy.");
-      return;
-    }
+    if (!url) return toast.error("No URL to copy.");
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
       toast.success("Copied!");
       setTimeout(() => setCopied(false), 1600);
-    } catch (err) {
-      console.error("Clipboard copy failed:", err);
-      toast.error("Failed to copy URL. Try manual copy.");
+    } catch {
+      toast.error("Failed to copy URL.");
     }
   };
 
@@ -182,9 +192,7 @@ export const ManageTab = ({
   };
 
   const downloadPNG = async (code) => {
-    if (!designRef.current) {
-      return toast.error("Design not ready.");
-    }
+    if (!designRef.current) return toast.error("Design not ready.");
     try {
       toast.info("Generating PNG...");
       const dataUrl = await domtoimage.toPng(designRef.current, {
@@ -196,8 +204,9 @@ export const ManageTab = ({
       });
       const link = document.createElement("a");
       link.href = dataUrl;
-      const safeName =
-        (code?.businessName || "QR_Design").replace(/\s+/g, "_").replace(/[^\w\-_.]/g, "");
+      const safeName = (code?.businessName || "QR_Design")
+        .replace(/\s+/g, "_")
+        .replace(/[^\w\-_.]/g, "");
       link.download = `${safeName}_QR_Design.png`;
       link.click();
       toast.success("Downloaded!");
@@ -208,9 +217,7 @@ export const ManageTab = ({
   };
 
   const printQR = async (code) => {
-    if (!designRef.current) {
-      return toast.error("Design not ready.");
-    }
+    if (!designRef.current) return toast.error("Design not ready.");
     try {
       toast.info("Preparing print...");
       const dataUrl = await domtoimage.toPng(designRef.current, {
@@ -221,17 +228,12 @@ export const ManageTab = ({
         style: { transform: "scale(2)", transformOrigin: "top left" },
       });
       const win = window.open("");
-      if (!win) {
-        toast.error("Please allow popups for printing.");
-        return;
-      }
+      if (!win) return toast.error("Allow popups for printing.");
       win.document.write(`
-        <html>
-          <head><title>Print QR</title></head>
-          <body style="margin:0;padding:0;display:flex;align-items:center;justify-content:center;">
-            <img src="${dataUrl}" style="max-width:100%;height:auto" onload="window.print();window.close()" />
-          </body>
-        </html>
+        <html><head><title>Print QR</title></head>
+        <body style="margin:0;padding:0;display:flex;align-items:center;justify-content:center;">
+          <img src="${dataUrl}" style="max-width:100%;height:auto" onload="window.print();window.close()" />
+        </body></html>
       `);
       win.document.close();
     } catch (err) {
@@ -248,7 +250,6 @@ export const ManageTab = ({
       return;
     }
 
-    // Toggle and mark loading
     setQrCodesWithFeedback((prev) =>
       prev.map((qr) =>
         qr.id === code.id
@@ -257,7 +258,6 @@ export const ManageTab = ({
       )
     );
 
-    // If closing (already open), don't fetch
     if (code.showFeedback) return;
 
     try {
@@ -315,8 +315,172 @@ export const ManageTab = ({
     }
   };
 
+  // === BULK DOWNLOAD HELPERS ===
+  const getFilteredQrCodesForBulk = () => {
+    return filteredQrCodes.filter((code) => {
+      const createdAt = new Date(code.date);
+      const from = dateFrom ? new Date(dateFrom) : null;
+      const to = dateTo ? new Date(dateTo) : null;
+
+      if (from && createdAt < from) return false;
+      if (to && createdAt > to) return false;
+      if (typeFilter !== "all" && code.type !== typeFilter) return false;
+      return true;
+    });
+  };
+
+  const toggleQrSelection = (id) => {
+    setSelectedQrs((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
+      return newSet;
+    });
+  };
+
+  const selectAllQrs = () => {
+    const filtered = getFilteredQrCodesForBulk();
+    setSelectedQrs(new Set(filtered.map((c) => c.id)));
+  };
+
+  const deselectAllQrs = () => {
+    setSelectedQrs(new Set());
+  };
+
+const generateQrCodeImage = async (code) => {
+    const templateMap = JSON.parse(localStorage.getItem("templateMap") || "{}");
+    const templateType = templateMap[code.id] || "general";
+    const template = TEMPLATES[templateType] || TEMPLATES.general;
+    const desc = template.description.replace(/\[Hotel Name\]/g, code.businessName || "");
+
+    // Create hidden container
+    const container = document.createElement("div");
+    container.style.position = "absolute";
+    container.style.left = "-9999px";
+    container.style.width = "148mm";
+    container.style.minWidth = "148mm";
+    container.style.height = "calc(148mm * 1.414)";
+    container.style.padding = "12mm";
+    container.style.background = "white";
+    container.style.fontFamily = "sans-serif";
+    container.style.boxShadow = "0 0 20px rgba(0,0,0,0.1)";
+    document.body.appendChild(container);
+
+    // QR Canvas - wrap in Promise to ensure completion
+    const canvas = document.createElement("canvas");
+    canvas.width = 240;
+    canvas.height = 240;
+    
+    await new Promise((resolve, reject) => {
+      QRCode.toCanvas(canvas, code.url, {
+        width: 240,
+        color: { dark: "#0E5FD8", light: "#ffffff" },
+        errorCorrectionLevel: "H",
+      }, (error) => {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
+
+    const qrDataUrl = canvas.toDataURL("image/png");
+    container.innerHTML = `
+      <div style="position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center;">
+        <div style="background: radial-gradient(circle, #000 1px, transparent 1px); background-size: 18px 18px; opacity: 0.1; position: absolute; inset: 0; pointer-events: none;"></div>
+        <h1 style="font-size: 2.5rem; font-weight: bold; color: #0E5FD8; margin: 0;">${code.businessName}</h1>
+        <p style="font-size: 0.875rem; line-height: 1.5; max-width: 80%; margin: 1.5rem 0;">
+          <span style="font-weight: bold; font-size: 1rem; color: #0E5FD8;">
+            Welcome to ${code.businessName || "Your Business"}!<br>
+          </span>
+          ${desc.replace(/\n/g, "<br>")}
+        </p>
+        <p style="font-weight: bold; margin-bottom: 0.5rem;">Scan Me!!</p>
+        <div style="border: 2px solid black; border-radius: 0.5rem; background: white; width: 240px; height: 240px; display: flex; align-items: center; justify-content: center;">
+          <img src="${qrDataUrl}" style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>
+        <div style="width: 100%; border-top: 1px solid #d1d5db; padding-top: 1rem; margin-top: 1.5rem; max-width: 75%;">
+          <h3 style="font-size: 1.125rem; font-weight: bold; margin-bottom: 0.75rem;">How to Use</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.875rem; text-align: left;">
+            <div><strong>1.</strong> Open camera or Google Lens.<br><strong>2.</strong> Scan the QR code.<br><strong>3.</strong> Give your feedback.</div>
+            <div><strong>4.</strong> Sign up to get reply.<br><strong>5.</strong> And you're done!</div>
+          </div>
+        </div>
+        <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #d1d5db; font-size: 0.75rem; color: #6b7280;">
+          Powered by <span style="font-weight: 600; color: #0E5FD8;">ScanRevuAI.com</span>
+        </div>
+      </div>
+    `;
+
+    try {
+      const dataUrl = await domtoimage.toPng(container, {
+        width: container.offsetWidth * 2,
+        height: container.offsetHeight * 2,
+        style: { transform: "scale(2)", transformOrigin: "top left" },
+        bgcolor: "#ffffff",
+      });
+      document.body.removeChild(container);
+      return dataUrl;
+    } catch (err) {
+      document.body.removeChild(container);
+      throw err;
+    }
+  };
+
+  const downloadBulkQrCodes = async () => {
+    const selectedIds = Array.from(selectedQrs);
+    if (selectedIds.length === 0) return;
+
+    setIsDownloading(true);
+    toast.info(`Generating ${selectedIds.length} QR codes...`);
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < selectedIds.length; i++) {
+      const id = selectedIds[i];
+      const code = filteredQrCodes.find((c) => c.id === id);
+      if (!code) continue;
+
+      try {
+        const dataUrl = await generateQrCodeImage(code);
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        const safeName = (code.businessName || "QR_Design")
+          .replace(/\s+/g, "_")
+          .replace(/[^\w\-_.]/g, "");
+        link.download = `${safeName}_${code.title || "QR"}_Design.png`;
+        link.click();
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to generate QR for ${code.id}:`, err);
+        toast.error(`Failed: ${code.businessName || "Unknown"}`);
+        failCount++;
+      }
+
+      // Delay between downloads
+      if (i < selectedIds.length - 1) {
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    }
+
+    setIsDownloading(false);
+    toast.success(`Successfully downloaded ${successCount} QR code(s)!`);
+    if (failCount > 0) toast.warn(`${failCount} failed.`);
+  };
+
+  const closeBulkModal = () => {
+    setIsBulkModalOpen(false);
+    setSelectedQrs(new Set());
+    setDateFrom("");
+    setDateTo("");
+    setTypeFilter("all");
+  };
+
+  const filteredForBulk = getFilteredQrCodesForBulk();
+  const selectedCount = selectedQrs.size;
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
+      {/* Header with Create + Bulk Download */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
           <h2 className="font-medium text-lg sm:text-xl text-slate-800">Your QR Codes ({filteredQrCodes.length})</h2>
@@ -335,15 +499,26 @@ export const ManageTab = ({
           </select>
         </div>
 
-        <button
-          onClick={() => setActiveTab?.("create")}
-          className="w-full sm:w-auto bg-blue-600 cursor-pointer text-white px-4 py-2 rounded-lg flex items-center justify-center gap-1 text-sm font-medium hover:bg-blue-700 transition"
-          aria-label="Create new QR code"
-        >
-          <Plus className="h-4 w-4" /> Create New
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <button
+            onClick={() => setIsBulkModalOpen(true)}
+            className="w-full sm:w-auto bg-green-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-1.5 text-sm font-medium hover:bg-green-700 transition cursor-pointer"
+            aria-label="Bulk download QR codes"
+          >
+            <Download className="h-4 w-4" /> Bulk Download
+          </button>
+
+          <button
+            onClick={() => setActiveTab?.("create")}
+            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-1 text-sm font-medium hover:bg-blue-700 transition cursor-pointer"
+            aria-label="Create new QR code"
+          >
+            <Plus className="h-4 w-4" /> Create New
+          </button>
+        </div>
       </div>
 
+      {/* Existing List */}
       {isFetching && filteredQrCodes.length === 0 ? (
         <div className="space-y-4" aria-busy="true">
           {[1, 2, 3].map((i) => (
@@ -367,7 +542,9 @@ export const ManageTab = ({
                 <h3 className="text-lg font-semibold text-slate-800 truncate">{code.title}</h3>
                 <div className="flex gap-2">
                   <span
-                    className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${code.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      code.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                    }`}
                   >
                     {code.status}
                   </span>
@@ -384,7 +561,7 @@ export const ManageTab = ({
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   onClick={() => handleViewQrCode(code)}
-                  className="flex items-center gap-2 cursor-pointer px-3 py-1.5 border border-slate-300 rounded-lg text-xs hover:bg-slate-50"
+                  className="flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded-lg text-xs hover:bg-slate-50 cursor-pointer"
                   aria-label={`View ${code.title}`}
                 >
                   <QrCode className="h-4 w-4" /> View Qr Code
@@ -392,7 +569,7 @@ export const ManageTab = ({
 
                 <button
                   onClick={() => handleViewFeedbacks(code)}
-                  className="flex items-center gap-2 px-3 cursor-pointer py-1.5 border border-slate-300  rounded-lg text-xs hover:bg-slate-50"
+                  className="flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded-lg text-xs hover:bg-slate-50 cursor-pointer"
                   aria-label={`Feedback for ${code.title}`}
                 >
                   <MessageCircle className="h-4 w-4" /> View Feedbacks
@@ -400,7 +577,7 @@ export const ManageTab = ({
 
                 <button
                   onClick={() => editQR?.(code)}
-                  className="flex items-center gap-2 px-3 cursor-pointer py-1.5 border border-slate-300  rounded-lg text-xs hover:bg-slate-50"
+                  className="flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded-lg text-xs hover:bg-slate-50 cursor-pointer"
                   aria-label={`Edit ${code.title}`}
                 >
                   <Settings className="h-4 w-4" /> Edit
@@ -408,7 +585,7 @@ export const ManageTab = ({
 
                 <button
                   onClick={() => shareQR?.(code.url, code.title)}
-                  className="flex items-center gap-2 px-3 cursor-pointer py-1.5 border border-slate-300  rounded-lg text-xs hover:bg-slate-50"
+                  className="flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded-lg text-xs hover:bg-slate-50 cursor-pointer"
                   aria-label={`Share ${code.title}`}
                 >
                   <Share2 className="h-4 w-4" /> Share
@@ -431,7 +608,7 @@ export const ManageTab = ({
                             <MessageCircle className="h-5 w-5 text-blue-600" />
                             Reviews ({code.feedbacks.length})
                           </h4>
-                          <button onClick={() => handleViewFeedbacks(code)} className="text-slate-400 cursor-pointer hover:text-slate-600">
+                          <button onClick={() => handleViewFeedbacks(code)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
                             <X className="h-5 w-5" />
                           </button>
                         </div>
@@ -502,7 +679,7 @@ export const ManageTab = ({
         </div>
       )}
 
-      {/* QR MODAL */}
+      {/* QR MODAL (unchanged) */}
       {isQrModalOpen && currentQrCode && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -518,11 +695,10 @@ export const ManageTab = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
-                    // copy URL quick action
                     if (currentQrCode?.url) {
                       navigator.clipboard?.writeText(currentQrCode.url).then(() => {
                         toast.success("URL copied!");
-                      }).catch(()=>{ toast.error("Copy failed"); });
+                      }).catch(() => toast.error("Copy failed"));
                     }
                   }}
                   className="p-1 rounded hover:bg-slate-100 cursor-pointer"
@@ -545,7 +721,6 @@ export const ManageTab = ({
               </div>
             </div>
 
-            {/* FULL A5 DESIGN */}
             <div className="overflow-x-auto">
               <div
                 ref={designRef}
@@ -605,7 +780,6 @@ export const ManageTab = ({
                   </div>
                 </div>
 
-                {/* corner dots */}
                 {["top-6 left-6", "top-6 right-6", "bottom-6 left-6", "bottom-6 right-6"].map((pos) => (
                   <div key={pos} className={`absolute ${pos} flex gap-1`}>
                     {[...Array(3)].map((_, i) => (
@@ -625,7 +799,7 @@ export const ManageTab = ({
                   className="flex-1 px-3 py-2 border rounded text-xs bg-gray-50"
                   aria-label="Generated QR url"
                 />
-                <button onClick={copyUrl} className="flex items-center gap-1.5 cursor-pointer px-3 py-2 border rounded text-xs hover:bg-gray-50">
+                <button onClick={copyUrl} className="flex items-center gap-1.5 px-3 py-2 border rounded text-xs hover:bg-gray-50 cursor-pointer">
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   {copied ? "Copied" : "Copy"}
                 </button>
@@ -646,8 +820,173 @@ export const ManageTab = ({
           </div>
         </div>
       )}
+
+      {/* BULK DOWNLOAD MODAL */}
+      {isBulkModalOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bulkModalTitle"
+        >
+          <div className="bg-white rounded-xl border border-slate-200 p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 id="bulkModalTitle" className="text-xl font-semibold">Bulk Download QR Codes</h2>
+              <button
+                onClick={closeBulkModal}
+                className="p-1 hover:bg-slate-100 rounded cursor-pointer"
+                aria-label="Close bulk download modal"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Filters */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Date From</label>
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Date To</label>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Type Filter</label>
+                  <div className="relative">
+                    <select
+                      value={typeFilter}
+                      onChange={(e) => setTypeFilter(e.target.value)}
+                      className="w-full px-3 py-2 pr-8 border border-slate-300 rounded-lg text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    >
+                      <option value="all">All Types</option>
+                      <option value="general">General Business</option>
+                      <option value="product">Specific Product</option>
+                      <option value="location">Location/Area</option>
+                      <option value="service">Service Type</option>
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mt-4">
+                <div className="flex gap-2">
+                  <button
+                    onClick={selectAllQrs}
+                    className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 cursor-pointer"
+                  >
+                    Select All ({filteredForBulk.length})
+                  </button>
+                  <button
+                    onClick={deselectAllQrs}
+                    className="px-3 py-1.5 border border-slate-300 text-sm rounded-lg hover:bg-slate-50 cursor-pointer"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+                <span className="text-sm text-slate-600">
+                  {selectedCount} selected
+                </span>
+              </div>
+            </div>
+
+            {/* QR List */}
+            <div className="max-h-96 overflow-y-auto border border-slate-200 rounded-lg bg-white">
+              {filteredForBulk.length === 0 ? (
+                <p className="text-center py-8 text-slate-500">No QR codes match your filters.</p>
+              ) : (
+                <div className="p-2 space-y-2">
+                  {filteredForBulk.map((code) => (
+                    <div
+                      key={code.id}
+                      onClick={() => toggleQrSelection(code.id)}
+                      className={`p-3 rounded-lg border cursor-pointer transition ${
+                        selectedQrs.has(code.id)
+                          ? "bg-blue-50 border-blue-400"
+                          : "bg-white border-slate-200 hover:bg-slate-50"
+                      }`}
+                      role="checkbox"
+                      aria-checked={selectedQrs.has(code.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        {selectedQrs.has(code.id) ? (
+                          <CheckSquare className="h-5 w-5 text-blue-600" />
+                        ) : (
+                          <Square className="h-5 w-5 text-slate-400" />
+                        )}
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium text-slate-800">{code.title}</h4>
+                            <div className="flex gap-2">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                code.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                              }`}>
+                                {code.status}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {code.type}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-sm text-slate-600 mt-1">
+                            {code.businessName} • Created {formatDate(code.date)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={closeBulkModal}
+                className="px-4 py-2 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 cursor-pointer"
+                disabled={isDownloading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={downloadBulkQrCodes}
+                disabled={selectedCount === 0 || isDownloading}
+                className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition ${
+                  selectedCount === 0 || isDownloading
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-green-600 text-white hover:bg-green-700 cursor-pointer"
+                }`}
+              >
+                {isDownloading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    Download ({selectedCount})
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default ManageTab;
+export default ManageTab; 
