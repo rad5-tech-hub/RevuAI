@@ -163,7 +163,7 @@ export const PreviewSection = React.forwardRef(
               <h1 className="text-3xl font-bold text-[#0E5FD8] tracking-wide">{businessName}</h1>
 
               <p className="text-sm leading-relaxed whitespace-pre-line max-w-[80%] my-6 md:my-4">
-                <span className="font-bold text-base text-[#0E5FD8]">Welcome to {businessName}!{"\n"}</span>
+                <span className="font-bold text-base text-[#0E5FD8]">Welcome to our {generatedQrData?.label || businessName}!{"\n"}</span>
                 {description}
               </p>
 

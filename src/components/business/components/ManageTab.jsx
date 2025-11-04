@@ -93,6 +93,7 @@ export const ManageTab = ({
   const qrModalCanvasRef = useRef(null);
   const modalRef = useRef(null);
   const designRef = useRef(null);
+  const isBulkModeRef = useRef(false);
 
   // === NEW: Bulk Download Modal State ===
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -348,124 +349,221 @@ export const ManageTab = ({
   };
 
 const generateQrCodeImage = async (code) => {
-    const templateMap = JSON.parse(localStorage.getItem("templateMap") || "{}");
-    const templateType = templateMap[code.id] || "general";
-    const template = TEMPLATES[templateType] || TEMPLATES.general;
-    const desc = template.description.replace(/\[Hotel Name\]/g, code.businessName || "");
+  // -------------------------------------------------
+  // 1. Template + description
+  // -------------------------------------------------
+  const templateMap = JSON.parse(localStorage.getItem("templateMap") || "{}");
+  const templateType = templateMap[code.id] || "general";
+  const template = TEMPLATES[templateType] || TEMPLATES.general;
+  const desc = template.description.replace(/\[Hotel Name\]/g, code.businessName || "");
 
-    // Create hidden container
-    const container = document.createElement("div");
-    container.style.position = "absolute";
-    container.style.left = "-9999px";
-    container.style.width = "148mm";
-    container.style.minWidth = "148mm";
-    container.style.height = "calc(148mm * 1.414)";
-    container.style.padding = "12mm";
-    container.style.background = "white";
-    container.style.fontFamily = "sans-serif";
-    container.style.boxShadow = "0 0 20px rgba(0,0,0,0.1)";
-    document.body.appendChild(container);
+  // -------------------------------------------------
+  // 2. Hidden A3 container (exact same size as PreviewSection)
+  // -------------------------------------------------
+  const container = document.createElement("div");
+  Object.assign(container.style, {
+    position: "absolute",
+    left: "-9999px",
+    top: "0",
+    width: "148mm",
+    minWidth: "148mm",
+    height: "calc(148mm * 1.414)",   // A3 ratio
+    padding: "12mm",
+    background: "#ffffff",
+    fontFamily: "sans-serif",
+    boxShadow: "0 0 20px rgba(0,0,0,0.1)",
+    border: "1px solid #d1d5db",
+    boxSizing: "border-box",
+  });
+  document.body.appendChild(container);
 
-    // QR Canvas - wrap in Promise to ensure completion
-    const canvas = document.createElement("canvas");
-    canvas.width = 240;
-    canvas.height = 240;
-    
-    await new Promise((resolve, reject) => {
-      QRCode.toCanvas(canvas, code.url, {
+  // -------------------------------------------------
+  // 3. QR canvas (240×240 px)
+  // -------------------------------------------------
+  const canvas = document.createElement("canvas");
+  canvas.width = 240;
+  canvas.height = 240;
+
+  await new Promise((resolve, reject) => {
+    QRCode.toCanvas(
+      canvas,
+      code.url,
+      {
         width: 240,
         color: { dark: "#0E5FD8", light: "#ffffff" },
         errorCorrectionLevel: "H",
-      }, (error) => {
-        if (error) reject(error);
-        else resolve();
-      });
-    });
+      },
+      (err) => (err ? reject(err) : resolve())
+    );
+  });
+  const qrDataUrl = canvas.toDataURL("image/png");
 
-    const qrDataUrl = canvas.toDataURL("image/png");
-    container.innerHTML = `
-      <div style="position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center;">
-        <div style="background: radial-gradient(circle, #000 1px, transparent 1px); background-size: 18px 18px; opacity: 0.1; position: absolute; inset: 0; pointer-events: none;"></div>
-        <h1 style="font-size: 2.5rem; font-weight: bold; color: #0E5FD8; margin: 0;">${code.businessName}</h1>
-        <p style="font-size: 0.875rem; line-height: 1.5; max-width: 80%; margin: 1.5rem 0;">
-          <span style="font-weight: bold; font-size: 1rem; color: #0E5FD8;">
-            Welcome to ${code.businessName || "Your Business"}!<br>
-          </span>
-          ${desc.replace(/\n/g, "<br>")}
-        </p>
-        <p style="font-weight: bold; margin-bottom: 0.5rem;">Scan Me!!</p>
-        <div style="border: 2px solid black; border-radius: 0.5rem; background: white; width: 240px; height: 240px; display: flex; align-items: center; justify-content: center;">
-          <img src="${qrDataUrl}" style="width: 100%; height: 100%; object-fit: contain;" />
-        </div>
-        <div style="width: 100%; border-top: 1px solid #d1d5db; padding-top: 1rem; margin-top: 1.5rem; max-width: 75%;">
-          <h3 style="font-size: 1.125rem; font-weight: bold; margin-bottom: 0.75rem;">How to Use</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.875rem; text-align: left;">
-            <div><strong>1.</strong> Open camera or Google Lens.<br><strong>2.</strong> Scan the QR code.<br><strong>3.</strong> Give your feedback.</div>
-            <div><strong>4.</strong> Sign up to get reply.<br><strong>5.</strong> And you're done!</div>
-          </div>
-        </div>
-        <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #d1d5db; font-size: 0.75rem; color: #6b7280;">
-          Powered by <span style="font-weight: 600; color: #0E5FD8;">ScanRevuAI.com</span>
+  // -------------------------------------------------
+  // 4. Build **exactly** the same markup that PreviewSection uses
+  // -------------------------------------------------
+  const welcomeText = code.title || code.businessName;
+
+  container.innerHTML = `
+    <div style="position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;">
+      <!-- faint dot background -->
+      <div style="background:radial-gradient(circle,#000 1px,transparent 1px);background-size:18px 18px;opacity:0.1;position:absolute;inset:0;pointer-events:none;"></div>
+
+      <h1 style="font-size:2.5rem;font-weight:bold;color:#0E5FD8;margin:0;">${code.businessName}</h1>
+
+      <p style="font-size:0.875rem;line-height:1.5;max-width:80%;margin:1.5rem 0;">
+        <span style="font-weight:bold;font-size:1rem;color:#0E5FD8;">
+          Welcome to ${welcomeText}!<br>
+        </span>
+        ${desc.replace(/\n/g, "<br>")}
+      </p>
+
+      <p style="font-weight:bold;margin-bottom:0.5rem;">Scan Me!!</p>
+
+      <div style="border:2px solid black;border-radius:0.5rem;background:white;width:240px;height:240px;display:flex;align-items:center;justify-content:center;">
+        <img src="${qrDataUrl}" style="width:100%;height:100%;object-fit:contain;" />
+      </div>
+
+      <div style="width:100%;border-top:1px solid #d1d5db;padding-top:1rem;margin-top:1.5rem;max-width:75%;">
+        <h3 style="font-size:1.125rem;font-weight:bold;margin-bottom:0.75rem;">How to Use</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;font-size:0.875rem;text-align:left;">
+          <div><strong>1.</strong> Open camera or Google Lens.<br><strong>2.</strong> Scan the QR code.<br><strong>3.</strong> Give your feedback.</div>
+          <div><strong>4.</strong> Sign up to get reply.<br><strong>5.</strong> And you're done!</div>
         </div>
       </div>
-    `;
+
+      <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid #d1d5db;font-size:0.75rem;color:#6b7280;">
+        Powered by <span style="font-weight:600;color:#0E5FD8;">ScanRevuAI.com</span>
+      </div>
+
+      <!-- four corner-dot groups (identical to PreviewSection) -->
+      ${["top-6 left-6", "top-6 right-6", "bottom-6 left-6", "bottom-6 right-6"]
+        .map(
+          (pos) => `
+          <div style="position:absolute;${pos.replace(/-/g, ":")};display:flex;gap:0.25rem;">
+            ${Array.from({ length: 3 })
+              .map(
+                () =>
+                  `<div style="width:0.375rem;height:0.375rem;border-radius:9999px;background:#9ca3af;opacity:0.5;"></div>`
+              )
+              .join("")}
+          </div>`
+        )
+        .join("")}
+    </div>
+  `;
+
+  // -------------------------------------------------
+  // 5. Wait for the browser to layout the hidden element
+  // -------------------------------------------------
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  // -------------------------------------------------
+  // 6. Convert to PNG (2× scaling – same as single download)
+  // -------------------------------------------------
+  try {
+    const dataUrl = await domtoimage.toPng(container, {
+      width: container.offsetWidth * 2,
+      height: container.offsetHeight * 2,
+      style: { transform: "scale(2)", transformOrigin: "top left" },
+      bgcolor: "#ffffff",
+    });
+    document.body.removeChild(container);
+    return dataUrl;
+  } catch (err) {
+    document.body.removeChild(container);
+    throw err;
+  }
+};
+
+const downloadBulkQrCodes = async () => {
+  const selectedIds = Array.from(selectedQrs);
+  if (selectedIds.length === 0) return;
+
+  setIsDownloading(true);
+  toast.info(`Generating ${selectedIds.length} QR designs...`);
+
+  let successCount = 0;
+  let failCount = 0;
+
+  // Reuse the working downloadPNG logic
+  const originalDownloadPNG = downloadPNG;
+
+  for (let i = 0; i < selectedIds.length; i++) {
+    const id = selectedIds[i];
+    const code = filteredQrCodes.find((c) => c.id === id);
+    if (!code) continue;
 
     try {
-      const dataUrl = await domtoimage.toPng(container, {
-        width: container.offsetWidth * 2,
-        height: container.offsetHeight * 2,
-        style: { transform: "scale(2)", transformOrigin: "top left" },
-        bgcolor: "#ffffff",
+      // --- 1. Open modal programmatically (off-screen) ---
+      isBulkModeRef.current = true;
+      const templateMap = JSON.parse(localStorage.getItem("templateMap") || "{}");
+      const templateType = templateMap[code.id] || "general";
+      setCurrentQrCode({ ...code, templateType });
+      setIsQrModalOpen(true);
+
+      // --- 2. Wait for modal + canvas + design to render ---
+      await new Promise((resolve) => setTimeout(resolve, 300)); // wait for modal
+      if (!designRef.current || !qrModalCanvasRef.current) {
+        throw new Error("Design not ready");
+      }
+
+      // Force QR render
+      await new Promise((resolve, reject) => {
+        QRCode.toCanvas(
+          qrModalCanvasRef.current,
+          code.url,
+          {
+            width: 240,
+            height: 240,
+            color: { dark: "#0E5FD8", light: "#ffffff" },
+            errorCorrectionLevel: "H",
+          },
+          (err) => (err ? reject(err) : resolve())
+        );
       });
-      document.body.removeChild(container);
-      return dataUrl;
+
+      // Wait one more frame for layout
+      await new Promise((r) => requestAnimationFrame(r));
+
+      // --- 3. Trigger the EXACT same downloadPNG logic ---
+      const dataUrl = await domtoimage.toPng(designRef.current, {
+        quality: 1,
+        bgcolor: "#ffffff",
+        width: designRef.current.offsetWidth * 2,
+        height: designRef.current.offsetHeight * 2,
+        style: { transform: "scale(2)", transformOrigin: "top left" },
+      });
+
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      const safeName = (code.businessName || "QR_Design")
+        .replace(/\s+/g, "_")
+        .replace(/[^\w\-_.]/g, "");
+      link.download = `${safeName}_${code.title || "QR"}_Design.png`;
+      link.click();
+
+      successCount++;
     } catch (err) {
-      document.body.removeChild(container);
-      throw err;
-    }
-  };
+      console.error(`Bulk failed for ${code.id}:`, err);
+      toast.error(`Failed: ${code.businessName || "Unknown"}`);
+      failCount++;
+    } finally {
+      // --- 4. Clean up ---
+      setIsQrModalOpen(false);
+      setCurrentQrCode(null);
+      isBulkModeRef.current = false;
 
-  const downloadBulkQrCodes = async () => {
-    const selectedIds = Array.from(selectedQrs);
-    if (selectedIds.length === 0) return;
-
-    setIsDownloading(true);
-    toast.info(`Generating ${selectedIds.length} QR codes...`);
-
-    let successCount = 0;
-    let failCount = 0;
-
-    for (let i = 0; i < selectedIds.length; i++) {
-      const id = selectedIds[i];
-      const code = filteredQrCodes.find((c) => c.id === id);
-      if (!code) continue;
-
-      try {
-        const dataUrl = await generateQrCodeImage(code);
-        const link = document.createElement("a");
-        link.href = dataUrl;
-        const safeName = (code.businessName || "QR_Design")
-          .replace(/\s+/g, "_")
-          .replace(/[^\w\-_.]/g, "");
-        link.download = `${safeName}_${code.title || "QR"}_Design.png`;
-        link.click();
-        successCount++;
-      } catch (err) {
-        console.error(`Failed to generate QR for ${code.id}:`, err);
-        toast.error(`Failed: ${code.businessName || "Unknown"}`);
-        failCount++;
-      }
-
-      // Delay between downloads
+      // Small delay between downloads
       if (i < selectedIds.length - 1) {
-        await new Promise((r) => setTimeout(r, 300));
+        await new Promise((r) => setTimeout(r, 400));
       }
     }
+  }
 
-    setIsDownloading(false);
-    toast.success(`Successfully downloaded ${successCount} QR code(s)!`);
-    if (failCount > 0) toast.warn(`${failCount} failed.`);
-  };
+  setIsDownloading(false);
+  toast.success(`Downloaded ${successCount} QR design(s)!`);
+  if (failCount > 0) toast.warn(`${failCount} failed.`);
+};
 
   const closeBulkModal = () => {
     setIsBulkModalOpen(false);
@@ -747,7 +845,7 @@ const generateQrCodeImage = async (code) => {
                     return (
                       <p className="text-sm leading-relaxed whitespace-pre-line max-w-[80%] my-6">
                         <span className="font-bold text-base text-[#0E5FD8]">
-                          Welcome to {currentQrCode.businessName || "Your Business"}!{"\n"}
+                          Welcome to our {currentQrCode.title || currentQrCode.businessName}!{"\n"}
                         </span>
                         {desc}
                       </p>
