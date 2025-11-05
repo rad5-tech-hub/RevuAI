@@ -822,7 +822,7 @@ const downloadBulkQrCodes = async () => {
             <div className="overflow-x-auto">
               <div
                 ref={designRef}
-                className="relative mx-auto border border-gray-300 bg-white text-black w-[min(100%,148mm)] h-[calc(min(100vw,148mm)*1.414)] p-[12mm] font-sans shadow-lg"
+                className="relative mx-auto bg-white text-black w-[min(100%,148mm)] h-[calc(min(100vw,148mm)*1.414)] p-[12mm] font-sans"
                 style={{ minWidth: "148mm" }}
               >
                 <div
