@@ -845,7 +845,7 @@ const downloadBulkQrCodes = async () => {
                     return (
                       <p className="text-sm leading-relaxed whitespace-pre-line max-w-[80%] my-6">
                         <span className="font-bold text-base text-[#0E5FD8]">
-                          Welcome to our {currentQrCode.title || currentQrCode.businessName}!{"\n"}
+                          Welcome to {currentQrCode.title || currentQrCode.businessName}{"\n"}
                         </span>
                         {desc}
                       </p>
